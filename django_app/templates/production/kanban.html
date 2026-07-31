@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+
+{% block title %}Produção | Print Fornece{% endblock %}
+{% block page_heading %}Produção{% endblock %}
+
+{% block content %}
+  <div class="section-heading">
+    <div>
+      <h2>Kanban de produção</h2>
+      <p>Arraste um pedido entre as etapas ou use os botões de movimentação em cada cartão.</p>
+    </div>
+    <a class="btn btn-primary no-print" href="{% url 'orders:create' %}">
+      <i class="fa-solid fa-plus" aria-hidden="true"></i> Novo pedido
+    </a>
+  </div>
+
+  <form class="card filters no-print" method="get">
+    <label for="{{ filter_form.search.id_for_label }}">Buscar{{ filter_form.search }}</label>
+    <label for="{{ filter_form.stage.id_for_label }}">Etapa{{ filter_form.stage }}</label>
+    <label for="{{ filter_form.payment_status.id_for_label }}">Pagamento{{ filter_form.payment_status }}</label>
+    <label for="{{ filter_form.priority.id_for_label }}">Prioridade{{ filter_form.priority }}</label>
+    <label for="{{ filter_form.responsible.id_for_label }}">Responsável
+      <select id="{{ filter_form.responsible.id_for_label }}" name="responsible">
+        <option value="">Todos</option>
+        {% for responsible in active_users %}
+          <option value="{{ responsible.pk }}"{% if filter_form.responsible.value|stringformat:"s" == responsible.pk|stringformat:"s" %} selected{% endif %}>{{ responsible.name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label for="{{ filter_form.order.id_for_label }}">Ordem{{ filter_form.order }}</label>
+    <button class="btn btn-secondary btn-small" type="submit">Filtrar</button>
+  </form>
+
+  <div class="kanban" aria-label="Etapas dos pedidos">
+    <section class="kanban-column" data-stage="novo" aria-labelledby="stage-new">
+      <div class="kanban-title"><span id="stage-new">Pedido novo</span><span>{{ columns.novo|length }}</span></div>
+      <div class="kanban-cards">
+        {% for order in columns.novo %}
+          <article class="order-card{% if order.is_late %} is-late{% endif %}" draggable="true" data-order-id="{{ order.pk }}" data-stage="{{ order.stage }}" data-kanban-endpoint="{% url 'production:move_stage' pk=order.pk %}">
+            <span class="order-number">{{ order.number }}</span>
+            <h3><a href="{% url 'production:detail' pk=order.pk %}">{{ order.client_name }}</a></h3>
+            <p>{{ order.description }}</p>
+            <div class="order-meta">
+              <span class="badge badge-{{ order.payment_status }}">{{ order.get_payment_status_display }}</span>
+              {% if order.priority == "urgente" %}<span class="priority"><i class="fa-solid fa-bolt" aria-hidden="true"></i> Urgente</span>{% endif %}
+            </div>
+            <div class="order-details">
+              <span><i class="fa-regular fa-user" aria-hidden="true"></i> {{ order.responsible.name|default:"Não definido" }}</span>
+              <span><i class="fa-regular fa-file" aria-hidden="true"></i> {{ order.attachment_count }}</span>
+            </div>
+            {% if order.is_late %}<p class="late">Entrega atrasada</p>{% endif %}
+            <div class="button-row order-stage-actions">
+              <button class="btn btn-secondary btn-small" type="button" data-order-move="{{ order.pk }}" data-stage="preparacao">Avançar</button>
+            </div>
+          </article>
+        {% empty %}
+          <div class="empty-state">Nenhum pedido novo.</div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="kanban-column" data-stage="preparacao" aria-labelledby="stage-preparation">
+      <div class="kanban-title"><span id="stage-preparation">Preparação de arquivo</span><span>{{ columns.preparacao|length }}</span></div>
+      <div class="kanban-cards">
+        {% for order in columns.preparacao %}
+          <article class="order-card{% if order.is_late %} is-late{% endif %}" draggable="true" data-order-id="{{ order.pk }}" data-stage="{{ order.stage }}" data-kanban-endpoint="{% url 'production:move_stage' pk=order.pk %}">
+            <span class="order-number">{{ order.number }}</span>
+            <h3><a href="{% url 'production:detail' pk=order.pk %}">{{ order.client_name }}</a></h3>
+            <p>{{ order.description }}</p>
+            <div class="order-meta">
+              <span class="badge badge-{{ order.payment_status }}">{{ order.get_payment_status_display }}</span>
+              {% if order.priority == "urgente" %}<span class="priority"><i class="fa-solid fa-bolt" aria-hidden="true"></i> Urgente</span>{% endif %}
+            </div>
+            <div class="order-details">
+              <span><i class="fa-regular fa-user" aria-hidden="true"></i> {{ order.responsible.name|default:"Não definido" }}</span>
+              <span><i class="fa-regular fa-file" aria-hidden="true"></i> {{ order.attachment_count }}</span>
+            </div>
+            {% if order.is_late %}<p class="late">Entrega atrasada</p>{% endif %}
+            <div class="button-row order-stage-actions">
+              <button class="btn btn-secondary btn-small" type="button" data-order-move="{{ order.pk }}" data-stage="novo">Voltar</button>
+              <button class="btn btn-secondary btn-small" type="button" data-order-move="{{ order.pk }}" data-stage="producao">Avançar</button>
+            </div>
+          </article>
+        {% empty %}
+          <div class="empty-state">Nenhum pedido nesta etapa.</div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="kanban-column" data-stage="producao" aria-labelledby="stage-production">
+      <div class="kanban-title"><span id="stage-production">Em produção</span><span>{{ columns.producao|length }}</span></div>
+      <div class="kanban-cards">
+        {% for order in columns.producao %}
+          <article class="order-card{% if order.is_late %} is-late{% endif %}" draggable="true" data-order-id="{{ order.pk }}" data-stage="{{ order.stage }}" data-kanban-endpoint="{% url 'production:move_stage' pk=order.pk %}">
+            <span class="order-number">{{ order.number }}</span>
+            <h3><a href="{% url 'production:detail' pk=order.pk %}">{{ order.client_name }}</a></h3>
+            <p>{{ order.description }}</p>
+            <div class="order-meta">
+              <span class="badge badge-{{ order.payment_status }}">{{ order.get_payment_status_display }}</span>
+              {% if order.priority == "urgente" %}<span class="priority"><i class="fa-solid fa-bolt" aria-hidden="true"></i> Urgente</span>{% endif %}
+            </div>
+            <div class="order-details">
+              <span><i class="fa-regular fa-user" aria-hidden="true"></i> {{ order.responsible.name|default:"Não definido" }}</span>
+              <span><i class="fa-regular fa-file" aria-hidden="true"></i> {{ order.attachment_count }}</span>
+            </div>
+            {% if order.is_late %}<p class="late">Entrega atrasada</p>{% endif %}
+            <div class="button-row order-stage-actions">
+              <button class="btn btn-secondary btn-small" type="button" data-order-move="{{ order.pk }}" data-stage="preparacao">Voltar</button>
+              <button class="btn btn-secondary btn-small" type="button" data-order-move="{{ order.pk }}" data-stage="pronto">Avançar</button>
+            </div>
+          </article>
+        {% empty %}
+          <div class="empty-state">Nenhum pedido em produção.</div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="kanban-column" data-stage="pronto" aria-labelledby="stage-ready">
+      <div class="kanban-title"><span id="stage-ready">Pronto</span><span>{{ columns.pronto|length }}</span></div>
+      <div class="kanban-cards">
+        {% for order in columns.pronto %}
+          <article class="order-card{% if order.is_late %} is-late{% endif %}" draggable="true" data-order-id="{{ order.pk }}" data-stage="{{ order.stage }}" data-kanban-endpoint="{% url 'production:move_stage' pk=order.pk %}">
+            <span class="order-number">{{ order.number }}</span>
+            <h3><a href="{% url 'production:detail' pk=order.pk %}">{{ order.client_name }}</a></h3>
+            <p>{{ order.description }}</p>
+            <div class="order-meta">
+              <span class="badge badge-{{ order.payment_status }}">{{ order.get_payment_status_display }}</span>
+              {% if order.priority == "urgente" %}<span class="priority"><i class="fa-solid fa-bolt" aria-hidden="true"></i> Urgente</span>{% endif %}
+            </div>
+            <div class="order-details">
+              <span><i class="fa-regular fa-user" aria-hidden="true"></i> {{ order.responsible.name|default:"Não definido" }}</span>
+              <span><i class="fa-regular fa-file" aria-hidden="true"></i> {{ order.attachment_count }}</span>
+            </div>
+            <div class="button-row order-stage-actions">
+              <button class="btn btn-secondary btn-small" type="button" data-order-move="{{ order.pk }}" data-stage="producao">Voltar</button>
+              <a class="btn btn-primary btn-small" href="{% url 'production:detail' pk=order.pk %}">Finalizar</a>
+            </div>
+          </article>
+        {% empty %}
+          <div class="empty-state">Nenhum pedido pronto.</div>
+        {% endfor %}
+      </div>
+    </section>
+  </div>
+{% endblock %}

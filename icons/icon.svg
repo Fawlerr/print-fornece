@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title id="title">Print Fornece</title>
+  <rect width="512" height="512" rx="112" fill="#0f9d57"/>
+  <path d="M130 177c0-25 20-45 45-45h162c25 0 45 20 45 45v66h18c31 0 56 25 56 56v80c0 31-25 56-56 56h-18v-57H130v57h-18c-31 0-56-25-56-56v-80c0-31 25-56 56-56h18zm45 0v66h162v-66H175zm0 201v58c0 15 12 27 27 27h108c15 0 27-12 27-27v-58H175zm-45-71a19 19 0 1 0 0 38 19 19 0 0 0 0-38z" fill="#fff"/>
+  <path d="M206 405h100v22H206z" fill="#0f9d57"/>
+</svg>

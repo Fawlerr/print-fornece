@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block title %}{% if object %}Editar usuário{% else %}Novo usuário{% endif %} | Print Fornece{% endblock %}
+{% block page_heading %}{% if object %}Editar usuário{% else %}Novo usuário{% endif %}{% endblock %}
+
+{% block content %}
+  <section class="card form-card">
+    <div class="section-heading">
+      <div>
+        <h2>{% if object %}Atualizar {{ object.name }}{% else %}Criar usuário{% endif %}</h2>
+        <p>A nova conta deverá trocar a senha no primeiro acesso.</p>
+      </div>
+    </div>
+    <form method="post" novalidate>
+      {% csrf_token %}
+      {% include "includes/form_fields.html" with form=form %}
+      <div class="form-actions">
+        <a class="btn btn-secondary" href="{% url 'accounts:user_list' %}">Cancelar</a>
+        <button class="btn btn-primary" type="submit">Salvar usuário</button>
+      </div>
+    </form>
+  </section>
+{% endblock %}

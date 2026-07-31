@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block title %}Solicitação inválida | Print Fornece{% endblock %}
+{% block body_class %}login-page{% endblock %}
+
+{% block page_layout %}
+  <main class="login-card" id="main-content">
+    <div class="login-brand"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i><span>PRINT <b>FORNECE</b></span></div>
+    <h1>Solicitação inválida</h1>
+    <p>Não foi possível processar esta solicitação. Atualize a página e tente novamente.</p>
+    <a class="btn btn-primary btn-block" href="{% url 'home' %}">Voltar ao início</a>
+  </main>
+{% endblock %}

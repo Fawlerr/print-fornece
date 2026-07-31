@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block title %}{% if object %}Editar pedido{% else %}Novo pedido{% endif %} | Print Fornece{% endblock %}
+{% block page_heading %}{% if object %}Editar pedido{% else %}Novo pedido{% endif %}{% endblock %}
+
+{% block content %}
+  <div class="section-heading">
+    <div>
+      <h2>{% if object %}Atualizar pedido {{ object.number }}{% else %}Registrar pedido{% endif %}</h2>
+      <p>Os campos marcados são necessários para iniciar a produção.</p>
+    </div>
+  </div>
+
+  <form class="card form-card" method="post" enctype="multipart/form-data" novalidate>
+    {% csrf_token %}
+    {% include "includes/form_fields.html" with form=form %}
+    <label class="full" for="id_attachments">
+      {% if object %}Adicionar anexos{% else %}Arquivos da arte{% endif %}
+      <input id="id_attachments" type="file" name="attachments" multiple accept=".pdf,.png,.jpg,.jpeg,.webp,.svg,.cdr,.ai,.eps,.psd,.tiff,.zip">
+      <span class="help">PDF, imagens, SVG, CDR, AI, EPS, PSD, TIFF ou ZIP. Máximo de 25 MB por arquivo.</span>
+    </label>
+    <div class="form-actions">
+      {% if object %}
+        <a class="btn btn-secondary" href="{% url 'production:detail' pk=object.pk %}">Cancelar</a>
+      {% else %}
+        <a class="btn btn-secondary" href="{% url 'production:kanban' %}">Cancelar</a>
+      {% endif %}
+      <button class="btn btn-primary" type="submit"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> {% if object %}Salvar alterações{% else %}Salvar pedido{% endif %}</button>
+    </div>
+  </form>
+{% endblock %}

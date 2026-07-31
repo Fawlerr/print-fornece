@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block title %}Relatórios | Print Fornece{% endblock %}
+{% block page_heading %}Relatórios{% endblock %}
+
+{% block content %}
+  <div class="section-heading">
+    <div>
+      <h2>Resultados do período</h2>
+      <p>Valores pagos consideram pagamentos parciais e integrais; pedidos cancelados ficam fora dos totais financeiros.</p>
+    </div>
+    <button class="btn btn-secondary no-print" type="button" onclick="window.print()"><i class="fa-solid fa-print" aria-hidden="true"></i> Imprimir</button>
+  </div>
+
+  <form class="card filters no-print" method="get">
+    <label for="{{ filter_form.start.id_for_label }}">Data inicial{{ filter_form.start }}</label>
+    <label for="{{ filter_form.end.id_for_label }}">Data final{{ filter_form.end }}</label>
+    <label for="{{ filter_form.stage.id_for_label }}">Etapa{{ filter_form.stage }}</label>
+    <label for="{{ filter_form.payment_status.id_for_label }}">Pagamento{{ filter_form.payment_status }}</label>
+    <label for="{{ filter_form.responsible.id_for_label }}">Funcionário
+      <select id="{{ filter_form.responsible.id_for_label }}" name="responsible">
+        <option value="">Todos</option>
+        {% for responsible in users %}
+          <option value="{{ responsible.pk }}"{% if filter_form.responsible.value|stringformat:"s" == responsible.pk|stringformat:"s" %} selected{% endif %}>{{ responsible.name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label for="{{ filter_form.priority.id_for_label }}">Prioridade{{ filter_form.priority }}</label>
+    <button class="btn btn-secondary btn-small" type="submit">Aplicar</button>
+    <button class="btn btn-primary btn-small" type="submit" name="export" value="csv"><i class="fa-solid fa-file-csv" aria-hidden="true"></i> Exportar CSV</button>
+  </form>
+
+  <div class="grid stats-grid">
+    <div class="stat-card"><small>Total de pedidos</small><strong>{{ order_count }}</strong></div>
+    <div class="stat-card"><small>Faturamento pago</small><strong>R$ {{ paid|floatformat:2 }}</strong></div>
+    <div class="stat-card alert"><small>Valor pendente</small><strong>R$ {{ pending|floatformat:2 }}</strong></div>
+    <div class="stat-card danger"><small>Despesas</small><strong>R$ {{ expenses|floatformat:2 }}</strong></div>
+    <div class="stat-card"><small>Lucro líquido</small><strong>R$ {{ profit|floatformat:2 }}</strong></div>
+    <div class="stat-card"><small>Ticket médio</small><strong>R$ {{ ticket|floatformat:2 }}</strong></div>
+    <div class="stat-card"><small>Concluídos</small><strong>{{ completed }}</strong></div>
+    <div class="stat-card danger"><small>Cancelados</small><strong>{{ cancelled }}</strong></div>
+  </div>
+
+  <section class="card card-pad">
+    <div class="section-heading"><h2>Tempo médio em cada etapa</h2><p>Calculado a partir do histórico de movimentações.</p></div>
+    <div class="detail-grid">
+      <div><small>Pedido novo</small><strong>{% if stage_durations.novo is not None %}{{ stage_durations.novo }} h{% else %}Sem dados{% endif %}</strong></div>
+      <div><small>Preparação de arquivo</small><strong>{% if stage_durations.preparacao is not None %}{{ stage_durations.preparacao }} h{% else %}Sem dados{% endif %}</strong></div>
+      <div><small>Em produção</small><strong>{% if stage_durations.producao is not None %}{{ stage_durations.producao }} h{% else %}Sem dados{% endif %}</strong></div>
+      <div><small>Pronto</small><strong>{% if stage_durations.pronto is not None %}{{ stage_durations.pronto }} h{% else %}Sem dados{% endif %}</strong></div>
+    </div>
+  </section>
+
+  <section class="card card-pad">
+    <div class="section-heading"><h2>Pedidos detalhados</h2><p>{{ order_count }} resultado(s)</p></div>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead><tr><th>Número</th><th>Cliente</th><th>Data</th><th>Total</th><th>Pago</th><th>Etapa</th><th>Responsável</th></tr></thead>
+        <tbody>
+          {% for order in orders %}
+            <tr>
+              <td><a class="text-green" href="{% url 'production:detail' pk=order.pk %}">{{ order.number }}</a></td>
+              <td>{{ order.client_name }}</td>
+              <td>{{ order.created_at|date:"d/m/Y H:i" }}</td>
+              <td>R$ {{ order.total_amount|floatformat:2 }}</td>
+              <td>R$ {{ order.paid_amount|floatformat:2 }}</td>
+              <td><span class="badge badge-{{ order.stage }}">{{ order.get_stage_display }}</span></td>
+              <td>{{ order.responsible.name|default:"—" }}</td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="7"><div class="empty-state">Nenhum pedido no filtro selecionado.</div></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+{% endblock %}

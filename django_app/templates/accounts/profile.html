@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}Meu perfil | Print Fornece{% endblock %}
+
+{% block content %}
+  <div class="grid two-col">
+    <section class="card form-card">
+      <div class="section-heading">
+        <div>
+          <h2>Dados pessoais</h2>
+          <p>E-mail: {{ user.email }}</p>
+        </div>
+      </div>
+      <form method="post" novalidate>
+        {% csrf_token %}
+        {% if profile_form %}
+          {% include "includes/form_fields.html" with form=profile_form %}
+        {% else %}
+          {% include "includes/form_fields.html" with form=form %}
+        {% endif %}
+        <div class="form-actions">
+          <button class="btn btn-primary" type="submit">Salvar dados</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="card card-pad">
+      <div class="section-heading">
+        <div>
+          <h2>Segurança</h2>
+          <p>Mantenha sua senha atualizada para proteger a conta.</p>
+        </div>
+      </div>
+      {% if user.force_password_change %}
+        <p class="text-danger">A troca de senha é obrigatória antes de continuar.</p>
+      {% endif %}
+      <a class="btn btn-secondary" href="{% url 'accounts:change_password' %}">
+        <i class="fa-solid fa-key" aria-hidden="true"></i> Alterar senha
+      </a>
+    </section>
+  </div>
+{% endblock %}

@@ -1,0 +1,2 @@
+"""Immutable audit trail domain."""
+

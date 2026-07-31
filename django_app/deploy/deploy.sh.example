@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+# Run after an explicit backup and a reviewed release checkout. This script does
+# not create, drop, or reset any database.
+APP_DIR=/srv/print-fornece/django_app
+VENV_DIR=/srv/print-fornece/.venv
+
+cd "$APP_DIR"
+"$VENV_DIR/bin/pip" install --requirement requirements.txt
+"$VENV_DIR/bin/python" manage.py check --deploy
+"$VENV_DIR/bin/python" manage.py migrate --noinput
+"$VENV_DIR/bin/python" manage.py collectstatic --noinput
+sudo systemctl restart print-fornece-gunicorn
+curl --fail --silent --show-error http://127.0.0.1/health/ >/dev/null
+

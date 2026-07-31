@@ -1,0 +1,2 @@
+"""Expense tracking domain."""
+

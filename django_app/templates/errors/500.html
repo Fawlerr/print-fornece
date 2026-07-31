@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block title %}Erro temporário | Print Fornece{% endblock %}
+{% block body_class %}login-page{% endblock %}
+
+{% block page_layout %}
+  <main class="login-card" id="main-content">
+    <div class="login-brand"><i class="fa-solid fa-screwdriver-wrench" aria-hidden="true"></i><span>PRINT <b>FORNECE</b></span></div>
+    <h1>Algo não saiu como esperado</h1>
+    <p>Ocorreu um erro temporário. Tente novamente em alguns instantes.</p>
+    <a class="btn btn-primary btn-block" href="{% url 'home' %}">Voltar ao início</a>
+  </main>
+{% endblock %}

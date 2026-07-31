@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}Notificações | Print Fornece{% endblock %}
+{% block page_heading %}Notificações{% endblock %}
+
+{% block content %}
+  <div class="section-heading">
+    <div>
+      <h2>Central de notificações</h2>
+      <p>{{ page_obj.paginator.count }} registro(s) para sua conta.</p>
+    </div>
+    {% if notifications %}
+      <form method="post" action="{% url 'notifications:mark_all_read' %}" class="no-print">
+        {% csrf_token %}
+        <button class="btn btn-secondary" type="submit" data-confirm="Marcar todas as notificações como lidas?">Marcar todas como lidas</button>
+      </form>
+    {% endif %}
+  </div>
+
+  <div class="notification-list">
+    {% for notification in notifications %}
+      <form method="post" action="{% url 'notifications:mark_read' pk=notification.pk %}" class="notification-item{% if not notification.read_at %} unread{% endif %}">
+        {% csrf_token %}
+        <button class="notification-button" type="submit">
+          <strong>{{ notification.title }}</strong>
+          <p>{{ notification.message }}</p>
+          <small>{{ notification.created_at|date:"d/m/Y H:i" }}{% if not notification.read_at %} · Não lida{% endif %}</small>
+        </button>
+      </form>
+    {% empty %}
+      <div class="card empty-state"><i class="fa-regular fa-bell-slash" aria-hidden="true"></i>Você não tem notificações.</div>
+    {% endfor %}
+  </div>
+
+  {% if page_obj.paginator.num_pages > 1 %}
+    <nav class="pagination" aria-label="Paginação">
+      {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}">Anterior</a>{% endif %}
+      {% for page_number in page_obj.paginator.page_range %}
+        {% if page_number == page_obj.number %}<span class="active" aria-current="page">{{ page_number }}</span>{% else %}<a href="?page={{ page_number }}">{{ page_number }}</a>{% endif %}
+      {% endfor %}
+      {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}">Próxima</a>{% endif %}
+    </nav>
+  {% endif %}
+{% endblock %}

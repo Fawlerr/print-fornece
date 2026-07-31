@@ -1,0 +1,23 @@
+[Unit]
+Description=Print Fornece Django via Gunicorn
+After=network.target
+
+[Service]
+Type=exec
+User=printfornece
+Group=www-data
+WorkingDirectory=/srv/print-fornece/django_app
+EnvironmentFile=/etc/print-fornece.env
+ExecStart=/srv/print-fornece/.venv/bin/gunicorn --workers 3 --bind unix:/run/print-fornece/gunicorn.sock --access-logfile - --error-logfile - config.wsgi:application
+RuntimeDirectory=print-fornece
+RuntimeDirectoryMode=0755
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ReadWritePaths=/srv/print-fornece/django_app/media /srv/print-fornece/django_app/staticfiles
+
+[Install]
+WantedBy=multi-user.target
+

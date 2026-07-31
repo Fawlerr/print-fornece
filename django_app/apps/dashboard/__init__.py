@@ -1,0 +1,2 @@
+"""Administrative dashboard domain."""
+

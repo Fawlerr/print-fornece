@@ -1,0 +1,15 @@
+Options -Indexes
+RewriteEngine On
+AddType application/manifest+json .webmanifest
+
+# Nunca exponha configuração, SQL, serviços internos ou arquivos de upload diretamente.
+RewriteRule ^(?:config|database|includes|services)/ - [F,L,NC]
+RewriteRule ^uploads/ - [F,L,NC]
+RewriteRule \.(?:sql|md|log)$ - [F,L,NC]
+
+<IfModule mod_headers.c>
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set X-Frame-Options "SAMEORIGIN"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+  Header always set Permissions-Policy "geolocation=(), microphone=(), camera=()"
+</IfModule>

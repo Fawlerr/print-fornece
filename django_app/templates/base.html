@@ -1,0 +1,75 @@
+{% load static %}
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0B0D0C">
+  <title>{% block title %}{{ page_title|default:"Print Fornece" }} | Print Fornece{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+  <link rel="stylesheet" href="{% static 'css/overrides.css' %}">
+  <link rel="stylesheet" href="{% static 'css/django.css' %}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" referrerpolicy="no-referrer">
+  {% block extra_head %}{% endblock %}
+</head>
+<body class="{% block body_class %}{% endblock %}"
+      data-kanban-endpoint="{{ kanban_move_url|default:'' }}"
+      data-kanban-order-field="{{ kanban_order_field|default:'order_id' }}"
+      data-kanban-stage-field="{{ kanban_stage_field|default:'stage' }}"
+      data-notifications-poll-endpoint="{% url 'notifications:poll' %}"
+      {% block body_attributes %}{% endblock %}>
+  {% block page_layout %}
+    <div class="app-shell">
+      {% include "includes/sidebar.html" %}
+      <main class="main-content" id="main-content">
+        <header class="topbar">
+          <button class="icon-button menu-toggle" type="button" data-menu-open aria-label="Abrir menu">
+            <i class="fa-solid fa-bars" aria-hidden="true"></i>
+          </button>
+          <div class="topbar-title">
+            <h1>{% block page_heading %}{{ page_title|default:"Print Fornece" }}{% endblock %}</h1>
+            <p>{{ user.name|default:user.email }} · {% if user.is_administrator %}Administrador{% else %}Funcionário{% endif %}</p>
+          </div>
+          <div class="notification-area">
+            <a class="notification-bell" href="{% url 'notifications:list' %}" aria-label="Notificações">
+              <i class="fa-regular fa-bell" aria-hidden="true"></i>
+              <span class="notification-count{% if not unread_notification_count %} is-empty{% endif %}" data-unread-count aria-live="polite">{{ unread_notification_count|default:"0" }}</span>
+            </a>
+            <div class="notification-dropdown" aria-label="Notificações recentes">
+              <strong>Recentes</strong>
+              {% for notification in recent_notifications %}
+                <a href="{{ notification.link|default:'#' }}"{% if not notification.read_at %} class="unread"{% endif %}>
+                  <span>{{ notification.title }}</span>
+                  <small>{{ notification.message }}</small>
+                </a>
+              {% empty %}
+                <p>Nenhuma notificação recente.</p>
+              {% endfor %}
+              <a class="notification-see-all" href="{% url 'notifications:list' %}">Ver todas</a>
+            </div>
+          </div>
+        </header>
+
+        <section class="page-body">
+          <a class="sr-only sr-only-focusable" href="#page-content">Pular para o conteúdo principal</a>
+          {% if messages %}
+            <div class="flash-messages" aria-live="polite">
+              {% for message in messages %}
+                <div class="toast {% if 'error' in message.tags %}toast-error{% elif 'success' in message.tags %}toast-success{% else %}toast-info{% endif %}" role="{% if 'error' in message.tags %}alert{% else %}status{% endif %}">
+                  {{ message }}
+                </div>
+              {% endfor %}
+            </div>
+          {% endif %}
+          <div id="page-content">
+            {% block content %}{% endblock %}
+          </div>
+        </section>
+      </main>
+    </div>
+  {% endblock %}
+
+  <script src="{% static 'js/app.js' %}" defer></script>
+  {% block extra_scripts %}{% endblock %}
+</body>
+</html>

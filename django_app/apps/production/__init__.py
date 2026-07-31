@@ -1,0 +1,2 @@
+"""Production queue / Kanban domain."""
+

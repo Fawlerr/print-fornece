@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+
+{% block title %}{{ order.number }} | Print Fornece{% endblock %}
+{% block page_heading %}Pedido {{ order.number }}{% endblock %}
+
+{% block content %}
+  <div class="section-heading">
+    <div>
+      <h2>{{ order.client_name }}</h2>
+      <p>Criado em {{ order.created_at|date:"d/m/Y H:i" }} por {{ order.created_by.name }}</p>
+    </div>
+    <div class="button-row no-print">
+      <a class="btn btn-secondary" href="{% url 'production:kanban' %}"><i class="fa-solid fa-table-columns" aria-hidden="true"></i> Produção</a>
+      <a class="btn btn-primary" href="{% url 'orders:edit' pk=order.pk %}"><i class="fa-solid fa-pen" aria-hidden="true"></i> Editar pedido</a>
+    </div>
+  </div>
+
+  <div class="grid two-col">
+    <section class="card card-pad">
+      <div class="section-heading"><h2>Resumo do pedido</h2><span class="badge badge-{{ order.stage }}">{{ order.get_stage_display }}</span></div>
+      <div class="detail-grid">
+        <div><small>WhatsApp</small><strong>{{ order.client_whatsapp }}</strong></div>
+        <div><small>Valor total</small><strong>R$ {{ order.total_amount|floatformat:2 }}</strong></div>
+        <div><small>Valor pago</small><strong>R$ {{ order.paid_amount|floatformat:2 }}</strong></div>
+        <div><small>Pagamento</small><strong>{{ order.get_payment_status_display }}</strong></div>
+        <div><small>Responsável</small><strong>{{ order.responsible.name|default:"Não definido" }}</strong></div>
+        <div><small>Entrega prevista</small><strong>{% if order.due_at %}{{ order.due_at|date:"d/m/Y H:i" }}{% else %}Não definida{% endif %}</strong></div>
+      </div>
+      <div class="section-heading"><h2>Descrição</h2></div>
+      <p>{{ order.description|linebreaksbr }}</p>
+      {% if order.internal_notes %}
+        <div class="section-heading"><h2>Observações do cadastro</h2></div>
+        <p>{{ order.internal_notes|linebreaksbr }}</p>
+      {% endif %}
+    </section>
+
+    <section class="card card-pad">
+      <div class="section-heading"><h2>Ações de produção</h2></div>
+      {% if order.stage in active_stages %}
+        <form method="post" action="{% url 'production:move_stage' pk=order.pk %}" class="stage-form">
+          {% csrf_token %}
+          <label for="stage">Mover para
+            <select name="stage" id="stage">
+              <option value="novo"{% if order.stage == "novo" %} selected{% endif %}>Pedido novo</option>
+              <option value="preparacao"{% if order.stage == "preparacao" %} selected{% endif %}>Preparação de arquivo</option>
+              <option value="producao"{% if order.stage == "producao" %} selected{% endif %}>Em produção</option>
+              <option value="pronto"{% if order.stage == "pronto" %} selected{% endif %}>Pronto</option>
+            </select>
+          </label>
+          <div class="form-actions"><button class="btn btn-secondary" type="submit">Atualizar etapa</button></div>
+        </form>
+      {% endif %}
+      <div class="button-row">
+        {% if order.stage == "pronto" %}
+          <form method="post" action="{% url 'production:finalize' pk=order.pk %}">
+            {% csrf_token %}
+            <button class="btn btn-primary" type="submit" data-confirm="Confirmar a finalização deste pedido?">Finalizar e entregar</button>
+          </form>
+        {% endif %}
+        {% if order.stage != "cancelado" and order.stage != "finalizado" %}
+          <form method="post" action="{% url 'production:cancel' pk=order.pk %}">
+            {% csrf_token %}
+            <button class="btn btn-danger" type="submit" data-confirm="Cancelar este pedido?">Cancelar pedido</button>
+          </form>
+        {% endif %}
+        {% if order.stage == "cancelado" and user.is_administrator %}
+          <form method="post" action="{% url 'production:restore' pk=order.pk %}">
+            {% csrf_token %}
+            <button class="btn btn-warning" type="submit" data-confirm="Restaurar este pedido para a etapa inicial?">Restaurar pedido</button>
+          </form>
+        {% endif %}
+      </div>
+
+      <div class="section-heading"><h2>Cobranças Stone</h2></div>
+      {% if order.payment_status == "pago" %}
+        <p class="text-green">Pedido integralmente pago.</p>
+      {% else %}
+        <p class="text-muted">A integração de cobrança ainda não está disponível.</p>
+        <div class="button-row">
+          <button class="btn btn-secondary" type="button" disabled>Gerar cobrança PIX <small>Em breve</small></button>
+          <button class="btn btn-secondary" type="button" disabled>Cobrança no cartão <small>Em breve</small></button>
+        </div>
+      {% endif %}
+    </section>
+  </div>
+
+  <div class="grid two-col">
+    <section class="card card-pad">
+      <div class="section-heading"><h2>Anexos</h2></div>
+      <div class="files">
+        {% for attachment in order.attachments.all %}
+          <div class="file-row">
+            <i class="fa-regular fa-file" aria-hidden="true"></i>
+            <span>{{ attachment.original_name }} <small class="text-muted">· {{ attachment.size|filesizeformat }}</small></span>
+            <a href="{% url 'orders:download_attachment' order_pk=order.pk pk=attachment.pk %}"><i class="fa-solid fa-download" aria-hidden="true"></i> Baixar</a>
+            <form method="post" class="no-print" action="{% url 'production:remove_attachment' pk=order.pk attachment_pk=attachment.pk %}">
+              {% csrf_token %}
+              <button class="btn btn-danger btn-small" type="submit" data-confirm="Remover este anexo do pedido?">Remover</button>
+            </form>
+          </div>
+        {% empty %}
+          <p class="text-muted">Nenhum arquivo anexado.</p>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="card card-pad">
+      <div class="section-heading"><h2>Observações internas</h2></div>
+      <form method="post" action="{% url 'production:add_note' pk=order.pk %}">
+        {% csrf_token %}
+        {% include "includes/form_fields.html" with form=note_form %}
+        <div class="form-actions"><button class="btn btn-secondary" type="submit">Adicionar observação</button></div>
+      </form>
+      <div class="timeline">
+        {% for note in order.notes.all %}
+          <div class="timeline-item">
+            <strong>{{ note.user.name }}</strong>
+            <p>{{ note.text|linebreaksbr }}</p>
+            <small class="text-muted">{{ note.created_at|date:"d/m/Y H:i" }}</small>
+          </div>
+        {% empty %}
+          <p class="text-muted">Nenhuma observação interna.</p>
+        {% endfor %}
+      </div>
+    </section>
+  </div>
+
+  <section class="card card-pad">
+    <div class="section-heading"><h2>Histórico completo</h2></div>
+    <div class="timeline">
+      {% for item in order.history.all %}
+        <div class="timeline-item">
+          <strong>{{ item.description }}</strong>
+          <p>{{ item.user.name|default:"Sistema" }} · {{ item.created_at|date:"d/m/Y H:i" }}</p>
+        </div>
+      {% empty %}
+        <div class="empty-state">Nenhuma movimentação registrada.</div>
+      {% endfor %}
+    </div>
+  </section>
+{% endblock %}

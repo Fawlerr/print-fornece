@@ -1,0 +1,11 @@
+.git
+.env
+.venv
+django_app/.venv
+django_app/db.sqlite3
+django_app/media
+django_app/staticfiles
+config/config.local.php
+uploads/pedidos/*
+!uploads/pedidos/.gitkeep
+*.log

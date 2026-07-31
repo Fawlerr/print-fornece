@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}Despesas | Print Fornece{% endblock %}
+{% block page_heading %}Despesas{% endblock %}
+
+{% block content %}
+  <div class="section-heading">
+    <div>
+      <h2>Despesas operacionais</h2>
+      <p>Alterações e cancelamentos ficam registrados na auditoria.</p>
+    </div>
+    <a class="btn btn-primary no-print" href="{% url 'expenses:create' %}"><i class="fa-solid fa-plus" aria-hidden="true"></i> Nova despesa</a>
+  </div>
+
+  <form class="card filters no-print" method="get">
+    <label>De<input type="date" name="start" value="{{ start|date:'Y-m-d' }}"></label>
+    <label>Até<input type="date" name="end" value="{{ end|date:'Y-m-d' }}"></label>
+    <label>Categoria
+      <select name="category">
+        <option value="">Todas</option>
+        {% for value, label in categories %}
+          <option value="{{ value }}"{% if category == value %} selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <button class="btn btn-secondary btn-small" type="submit">Filtrar</button>
+  </form>
+
+  <div class="grid two-col">
+    <section class="card card-pad">
+      <small class="text-muted">Total no período filtrado</small>
+      <h2>R$ {{ total|floatformat:2 }}</h2>
+      <p class="text-muted">Despesas canceladas permanecem visíveis no histórico, mas não entram no total.</p>
+    </section>
+  </div>
+
+  <section class="card card-pad">
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Valor</th><th>Status</th><th class="no-print">Ações</th></tr></thead>
+        <tbody>
+          {% for expense in expenses %}
+            <tr>
+              <td>{{ expense.expense_date|date:"d/m/Y" }}</td>
+              <td><strong>{{ expense.description }}</strong><br><small class="text-muted">{{ expense.created_by.name }}</small></td>
+              <td>{{ expense.get_category_display }}</td>
+              <td>R$ {{ expense.amount|floatformat:2 }}</td>
+              <td>{% if expense.status == "ativa" %}<span class="badge badge-pago">Ativa</span>{% else %}<span class="badge badge-cancelado">Cancelada</span>{% endif %}</td>
+              <td class="no-print">
+                {% if expense.status == "ativa" %}
+                  <div class="button-row">
+                    <a class="btn btn-secondary btn-small" href="{% url 'expenses:edit' pk=expense.pk %}">Editar</a>
+                    <form method="post" action="{% url 'expenses:cancel' pk=expense.pk %}">
+                      {% csrf_token %}
+                      <button class="btn btn-danger btn-small" type="submit" data-confirm="Cancelar esta despesa?">Cancelar</button>
+                    </form>
+                  </div>
+                {% endif %}
+              </td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="6"><div class="empty-state">Nenhuma despesa no período.</div></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+{% endblock %}

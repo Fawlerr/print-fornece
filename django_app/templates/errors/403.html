@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block title %}Acesso negado | Print Fornece{% endblock %}
+{% block body_class %}login-page{% endblock %}
+
+{% block page_layout %}
+  <main class="login-card" id="main-content">
+    <div class="login-brand"><i class="fa-solid fa-lock" aria-hidden="true"></i><span>PRINT <b>FORNECE</b></span></div>
+    <h1>Acesso negado</h1>
+    <p>Você não tem permissão para acessar esta área ou este registro.</p>
+    <a class="btn btn-primary btn-block" href="{% url 'home' %}">Voltar ao início</a>
+  </main>
+{% endblock %}

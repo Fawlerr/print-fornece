@@ -1,0 +1,34 @@
+services:
+  app:
+    build:
+      context: .
+    ports:
+      - "8080:80"
+    volumes:
+      - ./:/var/www/html
+      - ./docker/php/config.local.php:/var/www/html/config/config.local.php:ro
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: mariadb:10.11
+    environment:
+      MARIADB_DATABASE: print_fornece
+      MARIADB_USER: print_fornece
+      MARIADB_PASSWORD: print_fornece_local
+      MARIADB_ROOT_PASSWORD: root_local_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - print_fornece_db:/var/lib/mysql
+      - ./database/print_fornece.sql:/docker-entrypoint-initdb.d/01-print-fornece.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mariadb-admin ping -h localhost -u root -p$$MARIADB_ROOT_PASSWORD --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+volumes:
+  print_fornece_db:

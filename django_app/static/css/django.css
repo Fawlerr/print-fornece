@@ -1,0 +1,18 @@
+/* Complementos de apresentação para os componentes nativos do Django.
+   Os arquivos style.css e overrides.css foram preservados sem alterações. */
+.sidebar-logout-form{margin:0}
+.sidebar-nav-button{width:100%;display:flex;gap:13px;align-items:center;padding:12px 14px;border:0;border-radius:9px;background:transparent;color:var(--muted);font-weight:600;text-align:left}
+.sidebar-nav-button:hover,.sidebar-nav-button:focus-visible{background:rgba(36,211,102,.13);color:var(--green)}
+.sidebar-nav-button i{width:18px;text-align:center}
+.sidebar-nav-button:focus-visible,a:focus-visible,.btn:focus-visible,.icon-button:focus-visible{outline:3px solid rgba(36,211,102,.6);outline-offset:2px}
+.field-errors{display:block;color:#ffc0c0;font-size:12px;font-weight:600}
+.field-errors ul,.form-error ul{margin:0;padding-left:18px}
+.form-grid input[type=checkbox]{width:auto;justify-self:start}
+.login-card .form-grid{grid-template-columns:1fr}
+.form-success{background:rgba(36,211,102,.11);border-color:rgba(36,211,102,.35);color:#b8f7ce}
+.auth-links{margin:18px 0 0!important;text-align:center;font-size:13px}
+.auth-links a{color:var(--green);font-weight:700}
+.password-card,.narrow-card{max-width:680px}
+.toast-info{background:rgba(96,165,250,.12);border-color:rgba(96,165,250,.35);color:#c8deff}
+.sr-only-focusable:focus{position:fixed;width:auto;height:auto;padding:8px 12px;margin:8px;overflow:visible;clip:auto;white-space:normal;z-index:100;background:var(--green);color:#06210e;border-radius:7px}
+@media(max-width:760px){.sidebar-nav-button{padding:12px 14px}}
