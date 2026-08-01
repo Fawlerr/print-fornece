@@ -187,6 +187,106 @@
     });
   });
 
+  // --- Service Worker & PWA Install Manager ---
+  let deferredPrompt = null;
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/static/sw.js')
+        .then((reg) => console.log('Service Worker PWA registrado:', reg.scope))
+        .catch((err) => console.log('Falha no Service Worker:', err));
+    });
+  }
+
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    const installBtn = document.querySelector('#pwa-install-btn');
+    const installBanner = document.querySelector('#pwa-install-banner');
+    if (installBtn) installBtn.style.display = 'inline-flex';
+    if (installBanner && !localStorage.getItem('pwa_banner_dismissed')) {
+      installBanner.style.display = 'block';
+    }
+  });
+
+  const triggerPwaInstall = () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.then((choiceResult) => {
+        if (choiceResult.outcome === 'accepted') {
+          console.log('Usuário aceitou a instalação do WebApp');
+        }
+        deferredPrompt = null;
+        const banner = document.querySelector('#pwa-install-banner');
+        if (banner) banner.style.display = 'none';
+      });
+    } else if (isIOS) {
+      const iosModal = document.querySelector('#ios-pwa-modal');
+      if (iosModal) iosModal.style.display = 'flex';
+    } else {
+      alert('Para instalar o WebApp, acesse a opção "Adicionar à Tela Inicial" no menu do seu navegador.');
+    }
+  };
+
+  const topInstallBtn = document.querySelector('#pwa-install-btn');
+  if (topInstallBtn) {
+    if (isIOS && !isStandalone) topInstallBtn.style.display = 'inline-flex';
+    topInstallBtn.addEventListener('click', triggerPwaInstall);
+  }
+
+  const bannerInstallBtn = document.querySelector('#pwa-banner-install-btn');
+  if (bannerInstallBtn) bannerInstallBtn.addEventListener('click', triggerPwaInstall);
+
+  const bannerCloseBtn = document.querySelector('#pwa-banner-close-btn');
+  if (bannerCloseBtn) {
+    bannerCloseBtn.addEventListener('click', () => {
+      const banner = document.querySelector('#pwa-install-banner');
+      if (banner) banner.style.display = 'none';
+      localStorage.setItem('pwa_banner_dismissed', '1');
+    });
+  }
+
+  const iosCloseBtn = document.querySelector('#ios-modal-close-btn');
+  const iosConfirmBtn = document.querySelector('#ios-modal-confirm-btn');
+  const iosModal = document.querySelector('#ios-pwa-modal');
+  const closeIosModal = () => { if (iosModal) iosModal.style.display = 'none'; };
+  if (iosCloseBtn) iosCloseBtn.addEventListener('click', closeIosModal);
+  if (iosConfirmBtn) iosConfirmBtn.addEventListener('click', closeIosModal);
+
+  // --- Push Notifications & Polling Manager ---
+  const pushBtn = document.querySelector('#pwa-push-btn');
+  if (pushBtn) {
+    if ('Notification' in window && Notification.permission === 'granted') {
+      pushBtn.classList.add('active');
+      pushBtn.querySelector('span').textContent = 'Push Ativo';
+    }
+
+    pushBtn.addEventListener('click', async () => {
+      if (!('Notification' in window)) {
+        alert('Seu dispositivo/navegador não suporta notificações Push.');
+        return;
+      }
+      try {
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+          pushBtn.classList.add('active');
+          pushBtn.querySelector('span').textContent = 'Push Ativo';
+          new Notification('Print Fornece', {
+            body: 'Notificações Push ativadas com sucesso neste aparelho!',
+            icon: '/static/icons/icon-192.png'
+          });
+        } else {
+          alert('Permissão de notificação recusada.');
+        }
+      } catch (err) {
+        console.error('Erro ao ativar notificações:', err);
+      }
+    });
+  }
+
+  let lastUnreadCount = -1;
   async function pollNotifications() {
     const count = document.querySelector("[data-unread-count]");
     const endpoint = body.dataset.notificationsPollEndpoint;
@@ -200,10 +300,20 @@
       if (!response.ok) return;
       const data = await response.json();
       const unread = Number(data.unread !== undefined ? data.unread : (data.count || 0));
+
+      if (lastUnreadCount >= 0 && unread > lastUnreadCount) {
+        if ('Notification' in window && Notification.permission === 'granted') {
+          new Notification('Print Fornece', {
+            body: 'Você recebeu um novo alerta ou atualização no sistema!',
+            icon: '/static/icons/icon-192.png',
+            vibrate: [200, 100, 200]
+          });
+        }
+      }
+      lastUnreadCount = unread;
       count.textContent = String(unread);
       count.classList.toggle("is-empty", unread === 0);
     } catch (_) {
-      // Uma falha de rede não deve interromper a navegação.
     }
   }
 

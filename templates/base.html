@@ -3,8 +3,16 @@
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#0B0D0C">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Print Fornece">
+  <link rel="manifest" href="{% static 'manifest.webmanifest' %}">
+  <link rel="apple-touch-icon" href="{% static 'icons/icon-192.png' %}">
+  <link rel="icon" type="image/png" sizes="192x192" href="{% static 'icons/icon-192.png' %}">
+
   <title>{% block title %}{{ page_title|default:"Print Fornece" }} | Print Fornece{% endblock %}</title>
   <link rel="stylesheet" href="{% static 'css/style.css' %}">
   <link rel="stylesheet" href="{% static 'css/overrides.css' %}">
@@ -30,22 +38,37 @@
             <h1>{% block page_heading %}{{ page_title|default:"Print Fornece" }}{% endblock %}</h1>
             <p>{{ user.name|default:user.email }} · {% if user.is_administrator %}Administrador{% else %}Funcionário{% endif %}</p>
           </div>
-          <div class="notification-area">
-            <a class="notification-bell" href="{% url 'notifications:list' %}" aria-label="Notificações">
-              <i class="fa-regular fa-bell" aria-hidden="true"></i>
-              <span class="notification-count{% if not unread_notification_count %} is-empty{% endif %}" data-unread-count aria-live="polite">{{ unread_notification_count|default:"0" }}</span>
-            </a>
-            <div class="notification-dropdown" aria-label="Notificações recentes">
-              <strong>Recentes</strong>
-              {% for notification in recent_notifications %}
-                <a href="{{ notification.link|default:'#' }}"{% if not notification.read_at %} class="unread"{% endif %}>
-                  <span>{{ notification.title }}</span>
-                  <small>{{ notification.message }}</small>
-                </a>
-              {% empty %}
-                <p>Nenhuma notificação recente.</p>
-              {% endfor %}
-              <a class="notification-see-all" href="{% url 'notifications:list' %}">Ver todas</a>
+          
+          <div class="topbar-actions">
+            <!-- Botão de Instalação do WebApp PWA -->
+            <button class="pwa-install-btn" id="pwa-install-btn" type="button" style="display: none;" title="Instalar aplicativo Print Fornece no dispositivo">
+              <i class="fa-solid fa-mobile-screen-button" aria-hidden="true"></i>
+              <span>Instalar WebApp</span>
+            </button>
+
+            <!-- Botão de Notificações Push -->
+            <button class="pwa-push-btn" id="pwa-push-btn" type="button" title="Ativar notificações push no celular/navegador">
+              <i class="fa-solid fa-bell-ring" aria-hidden="true"></i>
+              <span>Ativar Push</span>
+            </button>
+
+            <div class="notification-area">
+              <a class="notification-bell" href="{% url 'notifications:list' %}" aria-label="Notificações">
+                <i class="fa-regular fa-bell" aria-hidden="true"></i>
+                <span class="notification-count{% if not unread_notification_count %} is-empty{% endif %}" data-unread-count aria-live="polite">{{ unread_notification_count|default:"0" }}</span>
+              </a>
+              <div class="notification-dropdown" aria-label="Notificações recentes">
+                <strong>Recentes</strong>
+                {% for notification in recent_notifications %}
+                  <a href="{{ notification.link|default:'#' }}"{% if not notification.read_at %} class="unread"{% endif %}>
+                    <span>{{ notification.title }}</span>
+                    <small>{{ notification.message }}</small>
+                  </a>
+                {% empty %}
+                  <p>Nenhuma notificação recente.</p>
+                {% endfor %}
+                <a class="notification-see-all" href="{% url 'notifications:list' %}">Ver todas</a>
+              </div>
             </div>
           </div>
         </header>
@@ -65,7 +88,77 @@
             {% block content %}{% endblock %}
           </div>
         </section>
+
+        <!-- Barra de Navegação Inferior para Dispositivos Móveis (Android / iOS) -->
+        <nav class="mobile-bottom-nav" aria-label="Navegação inferior mobile">
+          <a href="{% url 'dashboard:index' %}" class="mobile-nav-item{% if request.resolver_match.app_name == 'dashboard' %} active{% endif %}">
+            <i class="fa-solid fa-chart-pie"></i>
+            <span>Visão geral</span>
+          </a>
+          <a href="{% url 'orders:create' %}" class="mobile-nav-item{% if request.resolver_match.url_name == 'create' %} active{% endif %}">
+            <i class="fa-solid fa-plus-circle"></i>
+            <span>Novo pedido</span>
+          </a>
+          <a href="{% url 'production:kanban' %}" class="mobile-nav-item{% if request.resolver_match.app_name == 'production' %} active{% endif %}">
+            <i class="fa-solid fa-kanban"></i>
+            <span>Produção</span>
+          </a>
+          <a href="{% url 'expenses:list' %}" class="mobile-nav-item{% if request.resolver_match.app_name == 'expenses' %} active{% endif %}">
+            <i class="fa-solid fa-wallet"></i>
+            <span>Despesas</span>
+          </a>
+          <a href="{% url 'notifications:list' %}" class="mobile-nav-item{% if request.resolver_match.app_name == 'notifications' %} active{% endif %}">
+            <i class="fa-solid fa-bell"></i>
+            <span>Alertas</span>
+          </a>
+        </nav>
       </main>
+    </div>
+
+    <!-- Banner Flutuante de Instalação do WebApp (Android/Chrome/Desktop) -->
+    <div id="pwa-install-banner" class="pwa-banner" style="display: none;" role="dialog" aria-live="polite">
+      <div class="pwa-banner-content">
+        <div class="pwa-banner-icon">
+          <img src="{% static 'icons/icon-192.png' %}" alt="Logo Print Fornece" width="44" height="44">
+        </div>
+        <div class="pwa-banner-text">
+          <strong>Instalar WebApp Print Fornece</strong>
+          <p>Acesse mais rápido direto da sua tela inicial como um app nativo.</p>
+        </div>
+        <div class="pwa-banner-actions">
+          <button type="button" class="btn btn-sm btn-primary" id="pwa-banner-install-btn">Instalar agora</button>
+          <button type="button" class="btn btn-sm btn-outline" id="pwa-banner-close-btn">Depois</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Educativo de Instalação para iOS (Safari no iPhone/iPad) -->
+    <div id="ios-pwa-modal" class="pwa-modal-overlay" style="display: none;" role="dialog" aria-modal="true">
+      <div class="pwa-modal">
+        <div class="pwa-modal-header">
+          <div class="pwa-modal-icon">
+            <img src="{% static 'icons/icon-192.png' %}" alt="Print Fornece Icon" width="48" height="48">
+          </div>
+          <h3>Instalar no iPhone / iPad</h3>
+          <button type="button" class="pwa-modal-close" id="ios-modal-close-btn" aria-label="Fechar">&times;</button>
+        </div>
+        <div class="pwa-modal-body">
+          <p>Instale o <strong>Print Fornece</strong> na tela de início do seu dispositivo em 2 passos simples:</p>
+          <ol class="ios-install-steps">
+            <li>
+              <i class="fa-solid fa-arrow-up-from-bracket ios-icon-highlight"></i>
+              <span>Toque no botão de <strong>Compartilhar</strong> na barra inferior do Safari.</span>
+            </li>
+            <li>
+              <i class="fa-regular fa-square-plus ios-icon-highlight"></i>
+              <span>Role as opções para baixo e selecione <strong>"Adicionar à Tela de Início"</strong>.</span>
+            </li>
+          </ol>
+        </div>
+        <div class="pwa-modal-footer">
+          <button type="button" class="btn btn-primary btn-block" id="ios-modal-confirm-btn">Entendi</button>
+        </div>
+      </div>
     </div>
   {% endblock %}
 
