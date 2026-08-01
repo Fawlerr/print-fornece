@@ -11,18 +11,21 @@ load_dotenv(BASE_DIR / ".env")
 
 
 def env_bool(name: str, default: bool = False) -> bool:
-    return os.getenv(name, str(default)).strip().lower() in {"1", "true", "yes", "on"}
+    val = os.getenv(name)
+    if val is None:
+        return default
+    return val.strip().lower() in {"1", "true", "yes", "on"}
 
 
 def env_list(name: str, default: str = "") -> list[str]:
-    value = os.getenv(name, default)
+    value = os.getenv(name) or default
     return [item.strip() for item in value.split(",") if item.strip()]
 
 
-SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "development-only-change-me-before-production")
-DEBUG = env_bool("DJANGO_DEBUG", False)
-ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS")
-CSRF_TRUSTED_ORIGINS = env_list("DJANGO_CSRF_TRUSTED_ORIGINS")
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY") or os.getenv("SECRET_KEY") or "django-insecure-development-key-change-in-production"
+DEBUG = env_bool("DJANGO_DEBUG", env_bool("DEBUG", False))
+ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", os.getenv("ALLOWED_HOSTS", "*"))
+CSRF_TRUSTED_ORIGINS = env_list("DJANGO_CSRF_TRUSTED_ORIGINS", os.getenv("CSRF_TRUSTED_ORIGINS", ""))
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -77,11 +80,11 @@ ASGI_APPLICATION = "config.asgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.mysql",
-        "NAME": os.getenv("MYSQL_DATABASE", ""),
-        "USER": os.getenv("MYSQL_USER", ""),
-        "PASSWORD": os.getenv("MYSQL_PASSWORD", ""),
-        "HOST": os.getenv("MYSQL_HOST", "127.0.0.1"),
-        "PORT": os.getenv("MYSQL_PORT", "3306"),
+        "NAME": os.getenv("MYSQL_DATABASE") or os.getenv("DB_NAME", "print_fornece"),
+        "USER": os.getenv("MYSQL_USER") or os.getenv("DB_USER", "print_user"),
+        "PASSWORD": os.getenv("MYSQL_PASSWORD") or os.getenv("DB_PASSWORD", "print_password"),
+        "HOST": os.getenv("MYSQL_HOST") or os.getenv("DB_HOST", "db"),
+        "PORT": os.getenv("MYSQL_PORT") or os.getenv("DB_PORT", "3306"),
         "CONN_MAX_AGE": int(os.getenv("MYSQL_CONN_MAX_AGE", "60")),
         "OPTIONS": {
             "charset": "utf8mb4",
@@ -98,7 +101,7 @@ PASSWORD_HASHERS = [
 ]
 
 LANGUAGE_CODE = "pt-br"
-TIME_ZONE = "America/Fortaleza"
+TIME_ZONE = os.getenv("TIMEZONE", "America/Fortaleza")
 USE_I18N = True
 USE_TZ = True
 
@@ -111,6 +114,10 @@ STORAGES = {
 }
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
+
+MAX_UPLOAD_BYTES = int(os.getenv("MAX_UPLOAD_BYTES", "26214400"))
+LOGIN_RATE_LIMIT_ATTEMPTS = int(os.getenv("LOGIN_RATE_LIMIT_ATTEMPTS", "5"))
+LOGIN_RATE_LIMIT_WINDOW_SECONDS = int(os.getenv("LOGIN_RATE_LIMIT_WINDOW_SECONDS", "300"))
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 LOGIN_URL = "accounts:login"
@@ -128,23 +135,3 @@ SECURE_HSTS_PRELOAD = env_bool("DJANGO_SECURE_HSTS_PRELOAD", False)
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https") if env_bool("DJANGO_USE_PROXY_SSL_HEADER") else None
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = "DENY"
-REFERRER_POLICY = "strict-origin-when-cross-origin"
-
-EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_HOST = os.getenv("DJANGO_EMAIL_HOST", "")
-EMAIL_PORT = int(os.getenv("DJANGO_EMAIL_PORT", "587"))
-EMAIL_HOST_USER = os.getenv("DJANGO_EMAIL_HOST_USER", "")
-EMAIL_HOST_PASSWORD = os.getenv("DJANGO_EMAIL_HOST_PASSWORD", "")
-EMAIL_USE_TLS = env_bool("DJANGO_EMAIL_USE_TLS", True)
-DEFAULT_FROM_EMAIL = os.getenv("DJANGO_DEFAULT_FROM_EMAIL", "no-reply@localhost")
-
-MAX_UPLOAD_BYTES = 25 * 1024 * 1024
-LOGIN_RATE_LIMIT_ATTEMPTS = 5
-LOGIN_RATE_LIMIT_SECONDS = 15 * 60
-
-LOGGING = {
-    "version": 1,
-    "disable_existing_loggers": False,
-    "handlers": {"console": {"class": "logging.StreamHandler"}},
-    "root": {"handlers": ["console"], "level": os.getenv("DJANGO_LOG_LEVEL", "INFO")},
-}
