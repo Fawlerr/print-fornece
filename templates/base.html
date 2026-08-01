@@ -7,7 +7,7 @@
   <meta name="theme-color" content="#0B0D0C">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="apple-mobile-web-app-title" content="Print Fornece">
   <link rel="manifest" href="{% static 'manifest.webmanifest' %}">
   <link rel="apple-touch-icon" href="{% static 'icons/icon-192.png' %}">
@@ -46,7 +46,7 @@
               <span>Instalar WebApp</span>
             </button>
 
-            <!-- Botão de Notificações Push (usando fa-solid fa-bell válido no FontAwesome Free) -->
+            <!-- Botão de Notificações Push -->
             <button class="pwa-push-btn" id="pwa-push-btn" type="button" title="Ativar notificações push no celular/navegador">
               <i class="fa-solid fa-bell" aria-hidden="true"></i>
               <span>Ativar Push</span>
@@ -89,7 +89,7 @@
           </div>
         </section>
 
-        <!-- Barra de Navegação Inferior para Dispositivos Móveis (Android / iOS) -->
+        <!-- Barra de Navegação Inferior para Dispositivos Móveis (Android / iOS / Chrome) -->
         <nav class="mobile-bottom-nav" aria-label="Navegação inferior mobile">
           <a href="{% url 'dashboard:index' %}" class="mobile-nav-item{% if request.resolver_match.app_name == 'dashboard' %} active{% endif %}">
             <i class="fa-solid fa-chart-pie"></i>

@@ -11,13 +11,18 @@
   box-sizing: border-box;
 }
 
-/* Header / Topbar - Alinhamento Total à Direita no PC */
+/* Header / Topbar - Alinhamento Total à Direita no PC e Suporte a Notch/Dynamic Island no iPhone */
 .topbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
   width: 100%;
+  padding-top: max(16px, env(safe-area-inset-top, 0px));
+  padding-left: max(30px, env(safe-area-inset-left, 0px));
+  padding-right: max(30px, env(safe-area-inset-right, 0px));
+  min-height: calc(75px + env(safe-area-inset-top, 0px));
+  box-sizing: border-box;
 }
 
 .topbar-title {
@@ -324,20 +329,24 @@
   vertical-align: middle;
 }
 
-/* Barra de Navegação Inferior para Mobile (< 768px) */
+/* Barra de Navegação Inferior para Mobile (iPhone 15 / Chrome / Android) */
 .mobile-bottom-nav {
   display: none;
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
-  height: 56px;
-  background: #0B0D0C;
-  border-top: 1px solid var(--line);
-  z-index: 999;
+  width: 100%;
+  height: calc(58px + env(safe-area-inset-bottom, 0px));
   padding-bottom: env(safe-area-inset-bottom, 0px);
+  background: #0B0D0C !important;
+  border-top: 1px solid var(--line);
+  z-index: 99999;
+  box-sizing: border-box;
   justify-content: space-around;
   align-items: center;
+  box-shadow: 0 -4px 14px rgba(0, 0, 0, 0.6);
+  -webkit-transform: translateZ(0);
 }
 
 .mobile-nav-item {
@@ -345,17 +354,35 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 3px;
+  text-align: center;
+  gap: 2px;
   color: var(--muted);
   text-decoration: none;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 600;
   flex: 1;
-  height: 100%;
+  height: 52px;
+  min-height: 52px;
+  max-height: 52px;
+  box-sizing: border-box;
+  padding: 4px 0;
 }
 
 .mobile-nav-item i {
-  font-size: 16px;
+  font-size: 18px;
+  height: 18px;
+  line-height: 18px;
+  display: inline-block;
+  margin-bottom: 2px;
+}
+
+.mobile-nav-item span {
+  font-size: 10px;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .mobile-nav-item.active, .mobile-nav-item:hover {
@@ -365,7 +392,7 @@
 /* Banner de Instalação PWA */
 .pwa-banner {
   position: fixed;
-  bottom: 20px;
+  bottom: calc(70px + env(safe-area-inset-bottom, 0px));
   left: 50%;
   transform: translateX(-50%);
   width: calc(100% - 24px);
@@ -376,7 +403,7 @@
   border-radius: 14px;
   padding: 14px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
-  z-index: 1000;
+  z-index: 10000;
   animation: slideUp 0.3s ease;
 }
 
@@ -423,7 +450,7 @@
   bottom: 0;
   background: rgba(0, 0, 0, 0.75);
   backdrop-filter: blur(6px);
-  z-index: 1001;
+  z-index: 10001;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -509,10 +536,25 @@
   }
 }
 
-/* Otimização Proporcional e Enxuta para Celular (Galaxy S23, iPhone, etc.) */
+/* Otimização Proporcional para Celulares (iPhone 15, Galaxy S23, Chrome Mobile) */
 @media (max-width: 768px) {
+  .topbar {
+    padding-top: max(12px, env(safe-area-inset-top, 0px)) !important;
+    padding-left: max(14px, env(safe-area-inset-left, 0px)) !important;
+    padding-right: max(14px, env(safe-area-inset-right, 0px)) !important;
+    min-height: calc(60px + env(safe-area-inset-top, 0px)) !important;
+  }
+
+  .sidebar {
+    padding-top: env(safe-area-inset-top, 0px) !important;
+    padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+  }
+
   .page-body {
-    padding: 12px 12px 68px 12px !important; /* Respiro compacto para a barra inferior */
+    padding-top: 14px !important;
+    padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px)) !important;
+    padding-left: max(14px, env(safe-area-inset-left, 0px)) !important;
+    padding-right: max(14px, env(safe-area-inset-right, 0px)) !important;
     width: 100% !important;
     max-width: 100% !important;
     overflow-x: hidden !important;
@@ -699,7 +741,7 @@
   }
 
   .pwa-banner {
-    bottom: 66px !important;
+    bottom: calc(66px + env(safe-area-inset-bottom, 0px)) !important;
     padding: 10px !important;
   }
 
