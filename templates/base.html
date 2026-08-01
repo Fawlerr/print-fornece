@@ -96,11 +96,11 @@
             <span>Visão geral</span>
           </a>
           <a href="{% url 'orders:create' %}" class="mobile-nav-item{% if request.resolver_match.url_name == 'create' %} active{% endif %}">
-            <i class="fa-solid fa-plus-circle"></i>
+            <i class="fa-solid fa-circle-plus"></i>
             <span>Novo pedido</span>
           </a>
           <a href="{% url 'production:kanban' %}" class="mobile-nav-item{% if request.resolver_match.app_name == 'production' %} active{% endif %}">
-            <i class="fa-solid fa-kanban"></i>
+            <i class="fa-solid fa-list-check"></i>
             <span>Produção</span>
           </a>
           <a href="{% url 'expenses:list' %}" class="mobile-nav-item{% if request.resolver_match.app_name == 'expenses' %} active{% endif %}">
@@ -119,7 +119,7 @@
     <div id="pwa-install-banner" class="pwa-banner" style="display: none;" role="dialog" aria-live="polite">
       <div class="pwa-banner-content">
         <div class="pwa-banner-icon">
-          <img src="{% static 'icons/icon-192.png' %}" alt="Logo Print Fornece" width="44" height="44">
+          <img src="{% static 'icons/icon-192.png' %}" alt="Logo Print Fornece" width="40" height="40">
         </div>
         <div class="pwa-banner-text">
           <strong>Instalar WebApp Print Fornece</strong>
@@ -137,7 +137,7 @@
       <div class="pwa-modal">
         <div class="pwa-modal-header">
           <div class="pwa-modal-icon">
-            <img src="{% static 'icons/icon-192.png' %}" alt="Print Fornece Icon" width="48" height="48">
+            <img src="{% static 'icons/icon-192.png' %}" alt="Print Fornece Icon" width="44" height="44">
           </div>
           <h3>Instalar no iPhone / iPad</h3>
           <button type="button" class="pwa-modal-close" id="ios-modal-close-btn" aria-label="Fechar">&times;</button>
