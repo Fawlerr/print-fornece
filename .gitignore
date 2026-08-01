@@ -1,5 +1,7 @@
+/\.env
 /config/config.local.php
 /uploads/pedidos/*
 !/uploads/.htaccess
 !/uploads/pedidos/.gitkeep
+/backups/
 *.log

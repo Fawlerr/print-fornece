@@ -1,19 +1,32 @@
 <?php
 declare(strict_types=1);
 
+ob_start();
 require_once __DIR__ . '/../includes/auth.php';
 
-header('Content-Type: application/json; charset=utf-8');
-header('Cache-Control: no-store, private');
+ini_set('display_errors', '0');
+set_error_handler(static function (int $severity, string $message, string $file, int $line): bool {
+    error_log('Endpoint de produção: ' . $message . ' em ' . basename($file) . ':' . $line);
+    return true;
+});
 
 function stage_response(int $status, array $payload): never
 {
+    while (ob_get_level() > 0) {
+        ob_end_clean();
+    }
     http_response_code($status);
-    echo json_encode($payload, JSON_UNESCAPED_UNICODE);
+    header('Content-Type: application/json; charset=utf-8');
+    header('Cache-Control: no-store, private');
+    header('X-Content-Type-Options: nosniff');
+    echo json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
     exit;
 }
 
-if (!is_post()) stage_response(405, ['success' => false, 'message' => 'Método inválido.']);
+if (!is_post()) {
+    header('Allow: POST');
+    stage_response(405, ['success' => false, 'message' => 'Método inválido.']);
+}
 
 $user = current_user();
 if (!$user) stage_response(401, ['success' => false, 'message' => 'Sua sessão expirou. Entre novamente para continuar.']);
@@ -41,13 +54,14 @@ try {
     $order = order_by_id((int) $orderId);
     if (!can_access_order($order)) stage_response(404, ['success' => false, 'message' => 'Pedido não encontrado.']);
 
-    $movement = change_order_stage((int) $orderId, $newStage, (int) $user['id']);
+    $movement = change_order_stage((int) $orderId, $newStage, $user);
     stage_response(200, [
         'success' => true,
         'message' => 'Pedido movimentado com sucesso.',
         'pedido_id' => $movement['pedido_id'],
         'etapa_anterior' => $movement['etapa_anterior'],
         'nova_etapa' => $movement['nova_etapa'],
+        'destinos_permitidos' => $movement['destinos_permitidos'],
         'kpis' => production_kpis(),
     ]);
 } catch (RuntimeException $exception) {

@@ -2,14 +2,23 @@ Options -Indexes
 RewriteEngine On
 AddType application/manifest+json .webmanifest
 
-# Nunca exponha configuração, SQL, serviços internos ou arquivos de upload diretamente.
-RewriteRule ^(?:config|database|includes|services)/ - [F,L,NC]
+# Nunca exponha configuração, SQL, serviços internos, scripts ou arquivos de upload diretamente.
+RewriteRule ^(?:config|database|includes|services|docker|scripts|tests)/ - [F,L,NC]
 RewriteRule ^uploads/ - [F,L,NC]
-RewriteRule \.(?:sql|md|log)$ - [F,L,NC]
+RewriteRule ^(?:\.env|\.git|compose\.ya?ml|Dockerfile)$ - [F,L,NC]
+RewriteRule \.(?:sql|md|log|ini|ya?ml|bak|dist|sh)$ - [F,L,NC]
 
 <IfModule mod_headers.c>
   Header always set X-Content-Type-Options "nosniff"
   Header always set X-Frame-Options "SAMEORIGIN"
   Header always set Referrer-Policy "strict-origin-when-cross-origin"
   Header always set Permissions-Policy "geolocation=(), microphone=(), camera=()"
+  Header always set Content-Security-Policy "base-uri 'self'; form-action 'self'; frame-ancestors 'self'; object-src 'none'"
+  Header always set Cross-Origin-Opener-Policy "same-origin"
+  <FilesMatch "\.(?:css|js|svg|png|webmanifest)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+  <FilesMatch "\.php$">
+    Header set Cache-Control "no-store, private"
+  </FilesMatch>
 </IfModule>

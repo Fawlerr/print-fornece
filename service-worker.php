@@ -4,7 +4,10 @@ declare(strict_types=1);
 require_once __DIR__ . '/config/config.php';
 
 $baseUrl = rtrim(APP_URL, '/');
-$scope = ($baseUrl ?: '') . '/';
+$parts = parse_url(APP_URL);
+$path = is_array($parts) ? ($parts['path'] ?? '') : APP_URL;
+$path = trim((string) $path, '/');
+$scope = ($path === '' ? '' : '/' . $path) . '/';
 $assets = ['assets/css/style.css', 'assets/css/overrides.css', 'assets/js/app.js', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png'];
 $versionParts = [];
 $urls = [];
@@ -12,7 +15,7 @@ foreach ($assets as $asset) {
     $path = __DIR__ . '/' . $asset;
     $version = is_file($path) ? (string) filemtime($path) : '0';
     $versionParts[] = $asset . ':' . $version;
-    $urls[] = $baseUrl . '/' . $asset . '?v=' . rawurlencode($version);
+    $urls[] = ($baseUrl ?: '') . '/' . $asset . '?v=' . rawurlencode($version);
 }
 $cacheName = 'print-fornece-static-' . substr(hash('sha256', implode('|', $versionParts)), 0, 16);
 
@@ -35,7 +38,8 @@ function isStaticAsset(request) {
   if (request.method !== 'GET') return false;
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return false;
-  return url.pathname.includes('/assets/') || url.pathname.includes('/icons/') || url.pathname.endsWith('/manifest.webmanifest');
+  const path = url.pathname;
+  return path.includes('/assets/') || path.includes('/icons/') || path.endsWith('/manifest.webmanifest');
 }
 
 self.addEventListener('fetch', (event) => {

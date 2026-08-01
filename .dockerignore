@@ -1,5 +1,6 @@
 .git
 .env
+/backups
 .venv
 django_app/.venv
 django_app/db.sqlite3

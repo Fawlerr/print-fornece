@@ -171,27 +171,9 @@ CREATE TABLE auditoria (
   CONSTRAINT fk_auditoria_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- DADOS OBRIGATÓRIOS DE PRIMEIRA INSTALAÇÃO
--- Senha inicial dos usuários abaixo: password. O administrador é obrigado a alterá-la ao entrar.
--- Hash bcrypt compatível com password_hash/password_verify do PHP.
-INSERT INTO usuarios (id,nome,email,senha,perfil,ativo,forcar_troca_senha) VALUES
-(1,'Administrador Print Fornece','admin@printfornece.local','$2y$10$DbIMe4kHkSabMbnZBPXGduTlo9FpI28Yh8fLvqEOpKM2u7KwpagsC','administrador',1,1),
-(2,'Ana Produção','ana@printfornece.local','$2y$10$DbIMe4kHkSabMbnZBPXGduTlo9FpI28Yh8fLvqEOpKM2u7KwpagsC','funcionario',1,0),
-(3,'Bruno Arte','bruno@printfornece.local','$2y$10$DbIMe4kHkSabMbnZBPXGduTlo9FpI28Yh8fLvqEOpKM2u7KwpagsC','funcionario',1,0);
+-- O esquema não cria contas, senhas ou dados de demonstração. Após a primeira
+-- inicialização, execute scripts/create-admin.php para criar o administrador
+-- com uma senha escolhida localmente.
 
--- DADOS DE DEMONSTRAÇÃO: remova este bloco antes da publicação se desejar um banco limpo.
-INSERT INTO pedidos (id,numero,cliente_nome,cliente_whatsapp,descricao,valor_total,status_pagamento,valor_pago,forma_pagamento,previsao_entrega,prioridade,observacoes_internas,etapa,responsavel_id,criado_por_id,etapa_atualizada_em,created_at) VALUES
-(1,'PF-2026-00001','Camila Santos','84999990001','30 camisetas com arte para evento corporativo.',480.00,'pago',480.00,'pix',DATE_ADD(NOW(),INTERVAL 1 DAY),'normal','Conferir tons de verde.','novo',2,1,NOW(),NOW()),
-(2,'PF-2026-00002','Mercadinho Potiguar','84999990002','50 metros de filme DTF para uniformes.',1250.00,'parcial',500.00,'transferencia',DATE_ADD(NOW(),INTERVAL 2 DAY),'urgente','Cliente enviará logo atualizado.','preparacao',3,1,DATE_SUB(NOW(),INTERVAL 4 HOUR),DATE_SUB(NOW(),INTERVAL 1 DAY)),
-(3,'PF-2026-00003','João Ribeiro','84999990003','12 estampas personalizadas tamanho A3.',240.00,'nao_pago',0.00,NULL,DATE_SUB(NOW(),INTERVAL 1 DAY),'urgente','Pedido atrasado: ligar para confirmar arte.','producao',2,2,DATE_SUB(NOW(),INTERVAL 28 HOUR),DATE_SUB(NOW(),INTERVAL 3 DAY)),
-(4,'PF-2026-00004','Studio Maré','84999990004','Kit de estampas para coleção de verão.',890.00,'pago',890.00,'cartao',NOW(),'normal',NULL,'pronto',3,1,DATE_SUB(NOW(),INTERVAL 1 HOUR),DATE_SUB(NOW(),INTERVAL 2 DAY));
-INSERT INTO pedido_etapas_historico (pedido_id,etapa_anterior,etapa_nova,usuario_id,created_at) VALUES
-(1,NULL,'novo',1,NOW()),(2,NULL,'novo',1,DATE_SUB(NOW(),INTERVAL 1 DAY)),(2,'novo','preparacao',3,DATE_SUB(NOW(),INTERVAL 4 HOUR)),(3,NULL,'novo',2,DATE_SUB(NOW(),INTERVAL 3 DAY)),(3,'novo','preparacao',2,DATE_SUB(NOW(),INTERVAL 2 DAY)),(3,'preparacao','producao',2,DATE_SUB(NOW(),INTERVAL 28 HOUR)),(4,NULL,'novo',1,DATE_SUB(NOW(),INTERVAL 2 DAY)),(4,'novo','preparacao',3,DATE_SUB(NOW(),INTERVAL 1 DAY)),(4,'preparacao','producao',3,DATE_SUB(NOW(),INTERVAL 12 HOUR)),(4,'producao','pronto',3,DATE_SUB(NOW(),INTERVAL 1 HOUR));
-INSERT INTO pedido_historico (pedido_id,usuario_id,acao,descricao,created_at) VALUES
-(1,1,'criacao','Pedido criado.',NOW()),(2,3,'mudanca_etapa','Arte encaminhada para preparação.',DATE_SUB(NOW(),INTERVAL 4 HOUR)),(3,2,'mudanca_etapa','Início de produção.',DATE_SUB(NOW(),INTERVAL 28 HOUR)),(4,3,'mudanca_etapa','Pedido pronto para entrega.',DATE_SUB(NOW(),INTERVAL 1 HOUR));
-INSERT INTO despesas (descricao,categoria,valor,data_despesa,observacao,status,criado_por_id) VALUES
-('Filme DTF','material',320.00,CURDATE(),'Compra semanal de filme','ativa',1),('Energia elétrica','energia',185.50,DATE_SUB(CURDATE(),INTERVAL 2 DAY),'Conta proporcional','ativa',1),('Entrega local','transporte',45.00,DATE_SUB(CURDATE(),INTERVAL 1 DAY),'Motoboy','ativa',1);
-INSERT INTO notificacoes (usuario_id,titulo,mensagem,link,tipo,lida_em) VALUES
-(1,'Novo pedido','PF-2026-00001 criado por Administrador Print Fornece.','producao/detalhes.php?id=1','pedido',NULL),(1,'Pedido atrasado','PF-2026-00003 ultrapassou a previsão de entrega.','producao/detalhes.php?id=3','pedido',NULL),(2,'Pedido atribuído','Você é responsável pelo pedido PF-2026-00003.','producao/detalhes.php?id=3','pedido',NULL),(3,'Pedido pronto','PF-2026-00004 foi marcado como pronto.','producao/detalhes.php?id=4','pedido',NULL);
 
 SET FOREIGN_KEY_CHECKS = 1;

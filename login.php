@@ -36,8 +36,12 @@ if (is_post()) {
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#0b0d0c">
   <meta name="color-scheme" content="light dark">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Print Fornece">
   <link rel="manifest" href="<?= e(url('manifest.webmanifest')) ?>">
   <link rel="icon" href="<?= e(asset_url('icons/icon.svg')) ?>" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="<?= e(asset_url('icons/icon-192.png')) ?>">
   <title>Entrar | <?= e(APP_NAME) ?></title>
   <script>
     (function () {

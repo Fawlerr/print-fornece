@@ -8,13 +8,16 @@
 
   const sidebar = document.querySelector('#sidebar');
   const overlay = document.querySelector('.menu-overlay');
+  const announceLayoutChange = () => document.dispatchEvent(new CustomEvent('app:layoutchange'));
   document.querySelectorAll('[data-menu-open]').forEach((button) => button.addEventListener('click', () => {
     sidebar?.classList.add('open');
     overlay?.classList.add('open');
+    announceLayoutChange();
   }));
   document.querySelectorAll('[data-menu-close], .sidebar nav a').forEach((button) => button.addEventListener('click', () => {
     sidebar?.classList.remove('open');
     overlay?.classList.remove('open');
+    announceLayoutChange();
   }));
 
   document.querySelectorAll('[data-confirm]').forEach((button) => button.addEventListener('click', (event) => {
@@ -130,6 +133,14 @@
     if (count) count.textContent = String(column.querySelectorAll('.order-card').length);
   }
 
+  function allowedDestinations(card) {
+    return (card?.dataset.allowedStages || '').split(',').filter(Boolean);
+  }
+
+  function canMoveTo(card, stage) {
+    return Boolean(card && stage && card.dataset.stage !== stage && allowedDestinations(card).includes(stage));
+  }
+
   function refreshMoveSelect(card, currentStage) {
     const select = card.querySelector('[data-order-move-select]');
     if (!select) return;
@@ -138,7 +149,7 @@
       label: column.querySelector('.kanban-title span')?.textContent?.trim() || column.dataset.stage,
     }));
     select.replaceChildren(new Option('Mover para…', '', true, true));
-    stages.filter((stage) => stage.value !== currentStage).forEach((stage) => select.add(new Option(stage.label, stage.value)));
+    stages.filter((stage) => stage.value !== currentStage && allowedDestinations(card).includes(stage.value)).forEach((stage) => select.add(new Option(stage.label, stage.value)));
   }
 
   function setCardBusy(card, isBusy) {
@@ -156,6 +167,11 @@
     if (pendingMoves.has(String(orderId))) return;
     const sourceStage = card?.dataset.stage;
     if (sourceStage === destination) return;
+    if (card && !canMoveTo(card, destination)) {
+      const error = new Error('Essa transição não é permitida para o pedido.');
+      showToast(error.message, 'error');
+      throw error;
+    }
 
     pendingMoves.add(String(orderId));
     setCardBusy(card, true);
@@ -172,6 +188,7 @@
         } else if (targetColumn) {
           targetColumn.querySelector('[data-stage-cards]')?.append(card);
           card.dataset.stage = result.nova_etapa;
+          card.dataset.allowedStages = Array.isArray(result.destinos_permitidos) ? result.destinos_permitidos.join(',') : '';
           refreshMoveSelect(card, result.nova_etapa);
         }
         if (sourceColumn) {
@@ -198,6 +215,38 @@
     const kanban = document.querySelector('.kanban');
     if (!kanban) return;
     let draggedCard = null;
+    let pointerGesture = null;
+    let suppressCardClickUntil = 0;
+
+    const clearDropTargets = () => kanban.querySelectorAll('.kanban-column').forEach((column) => column.classList.remove('drag-over'));
+    const columnAtPoint = (x, y) => document.elementFromPoint(x, y)?.closest('.kanban-column') || null;
+    const setPointerDropTarget = (card, column) => {
+      const destination = column?.dataset.stage || '';
+      clearDropTargets();
+      if (canMoveTo(card, destination)) {
+        column.classList.add('drag-over');
+        return column;
+      }
+      return null;
+    };
+    const resetPointerGesture = () => {
+      if (!pointerGesture) return;
+      const {card, pointerId} = pointerGesture;
+      card.classList.remove('touch-dragging');
+      card.style.transform = '';
+      if (card.hasPointerCapture?.(pointerId)) card.releasePointerCapture(pointerId);
+      document.body.classList.remove('kanban-pointer-dragging');
+      clearDropTargets();
+      pointerGesture = null;
+    };
+    const autoScroll = (event) => {
+      const bounds = kanban.getBoundingClientRect();
+      const edge = 44;
+      if (event.clientX < bounds.left + edge) kanban.scrollLeft -= 18;
+      if (event.clientX > bounds.right - edge) kanban.scrollLeft += 18;
+      if (event.clientY < 72) window.scrollBy({top: -12, behavior: 'auto'});
+      if (event.clientY > window.innerHeight - 72) window.scrollBy({top: 12, behavior: 'auto'});
+    };
 
     kanban.addEventListener('dragstart', (event) => {
       const card = event.target.closest('.order-card');
@@ -209,14 +258,15 @@
     });
     kanban.addEventListener('dragend', () => {
       draggedCard?.classList.remove('dragging');
-      kanban.querySelectorAll('.kanban-column').forEach((column) => column.classList.remove('drag-over'));
+      clearDropTargets();
       draggedCard = null;
     });
     kanban.addEventListener('dragover', (event) => {
       const column = event.target.closest('.kanban-column');
-      if (!column || !draggedCard || column.dataset.stage === draggedCard.dataset.stage) return;
+      if (!column || !draggedCard || !canMoveTo(draggedCard, column.dataset.stage)) return;
       event.preventDefault();
-      kanban.querySelectorAll('.kanban-column').forEach((item) => item.classList.toggle('drag-over', item === column));
+      clearDropTargets();
+      column.classList.add('drag-over');
       if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
     });
     kanban.addEventListener('dragleave', (event) => {
@@ -226,8 +276,8 @@
     kanban.addEventListener('drop', async (event) => {
       const column = event.target.closest('.kanban-column');
       event.preventDefault();
-      kanban.querySelectorAll('.kanban-column').forEach((item) => item.classList.remove('drag-over'));
-      if (!column || !draggedCard || column.dataset.stage === draggedCard.dataset.stage) return;
+      clearDropTargets();
+      if (!column || !draggedCard || !canMoveTo(draggedCard, column.dataset.stage)) return;
       try { await persistMove(draggedCard.dataset.orderId, column.dataset.stage); } catch (_) { /* Card was intentionally left in its original column. */ }
     });
     kanban.addEventListener('change', async (event) => {
@@ -237,6 +287,62 @@
       select.value = '';
       try { await persistMove(select.dataset.orderId, stage); } catch (_) { /* Error feedback was already displayed. */ }
     });
+
+    kanban.addEventListener('pointerdown', (event) => {
+      if (event.pointerType === 'mouse' || !event.isPrimary || (event.button && event.button !== 0)) return;
+      if (event.target.closest('select, button, input, textarea, option')) return;
+      const card = event.target.closest('.order-card');
+      if (!card || pendingMoves.has(card.dataset.orderId)) return;
+      pointerGesture = {
+        card,
+        pointerId: event.pointerId,
+        startX: event.clientX,
+        startY: event.clientY,
+        started: false,
+        targetColumn: null,
+      };
+    });
+
+    kanban.addEventListener('pointermove', (event) => {
+      const gesture = pointerGesture;
+      if (!gesture || gesture.pointerId !== event.pointerId) return;
+      const deltaX = event.clientX - gesture.startX;
+      const deltaY = event.clientY - gesture.startY;
+      if (!gesture.started) {
+        if (Math.abs(deltaY) > 10 && Math.abs(deltaY) > Math.abs(deltaX)) {
+          pointerGesture = null;
+          return;
+        }
+        if (Math.abs(deltaX) < 9) return;
+        gesture.started = true;
+        gesture.card.setPointerCapture?.(gesture.pointerId);
+        gesture.card.classList.add('touch-dragging');
+        document.body.classList.add('kanban-pointer-dragging');
+      }
+      event.preventDefault();
+      gesture.card.style.transform = `translate(${Math.max(-18, Math.min(18, deltaX))}px, ${Math.max(-12, Math.min(12, deltaY))}px)`;
+      gesture.targetColumn = setPointerDropTarget(gesture.card, columnAtPoint(event.clientX, event.clientY));
+      autoScroll(event);
+    }, {passive: false});
+
+    kanban.addEventListener('pointerup', async (event) => {
+      const gesture = pointerGesture;
+      if (!gesture || gesture.pointerId !== event.pointerId) return;
+      const destination = gesture.targetColumn?.dataset.stage;
+      const shouldPersist = gesture.started && canMoveTo(gesture.card, destination);
+      if (gesture.started) suppressCardClickUntil = Date.now() + 350;
+      const orderId = gesture.card.dataset.orderId;
+      resetPointerGesture();
+      if (!shouldPersist) return;
+      try { await persistMove(orderId, destination); } catch (_) { /* Card remains in its original column on every rejected request. */ }
+    });
+    kanban.addEventListener('pointercancel', resetPointerGesture);
+    kanban.addEventListener('click', (event) => {
+      if (Date.now() < suppressCardClickUntil) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    }, true);
   }
 
   document.querySelectorAll('[data-order-move]').forEach((button) => button.addEventListener('click', async () => {
@@ -289,8 +395,9 @@
     });
 
     if ('serviceWorker' in navigator) {
-      const scope = `${baseUrl || ''}/`.replace(/\/\/+/, '/');
-      navigator.serviceWorker.register(`${baseUrl}/service-worker.php`, {scope}).catch(() => {
+      const serviceWorkerUrl = app.serviceWorkerUrl || `${baseUrl}/service-worker.php`;
+      const scope = app.serviceWorkerScope || '/';
+      navigator.serviceWorker.register(serviceWorkerUrl, {scope}).catch(() => {
         /* The site remains fully functional when service workers are unavailable. */
       });
     }

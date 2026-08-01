@@ -201,31 +201,62 @@ endif;
 
 <div class="grid stats-grid"><div class="stat-card"><small>Faturamento de hoje</small><strong><?= money($stats['revenue_today']) ?></strong></div><div class="stat-card"><small>Faturamento do mês</small><strong><?= money($stats['revenue_month']) ?></strong></div><div class="stat-card danger"><small>Despesas do mês</small><strong><?= money($expensesMonth) ?></strong></div><div class="stat-card"><small>Lucro líquido do mês</small><strong><?= money((float) $stats['revenue_month'] - $expensesMonth) ?></strong></div><div class="stat-card"><small>Pedidos recebidos hoje</small><strong><?= (int) $stats['orders_today'] ?></strong></div><div class="stat-card"><small>Em andamento</small><strong><?= (int) $stats['in_progress'] ?></strong></div><div class="stat-card"><small>Prontos</small><strong><?= (int) $stats['ready'] ?></strong></div><div class="stat-card alert"><small>Aguardando pagamento</small><strong><?= (int) $stats['awaiting_payment'] ?></strong></div></div>
 
-<div class="grid two-col"><section class="card chart-card"><h2>Faturamento e despesas · últimos 7 dias</h2><canvas id="financeChart"></canvas></section><section class="card chart-card"><h2>Pedidos por etapa</h2><canvas id="stageChart"></canvas></section></div>
+<div class="grid two-col"><section class="card chart-card"><h2>Faturamento e despesas · últimos 7 dias</h2><div class="chart-canvas"><canvas id="financeChart" aria-label="Gráfico de faturamento e despesas dos últimos sete dias"></canvas><p class="chart-empty" data-chart-empty="finance" hidden>Sem lançamentos financeiros no período.</p></div></section><section class="card chart-card"><h2>Pedidos por etapa</h2><div class="chart-canvas"><canvas id="stageChart" aria-label="Gráfico de pedidos por etapa"></canvas><p class="chart-empty" data-chart-empty="stages" hidden>Não há pedidos ativos para exibir.</p></div></section></div>
 
 <div class="grid two-col"><section class="card card-pad"><div class="section-heading"><h2>Pedidos recentes</h2><a class="text-green" href="<?= e(url('producao/index.php')) ?>">Ver produção</a></div><div class="table-wrap"><table class="data-table"><thead><tr><th>Pedido</th><th>Cliente</th><th>Valor</th><th>Etapa</th></tr></thead><tbody><?php foreach ($recent as $order): ?><tr><td><a class="text-green" href="<?= e(url('producao/detalhes.php?id=' . (int) $order['id'])) ?>"><?= e($order['numero']) ?></a></td><td><?= e($order['cliente_nome']) ?></td><td><?= money($order['valor_total']) ?></td><td><?= status_badge($order['etapa']) ?></td></tr><?php endforeach; ?><?php if (!$recent): ?><tr><td colspan="4"><div class="empty-state">Nenhum pedido cadastrado.</div></td></tr><?php endif; ?></tbody></table></div></section><section class="card card-pad"><div class="section-heading"><h2>Últimas movimentações</h2></div><div class="timeline"><?php foreach ($movements as $movement): ?><div class="timeline-item"><strong><?= e($movement['numero']) ?> · <?= e($movement['descricao']) ?></strong><p><?= e($movement['nome'] ?: 'Sistema') ?> · <?= date_br($movement['created_at'], true) ?></p></div><?php endforeach; ?><?php if (!$movements): ?><div class="empty-state">Nenhuma movimentação registrada.</div><?php endif; ?></div></section></div>
 
 <section class="card card-pad"><div class="section-heading"><h2>Alertas de produção</h2><p>Prazo ultrapassado ou mais de 48 h sem movimentação.</p></div><?php if ($late): ?><div class="table-wrap"><table class="data-table"><thead><tr><th>Pedido</th><th>Cliente</th><th>Etapa</th><th>Entrega prevista</th></tr></thead><tbody><?php foreach ($late as $order): ?><tr><td><a class="text-green" href="<?= e(url('producao/detalhes.php?id=' . (int) $order['id'])) ?>"><?= e($order['numero']) ?></a></td><td><?= e($order['cliente_nome']) ?></td><td><?= status_badge($order['etapa']) ?></td><td class="text-danger"><?= date_br($order['previsao_entrega'], true) ?></td></tr><?php endforeach; ?></tbody></table></div><?php else: ?><div class="empty-state"><i class="fa-solid fa-circle-check"></i>Nenhum pedido parado ou atrasado.</div><?php endif; ?></section>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <script>
-function dashboardChartPalette() {
-  const styles = getComputedStyle(document.documentElement);
-  return {text: styles.getPropertyValue('--text').trim(), muted: styles.getPropertyValue('--muted').trim(), line: styles.getPropertyValue('--line').trim(), green: styles.getPropertyValue('--green').trim(), red: styles.getPropertyValue('--red').trim(), blue: styles.getPropertyValue('--blue').trim(), yellow: styles.getPropertyValue('--yellow').trim()};
-}
-const chartPalette = dashboardChartPalette();
-const financeChart = new Chart(document.getElementById('financeChart'), {type: 'line', data: {labels: <?= json_encode($chartLabels, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>, datasets: [{label: 'Faturamento', data: <?= json_encode($chartRevenue, JSON_PRESERVE_ZERO_FRACTION) ?>, borderColor: chartPalette.green, backgroundColor: 'rgba(15,157,87,.14)', fill: true, tension: .35}, {label: 'Despesas', data: <?= json_encode($chartExpenses, JSON_PRESERVE_ZERO_FRACTION) ?>, borderColor: chartPalette.red, backgroundColor: 'rgba(217,56,56,.12)', fill: true, tension: .35}]}, options: {responsive: true, maintainAspectRatio: false, plugins: {legend: {labels: {color: chartPalette.text}}}, scales: {x: {ticks: {color: chartPalette.muted}, grid: {color: chartPalette.line}}, y: {ticks: {color: chartPalette.muted}, grid: {color: chartPalette.line}}}}});
-const stageChart = new Chart(document.getElementById('stageChart'), {type: 'doughnut', data: {labels: ['Pedido novo', 'Preparação de arquivo', 'Em produção', 'Pronto'], datasets: [{data: <?= json_encode($stageStats) ?>, backgroundColor: [chartPalette.muted, chartPalette.yellow, chartPalette.blue, chartPalette.green]}]}, options: {responsive: true, maintainAspectRatio: false, plugins: {legend: {position: 'bottom', labels: {color: chartPalette.text}}}}});
-document.addEventListener('app:themechange', () => {
-  const palette = dashboardChartPalette();
-  financeChart.data.datasets[0].borderColor = palette.green;
-  financeChart.data.datasets[1].borderColor = palette.red;
-  financeChart.options.plugins.legend.labels.color = palette.text;
-  financeChart.options.scales.x.ticks.color = financeChart.options.scales.y.ticks.color = palette.muted;
-  financeChart.options.scales.x.grid.color = financeChart.options.scales.y.grid.color = palette.line;
-  stageChart.data.datasets[0].backgroundColor = [palette.muted, palette.yellow, palette.blue, palette.green];
-  stageChart.options.plugins.legend.labels.color = palette.text;
-  financeChart.update(); stageChart.update();
-});
+(() => {
+  const financeValues = <?= json_encode(array_merge($chartRevenue, $chartExpenses), JSON_PRESERVE_ZERO_FRACTION) ?>;
+  const stageValues = <?= json_encode($stageStats) ?>;
+  const setEmptyState = (name, isEmpty) => {
+    const message = document.querySelector(`[data-chart-empty="${name}"]`);
+    const canvas = document.getElementById(name === 'finance' ? 'financeChart' : 'stageChart');
+    if (message) message.hidden = !isEmpty;
+    if (canvas) canvas.hidden = isEmpty;
+  };
+  const palette = () => {
+    const styles = getComputedStyle(document.documentElement);
+    return {text: styles.getPropertyValue('--text').trim(), muted: styles.getPropertyValue('--muted').trim(), line: styles.getPropertyValue('--line').trim(), green: styles.getPropertyValue('--green').trim(), red: styles.getPropertyValue('--red').trim(), blue: styles.getPropertyValue('--blue').trim(), yellow: styles.getPropertyValue('--yellow').trim()};
+  };
+  const commonOptions = () => ({responsive: true, maintainAspectRatio: false, resizeDelay: 120, plugins: {legend: {labels: {boxWidth: 12, color: palette().text}}}});
+  const financeEmpty = financeValues.every((value) => Number(value) === 0);
+  const stagesEmpty = stageValues.every((value) => Number(value) === 0);
+  setEmptyState('finance', financeEmpty);
+  setEmptyState('stages', stagesEmpty);
+  if (!window.Chart) {
+    setEmptyState('finance', true); setEmptyState('stages', true);
+    document.querySelectorAll('.chart-empty').forEach((message) => { message.textContent = 'Não foi possível carregar os gráficos agora.'; });
+    return;
+  }
+  window.PrintForneceCharts?.finance?.destroy();
+  window.PrintForneceCharts?.stages?.destroy();
+  const colors = palette();
+  const financeChart = financeEmpty ? null : new Chart(document.getElementById('financeChart'), {type: 'line', data: {labels: <?= json_encode($chartLabels, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>, datasets: [{label: 'Faturamento', data: <?= json_encode($chartRevenue, JSON_PRESERVE_ZERO_FRACTION) ?>, borderColor: colors.green, backgroundColor: 'rgba(15,157,87,.14)', fill: true, tension: .35}, {label: 'Despesas', data: <?= json_encode($chartExpenses, JSON_PRESERVE_ZERO_FRACTION) ?>, borderColor: colors.red, backgroundColor: 'rgba(217,56,56,.12)', fill: true, tension: .35}]}, options: {...commonOptions(), scales: {x: {ticks: {color: colors.muted, maxRotation: 0}, grid: {color: colors.line}}, y: {beginAtZero: true, ticks: {color: colors.muted}, grid: {color: colors.line}}}}});
+  const stageChart = stagesEmpty ? null : new Chart(document.getElementById('stageChart'), {type: 'doughnut', data: {labels: ['Pedido novo', 'Preparação de arquivo', 'Em produção', 'Pronto'], datasets: [{data: stageValues, backgroundColor: [colors.muted, colors.yellow, colors.blue, colors.green], borderColor: colors.line, borderWidth: 2}]}, options: {...commonOptions(), cutout: '58%', plugins: {legend: {position: 'bottom', labels: {boxWidth: 12, color: colors.text}}}}});
+  window.PrintForneceCharts = {finance: financeChart, stages: stageChart};
+  const refreshCharts = () => {
+    const next = palette();
+    if (financeChart) {
+      financeChart.data.datasets[0].borderColor = next.green;
+      financeChart.data.datasets[1].borderColor = next.red;
+      financeChart.options.plugins.legend.labels.color = next.text;
+      financeChart.options.scales.x.ticks.color = financeChart.options.scales.y.ticks.color = next.muted;
+      financeChart.options.scales.x.grid.color = financeChart.options.scales.y.grid.color = next.line;
+      financeChart.resize(); financeChart.update('none');
+    }
+    if (stageChart) {
+      stageChart.data.datasets[0].backgroundColor = [next.muted, next.yellow, next.blue, next.green];
+      stageChart.data.datasets[0].borderColor = next.line;
+      stageChart.options.plugins.legend.labels.color = next.text;
+      stageChart.resize(); stageChart.update('none');
+    }
+  };
+  document.addEventListener('app:themechange', refreshCharts);
+  document.addEventListener('app:layoutchange', refreshCharts);
+})();
 </script>
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

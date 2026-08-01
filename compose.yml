@@ -2,33 +2,71 @@ services:
   app:
     build:
       context: .
+    environment:
+      APP_ENV: "${APP_ENV:-production}"
+      APP_URL: "${APP_URL:?Defina APP_URL no arquivo .env}"
+      APP_DEBUG: "${APP_DEBUG:-false}"
+      DB_HOST: "${DB_HOST:-db}"
+      DB_PORT: "${DB_PORT:-3306}"
+      DB_NAME: "${DB_NAME:?Defina DB_NAME no arquivo .env}"
+      DB_USER: "${DB_USER:?Defina DB_USER no arquivo .env}"
+      DB_PASSWORD: "${DB_PASSWORD:?Defina DB_PASSWORD no arquivo .env}"
+      SESSION_SECURE: "${SESSION_SECURE:-true}"
+      TIMEZONE: "${TIMEZONE:-America/Fortaleza}"
+      MAX_UPLOAD_BYTES: "${MAX_UPLOAD_BYTES:-26214400}"
     ports:
-      - "8080:80"
+      - "127.0.0.1:${APP_PORT:-8080}:80"
     volumes:
-      - ./:/var/www/html
-      - ./docker/php/config.local.php:/var/www/html/config/config.local.php:ro
+      - print_fornece_uploads:/var/www/html/uploads
     depends_on:
       db:
         condition: service_healthy
+    restart: unless-stopped
+    init: true
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1/health.php"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    logging:
+      driver: local
+      options:
+        max-size: "10m"
+        max-file: "5"
+    networks:
+      - print_fornece_internal
 
   db:
     image: mariadb:10.11
     environment:
-      MARIADB_DATABASE: print_fornece
-      MARIADB_USER: print_fornece
-      MARIADB_PASSWORD: print_fornece_local
-      MARIADB_ROOT_PASSWORD: root_local_password
-    ports:
-      - "3306:3306"
+      MARIADB_DATABASE: "${DB_NAME:?Defina DB_NAME no arquivo .env}"
+      MARIADB_USER: "${DB_USER:?Defina DB_USER no arquivo .env}"
+      MARIADB_PASSWORD: "${DB_PASSWORD:?Defina DB_PASSWORD no arquivo .env}"
+      MARIADB_ROOT_PASSWORD: "${DB_ROOT_PASSWORD:?Defina DB_ROOT_PASSWORD no arquivo .env}"
+      TZ: "${TIMEZONE:-America/Fortaleza}"
     volumes:
       - print_fornece_db:/var/lib/mysql
       - ./database/print_fornece.sql:/docker-entrypoint-initdb.d/01-print-fornece.sql:ro
+    restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "mariadb-admin ping -h localhost -u root -p$$MARIADB_ROOT_PASSWORD --silent"]
-      interval: 5s
+      interval: 10s
       timeout: 5s
-      retries: 20
-      start_period: 10s
+      retries: 12
+      start_period: 20s
+    logging:
+      driver: local
+      options:
+        max-size: "10m"
+        max-file: "5"
+    networks:
+      - print_fornece_internal
 
 volumes:
   print_fornece_db:
+  print_fornece_uploads:
+
+networks:
+  print_fornece_internal:
+    driver: bridge

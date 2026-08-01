@@ -46,7 +46,7 @@ $users = db()->query('SELECT id, nome FROM usuarios WHERE ativo=1 ORDER BY nome'
 $kpis = production_kpis();
 ?>
 <div class="section-heading">
-  <div><h2>Quadro de produção</h2><p>Arraste no computador ou use o seletor “Mover para” em cada pedido.</p></div>
+  <div><h2>Quadro de produção</h2><p>Arraste com mouse, toque ou caneta; pelo teclado, use “Mover para” em cada pedido.</p></div>
   <a class="btn btn-primary" href="<?= e(url('pedidos/novo.php')) ?>"><i class="fa-solid fa-plus"></i> Novo pedido</a>
 </div>
 
@@ -76,7 +76,8 @@ $kpis = production_kpis();
       <div class="kanban-title"><span id="column-<?= e($stage) ?>"><?= e($title) ?></span><span data-stage-count><?= count($grouped[$stage]) ?></span></div>
       <div class="kanban-cards" data-stage-cards>
         <?php foreach ($grouped[$stage] as $order): $late = $order['previsao_entrega'] && strtotime($order['previsao_entrega']) < time(); ?>
-          <article class="order-card <?= $late ? 'is-late' : '' ?>" draggable="true" data-order-id="<?= (int) $order['id'] ?>" data-stage="<?= e($stage) ?>">
+          <?php $destinations = allowed_stage_transitions($stage); ?>
+          <article class="order-card <?= $late ? 'is-late' : '' ?>" draggable="true" data-order-id="<?= (int) $order['id'] ?>" data-stage="<?= e($stage) ?>" data-allowed-stages="<?= e(implode(',', $destinations)) ?>">
             <a class="order-card-link" href="<?= e(url('producao/detalhes.php?id=' . (int) $order['id'])) ?>" aria-label="Abrir pedido <?= e($order['numero']) ?>">
               <div class="order-number"><?= e($order['numero']) ?></div>
               <h3><?= e($order['cliente_nome']) ?></h3>
@@ -91,7 +92,7 @@ $kpis = production_kpis();
               <label class="sr-only" for="move-order-<?= (int) $order['id'] ?>">Mover pedido <?= e($order['numero']) ?></label>
               <select id="move-order-<?= (int) $order['id'] ?>" data-order-move-select data-order-id="<?= (int) $order['id'] ?>" aria-label="Mover pedido <?= e($order['numero']) ?>">
                 <option value="" selected>Mover para…</option>
-                <?php foreach ($columns as $targetStage => $targetTitle): if ($targetStage !== $stage): ?><option value="<?= e($targetStage) ?>"><?= e($targetTitle) ?></option><?php endif; endforeach; ?>
+                <?php foreach ($destinations as $targetStage): ?><option value="<?= e($targetStage) ?>"><?= e($columns[$targetStage]) ?></option><?php endforeach; ?>
               </select>
             </div>
           </article>
