@@ -1,9 +1,0 @@
-.env
-.venv/
-__pycache__/
-*.py[cod]
-*.sqlite3
-staticfiles/
-media/
-reports/migration-*.json
-

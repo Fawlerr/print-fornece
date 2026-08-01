@@ -6,6 +6,9 @@ django_app/.venv
 django_app/db.sqlite3
 django_app/media
 django_app/staticfiles
+__pycache__
+.pytest_cache
+*.pyc
 config/config.local.php
 uploads/pedidos/*
 !uploads/pedidos/.gitkeep

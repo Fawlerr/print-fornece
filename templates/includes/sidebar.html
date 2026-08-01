@@ -1,0 +1,51 @@
+<aside class="sidebar" id="sidebar" aria-label="Navegação principal">
+  <div class="brand">
+    <span><i class="fa-solid fa-print" aria-hidden="true"></i> PRINT <b>FORNECE</b></span>
+    <button class="icon-button mobile-only" type="button" data-menu-close aria-label="Fechar menu">
+      <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+    </button>
+  </div>
+
+  <nav>
+    {% if user.is_administrator %}
+      <a href="{% url 'dashboard:index' %}"{% if request.resolver_match.namespace == 'dashboard' %} class="active" aria-current="page"{% endif %}>
+        <i class="fa-solid fa-chart-line" aria-hidden="true"></i><span>Visão geral</span>
+      </a>
+    {% endif %}
+    <a href="{% url 'orders:create' %}"{% if request.resolver_match.namespace == 'orders' %} class="active" aria-current="page"{% endif %}>
+      <i class="fa-solid fa-plus-circle" aria-hidden="true"></i><span>Novo pedido</span>
+    </a>
+    <a href="{% url 'production:kanban' %}"{% if request.resolver_match.namespace == 'production' %} class="active" aria-current="page"{% endif %}>
+      <i class="fa-solid fa-table-columns" aria-hidden="true"></i><span>Produção</span>
+    </a>
+    {% if user.is_administrator %}
+      <a href="{% url 'expenses:list' %}"{% if request.resolver_match.namespace == 'expenses' %} class="active" aria-current="page"{% endif %}>
+        <i class="fa-solid fa-wallet" aria-hidden="true"></i><span>Despesas</span>
+      </a>
+      <a href="{% url 'reports:index' %}"{% if request.resolver_match.namespace == 'reports' %} class="active" aria-current="page"{% endif %}>
+        <i class="fa-solid fa-chart-pie" aria-hidden="true"></i><span>Relatórios</span>
+      </a>
+      <a href="{% url 'accounts:user_list' %}"{% if request.resolver_match.namespace == 'accounts' and request.resolver_match.url_name in 'user_list user_create user_edit' %} class="active" aria-current="page"{% endif %}>
+        <i class="fa-solid fa-users" aria-hidden="true"></i><span>Usuários</span>
+      </a>
+    {% endif %}
+    <a href="{% url 'notifications:list' %}"{% if request.resolver_match.namespace == 'notifications' %} class="active" aria-current="page"{% endif %}>
+      <i class="fa-solid fa-bell" aria-hidden="true"></i><span>Notificações</span>
+    </a>
+    <a href="{% url 'accounts:profile' %}"{% if request.resolver_match.namespace == 'accounts' and request.resolver_match.url_name == 'profile' %} class="active" aria-current="page"{% endif %}>
+      <i class="fa-solid fa-user-gear" aria-hidden="true"></i><span>Meu perfil</span>
+    </a>
+    <form class="sidebar-logout-form" method="post" action="{% url 'accounts:logout' %}">
+      {% csrf_token %}
+      <button class="sidebar-nav-button" type="submit">
+        <i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i><span>Sair</span>
+      </button>
+    </form>
+  </nav>
+
+  <div class="sidebar-user">
+    <strong>{{ user.name|default:user.email }}</strong>
+    <small>{% if user.is_administrator %}Administrador{% else %}Funcionário{% endif %}</small>
+  </div>
+</aside>
+<div class="menu-overlay" data-menu-close></div>

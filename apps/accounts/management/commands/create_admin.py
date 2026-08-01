@@ -1,0 +1,23 @@
+import os
+from django.core.management.base import BaseCommand
+from apps.accounts.models import User
+
+
+class Command(BaseCommand):
+    help = "Cria um usuário administrador inicial se nenhum existir."
+
+    def handle(self, *args, **options):
+        email = os.environ.get("ADMIN_EMAIL", "admin@printfornece.com.br")
+        password = os.environ.get("ADMIN_PASSWORD", "admin123456")
+        name = os.environ.get("ADMIN_NAME", "Administrador")
+
+        if not User.objects.filter(role=User.Role.ADMINISTRATOR).exists():
+            User.objects.create_superuser(
+                email=email,
+                name=name,
+                password=password,
+                role=User.Role.ADMINISTRATOR,
+            )
+            self.stdout.write(self.style.SUCCESS(f"Superusuário '{email}' criado com sucesso."))
+        else:
+            self.stdout.write("Administrador já existe no banco de dados.")

@@ -3,28 +3,29 @@ services:
     build:
       context: .
     environment:
-      APP_ENV: "${APP_ENV:-production}"
-      APP_URL: "${APP_URL:?Defina APP_URL no arquivo .env}"
-      APP_DEBUG: "${APP_DEBUG:-false}"
+      SECRET_KEY: "${SECRET_KEY:-django-insecure-key-change-me-in-production}"
+      DEBUG: "${DEBUG:-false}"
+      ALLOWED_HOSTS: "${ALLOWED_HOSTS:-*}"
       DB_HOST: "${DB_HOST:-db}"
       DB_PORT: "${DB_PORT:-3306}"
-      DB_NAME: "${DB_NAME:?Defina DB_NAME no arquivo .env}"
-      DB_USER: "${DB_USER:?Defina DB_USER no arquivo .env}"
-      DB_PASSWORD: "${DB_PASSWORD:?Defina DB_PASSWORD no arquivo .env}"
-      SESSION_SECURE: "${SESSION_SECURE:-true}"
+      DB_NAME: "${DB_NAME:-print_fornece}"
+      DB_USER: "${DB_USER:-print_user}"
+      DB_PASSWORD: "${DB_PASSWORD:-print_password}"
       TIMEZONE: "${TIMEZONE:-America/Fortaleza}"
-      MAX_UPLOAD_BYTES: "${MAX_UPLOAD_BYTES:-26214400}"
+      ADMIN_EMAIL: "${ADMIN_EMAIL:-admin@printfornece.com.br}"
+      ADMIN_PASSWORD: "${ADMIN_PASSWORD:-admin123456}"
+      ADMIN_NAME: "${ADMIN_NAME:-Administrador}"
     ports:
-      - "127.0.0.1:${APP_PORT:-8080}:80"
+      - "127.0.0.1:${APP_PORT:-8080}:8000"
     volumes:
-      - print_fornece_uploads:/var/www/html/uploads
+      - print_fornece_uploads:/app/media
     depends_on:
       db:
         condition: service_healthy
     restart: unless-stopped
     init: true
     healthcheck:
-      test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1/health.php"]
+      test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1:8000/health/"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -40,10 +41,10 @@ services:
   db:
     image: mariadb:10.11
     environment:
-      MARIADB_DATABASE: "${DB_NAME:?Defina DB_NAME no arquivo .env}"
-      MARIADB_USER: "${DB_USER:?Defina DB_USER no arquivo .env}"
-      MARIADB_PASSWORD: "${DB_PASSWORD:?Defina DB_PASSWORD no arquivo .env}"
-      MARIADB_ROOT_PASSWORD: "${DB_ROOT_PASSWORD:?Defina DB_ROOT_PASSWORD no arquivo .env}"
+      MARIADB_DATABASE: "${DB_NAME:-print_fornece}"
+      MARIADB_USER: "${DB_USER:-print_user}"
+      MARIADB_PASSWORD: "${DB_PASSWORD:-print_password}"
+      MARIADB_ROOT_PASSWORD: "${DB_ROOT_PASSWORD:-root_password}"
       TZ: "${TIMEZONE:-America/Fortaleza}"
     volumes:
       - print_fornece_db:/var/lib/mysql

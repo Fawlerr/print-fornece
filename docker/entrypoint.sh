@@ -1,21 +1,18 @@
 #!/bin/sh
-set -eu
+set -e
 
-upload_dir=/var/www/html/uploads/pedidos
+echo "Aguardando inicialização do ambiente Django..."
 
-if [ ! -d "$upload_dir" ]; then
-  install -d -m 775 -o www-data -g www-data "$upload_dir"
-fi
+# Executa migrações no banco MariaDB
+echo "Executando migrações do banco de dados..."
+python manage.py migrate --noinput
 
-# Volumes nomeados e bind mounts podem iniciar como root. Ajuste somente esta
-# árvore persistente para que o processo Apache (www-data) possa gravar.
-chown -R www-data:www-data /var/www/html/uploads
-find /var/www/html/uploads -type d -exec chmod 775 {} +
-find /var/www/html/uploads -type f -exec chmod 664 {} +
+# Coleta arquivos estáticos para WhiteNoise
+echo "Coletando arquivos estáticos..."
+python manage.py collectstatic --noinput
 
-if [ ! -d "$upload_dir" ] || ! su -s /bin/sh -c "test -w '$upload_dir'" www-data; then
-  echo "A pasta de uploads não está disponível para escrita." >&2
-  exit 1
-fi
+# Cria administrador inicial se necessário
+echo "Verificando/Criando usuário administrador inicial..."
+python manage.py create_admin
 
 exec "$@"

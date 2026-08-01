@@ -1,154 +1,152 @@
-# Print Fornece
+# Print Fornece — Python 3.14 + Django 6.0
 
-Sistema PHP 8.3 para gestão de pedidos DTF, produção, anexos, despesas, relatórios, usuários e notificações. A aplicação usa MariaDB/MySQL como fonte oficial dos dados; o navegador não guarda pedidos, etapas ou KPIs como persistência.
+Sistema de gestão de pedidos, fluxo de produção Kanban, controle financeiro, despesas, relatórios e notificações.
 
-## Funcionalidades
+Reescrito e refatorado de PHP para **Python 3.14** e **Django 6.0**. Todo o código legado em PHP foi removido e substituído por uma arquitetura Django limpa e modular.
 
-- Autenticação, perfis de administrador e funcionário, troca obrigatória de senha e auditoria.
-- Cadastro, edição, anexos privados, histórico, observações, cancelamento e finalização de pedidos.
-- Kanban de produção com mouse, toque/caneta e seletor acessível **Mover para**.
-- Dashboard, KPIs, gráficos Chart.js responsivos, despesas, relatórios CSV e notificações.
-- Tema claro, escuro e automático; PWA instalável que só armazena arquivos estáticos públicos.
+---
 
-## Requisitos
+## 🚀 Como Executar em Produção com Docker (Recomendado)
 
-- Docker Engine 24+ com Docker Compose v2.
-- Para VPS: Ubuntu LTS, Nginx e um domínio apontado para a VPS.
-- HTTPS é obrigatório para produção, cookies seguros e instalação da PWA.
+O projeto está totalmente pré-configurado para execução em contêineres Docker utilizando **Docker Compose**, **Gunicorn**, **WhiteNoise** e **MariaDB 10.11**.
 
-## Primeiro uso local
-
-1. Copie o modelo e ajuste apenas os valores locais:
-
-   ```powershell
-   Copy-Item .env.example .env
-   ```
-
-   Em `.env`, use `APP_URL=http://localhost:8080`, `APP_ENV=development`, `APP_DEBUG=true` e `SESSION_SECURE=false` para acesso HTTP local. Use senhas locais únicas mesmo nesse ambiente.
-
-2. Inicie os serviços:
-
-   ```powershell
-   docker compose up --build -d
-   docker compose ps
-   ```
-
-3. Crie o primeiro administrador — não existem contas ou senhas padrão:
-
-   ```powershell
-   docker compose exec app php scripts/create-admin.php
-   ```
-
-4. Abra <http://localhost:8080>, entre com a conta criada e complete a troca da senha solicitada.
-
-O banco não possui porta publicada. A aplicação fica vinculada a `127.0.0.1:8080`; isso permite o uso local e impede a exposição direta na VPS.
-
-## Variáveis de ambiente
-
-| Variável | Uso |
-| --- | --- |
-| `APP_ENV` | `production` na VPS; `development` apenas localmente. |
-| `APP_URL` | URL pública completa, por exemplo `https://print.exemplo.com`. |
-| `APP_DEBUG` | Mantenha `false` em produção. |
-| `APP_PORT` | Porta local do Apache no host, padrão `8080`. |
-| `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` | Conexão da aplicação. Com o banco do Compose, use `db` e `3306`. |
-| `DB_ROOT_PASSWORD` | Senha administrativa usada somente pelo contêiner MariaDB. |
-| `SESSION_SECURE` | `true` atrás de HTTPS; `false` somente para HTTP local. |
-| `TIMEZONE` | Fuso da aplicação, padrão `America/Fortaleza`. |
-| `MAX_UPLOAD_BYTES` | Limite por arquivo; deve ser menor ou igual ao limite de PHP/Nginx. |
-
-`.env` é ignorado pelo Git. Nunca o copie para tickets, logs ou repositórios.
-
-## Produção em VPS
-
-1. Instale Docker, Docker Compose, Nginx e Certbot na VPS. Clone o projeto em um diretório protegido e copie `.env.example` para `.env`.
-2. Defina ao menos `APP_ENV=production`, `APP_URL=https://seu-dominio`, `APP_DEBUG=false`, `SESSION_SECURE=true` e senhas longas e exclusivas para o banco.
-3. Valide a composição e inicie:
-
-   ```sh
-   docker compose config -q
-   docker compose up --build -d
-   docker compose ps
-   docker compose logs --tail=100 app db
-   docker compose exec app php scripts/create-admin.php
-   ```
-
-4. Copie `deploy/nginx/print-fornece.conf.example` para `/etc/nginx/sites-available/print-fornece`, substitua domínio/caminhos de certificado e habilite o site. O exemplo preserva IP, host e protocolo encaminhados ao Apache e limita uploads a 30 MiB.
-5. Antes do certificado, mantenha o bloco HTTP e execute:
-
-   ```sh
-   sudo nginx -t && sudo systemctl reload nginx
-   sudo certbot --nginx -d seu-dominio
-   sudo systemctl enable --now certbot.timer
-   ```
-
-6. Confirme `https://seu-dominio/health.php` e `docker compose ps`. O health check não mostra credenciais nem detalhes internos.
-
-O Nginx é o único serviço público. MariaDB fica somente na rede Docker `print_fornece_internal`; phpMyAdmin não faz parte da produção.
-
-## Persistência e permissões
-
-- `print_fornece_db` mantém `/var/lib/mysql` e não é removido em reconstruções da imagem.
-- `print_fornece_uploads` mantém `/var/www/html/uploads`, inclusive `uploads/pedidos`.
-- Na inicialização, o contêiner cria a pasta necessária, aplica dono `www-data`, diretórios `775` e arquivos `664`. A aplicação também valida `is_dir()` e `is_writable()` antes do upload.
-- Arquivos são armazenados com nomes aleatórios, MIME conferido por `finfo`, tamanho limitado e servidos apenas pelo endpoint autenticado de download. O Apache bloqueia execução e acesso direto a uploads.
-
-Nunca use `docker compose down -v` em uma VPS ou em qualquer ambiente com dados que precisem ser preservados.
-
-## Atualização segura
-
-Faça backup **antes** de alterar o código. O script não remove volumes, não importa SQL sobre dados existentes e não usa `git reset --hard`:
-
-```sh
-sh scripts/backup.sh
-git status --short
-git pull --ff-only
-sh scripts/deploy-safe.sh
-docker compose ps
+### 1. Clonar o repositório
+```bash
+git clone https://github.com/Fawlerr/print-fornece.git
+cd print-fornece
 ```
 
-`deploy-safe.sh` valida `.env`, executa outro backup, constrói a imagem, inicia os serviços existentes e exige o health check. Se o health check falhar, ele para com os volumes intactos; consulte `docker compose logs --tail=200 app db`. Para rollback de código, volte para um commit conhecido usando um procedimento Git revisado, execute novamente o script e mantenha os mesmos volumes.
+### 2. Configurar o arquivo de ambiente (`.env`)
+Copie o modelo de ambiente `.env.example` para `.env` e configure suas credenciais de produção:
+```bash
+cp .env.example .env
+```
+Exemplo de conteúdo do `.env`:
+```env
+SECRET_KEY=sua-chave-secreta-super-segura
+DEBUG=false
+ALLOWED_HOSTS=*
+APP_PORT=8080
+TIMEZONE=America/Fortaleza
 
-## Backup e restauração
+DB_HOST=db
+DB_PORT=3306
+DB_NAME=print_fornece
+DB_USER=print_user
+DB_PASSWORD=senha-do-banco-segura
+DB_ROOT_PASSWORD=senha-root-segura
 
-`sh scripts/backup.sh` cria `backups/<UTC>/database.sql.gz`, `uploads.tar.gz` e checksums com permissões restritas. Copie esses diretórios para armazenamento externo criptografado e mantenha uma política de retenção definida pela operação.
-
-Para restaurar um backup validado em uma janela de manutenção:
-
-```sh
-docker compose stop app
-gzip -dc backups/AAAAmmddTHHMMSSZ/database.sql.gz | docker compose exec -T db sh -ec 'mariadb -u "$MARIADB_USER" "-p$MARIADB_PASSWORD" "$MARIADB_DATABASE"'
-cat backups/AAAAmmddTHHMMSSZ/uploads.tar.gz | docker compose exec -T app sh -ec 'tar -C /var/www/html -xzf -'
-docker compose start app
+ADMIN_EMAIL=admin@printfornece.com.br
+ADMIN_PASSWORD=admin-senha-segura
+ADMIN_NAME=Administrador
 ```
 
-Restauração sobrescreve o conteúdo atual do banco e uploads: faça outro backup imediatamente antes de executá-la e teste o procedimento em uma cópia isolada primeiro.
-
-## Kanban e KPIs
-
-O Kanban permite apenas as transições válidas: novo → preparação → produção → pronto, com retorno de uma etapa quando necessário. O seletor mostra exclusivamente destinos válidos e é a alternativa acessível ao arraste.
-
-No computador, o cartão usa drag and drop nativo. Em celular ou caneta, Pointer Events iniciam o arraste após pequeno deslocamento horizontal; rolagem vertical continua natural. Durante o gesto a coluna de destino é destacada, há rolagem horizontal/vertical assistida nas bordas e nenhum pedido é alterado no navegador antes da resposta do servidor.
-
-`producao/atualizar-status.php` aceita somente POST autenticado com CSRF. Ele bloqueia o pedido em transação, valida ID, usuário, estado e transição, faz update condicional, grava `pedido_etapas_historico`, `pedido_historico` e auditoria, confirma a transação e retorna KPIs novos em JSON. Falhas mantêm o cartão e os contadores na posição original.
-
-## PWA, tema e gráficos
-
-- A preferência de tema (`claro`, `escuro` ou `sistema`) é o único dado mantido no `localStorage`; é aplicada antes da primeira pintura.
-- O Service Worker tem versão por arquivos estáticos, limpa caches antigos e usa rede primeiro com fallback apenas para CSS, JavaScript, ícones e manifesto. Páginas autenticadas, endpoints, pedidos, despesas e pagamentos nunca são colocados no cache.
-- O dashboard usa Chart.js 4.4.7, contêineres com altura responsiva e `maintainAspectRatio: false`; troca de tema e abertura da sidebar acionam `resize()`. Sem dados ou sem a biblioteca, exibe estado vazio sem canvas distorcido.
-
-Para instalar, acesse o sistema por HTTPS. Em iPhone/iPad, use **Compartilhar → Adicionar à Tela de Início**.
-
-## Validações
-
-Dentro do contêiner, execute:
-
-```sh
-docker compose exec app sh -ec 'find . -path ./django_app -prune -o -name "*.php" -print0 | xargs -0 -n1 php -l'
-docker compose exec app php tests/run.php
-docker compose config -q
-docker compose exec app curl --fail --silent http://127.0.0.1/health.php
+### 3. Iniciar a aplicação
+Suba os containers da aplicação Django e do MariaDB com um único comando:
+```bash
+docker compose up -d --build
 ```
 
-Valide manualmente com administrador e funcionário: login/logout, criação/edição, upload permitido e bloqueado, transições válidas/recusadas, histórico, despesas, relatórios e notificações. Em um celular real, confira toque, rolagem vertical, rolagem horizontal do quadro, seletor **Mover para** e instalação PWA. Teste também 320×568, 360×800, 390×844, 768×1024, 1366×768 e 1920×1080; somente o quadro Kanban e tabelas podem rolar horizontalmente.
+O container executará automaticamente via `docker/entrypoint.sh`:
+- Aguardará a disponibilidade do banco de dados MariaDB.
+- Executará todas as migrações do banco (`python manage.py migrate`).
+- Coletará os arquivos estáticos (`python manage.py collectstatic --noinput`).
+- Verificará e criará o usuário **Administrador Inicial** com as credenciais definidas no `.env`.
+
+Acesse a aplicação no navegador em: `http://localhost:8080` (ou na porta configurada em `APP_PORT`).
+
+---
+
+## 🛠️ Execução Local para Desenvolvimento (Sem Docker)
+
+### Requisitos:
+- **Python 3.14** (ou 3.12+)
+
+### Passo a passo:
+
+1. **Criar e ativar o ambiente virtual (venv)**:
+   ```bash
+   python -m venv .venv
+   
+   # No Linux/macOS:
+   source .venv/bin/activate
+   
+   # No Windows (PowerShell):
+   .\.venv\Scripts\Activate.ps1
+   ```
+
+2. **Instalar dependências**:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. **Executar migrações do banco de dados**:
+   ```bash
+   python manage.py migrate
+   ```
+
+4. **Criar usuário Administrador inicial**:
+   ```bash
+   python manage.py create_admin
+   ```
+
+5. **Iniciar o servidor de desenvolvimento**:
+   ```bash
+   python manage.py runserver 127.0.0.1:8000
+   ```
+
+Acesse a aplicação em: `http://127.0.0.1:8000`
+- **E-mail inicial**: `admin@printfornece.com.br`
+- **Senha inicial**: `admin123456` (ou a definida em `ADMIN_PASSWORD`)
+
+---
+
+## 🧪 Suíte de Testes Automatizados
+
+O projeto conta com testes unitários e de integração abrangendo autenticação, controle de permissões por perfil, CRUD de pedidos, upload seguro de arquivos, fluxo de produção (Kanban), despesas e relatórios.
+
+Para executar os testes:
+```bash
+python manage.py test tests
+```
+Ou via `pytest`:
+```bash
+pytest
+```
+
+---
+
+## 📂 Estrutura do Projeto
+
+```text
+print-fornece/
+├── apps/
+│   ├── accounts/       # Usuário customizado, perfis, autenticação, hasher legado e permissões
+│   ├── orders/         # Pedidos, anexos seguros, observações e histórico
+│   ├── production/     # Kanban de produção e máquina de estados de etapas
+│   ├── expenses/       # Registro e controle de despesas operacionais
+│   ├── dashboard/      # Métricas e indicadores da visão geral
+│   ├── reports/        # Filtros, métricas e exportação de CSV
+│   ├── notifications/  # Notificações do sistema e polling
+│   ├── audit/          # Trilha de auditoria das ações
+│   └── payments/       # Estrutura para integração futura de cobranças (Stone)
+├── config/             # Configurações do Django (settings/, urls.py, wsgi.py, asgi.py, health.py)
+├── templates/          # Templates HTML5 modernos e responsivos (tema dark)
+├── static/             # CSS nativo e JS do sistema (estilização e interações)
+├── media/              # Diretório de uploads e anexos de pedidos
+├── database/           # Esquemas de banco SQL legados
+├── docker/             # Script de entrada (entrypoint.sh)
+├── Dockerfile          # Imagem de produção otimizada para Python 3.14
+├── compose.yml         # Orquestração de containers Django + MariaDB 10.11
+├── manage.py           # Utilitário de comando do Django
+├── pytest.ini          # Configuração do test runner pytest
+└── requirements.txt    # Dependências do projeto Python 3.14
+```
+
+---
+
+## 🔐 Segurança e Produção
+
+- **Upload de Arquivos**: Anexos de pedidos são armazenados com nomes mascarados via UUID e validados quanto ao tipo de conteúdo/MIME type, impedindo o upload de scripts executáveis.
+- **Hashes Legados**: O sistema possui hasher customizado (`PHPBcryptPasswordHasher`) que aceita e re-criptografa senhas migradas do PHP no primeiro login.
+- **Controle de Acesso (RBAC)**: Rotas financeiras e administrativas (Dashboard, Despesas, Relatórios, Usuários) são restritas a usuários com perfil `Administrador`.
