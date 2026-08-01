@@ -97,6 +97,7 @@
   box-sizing: border-box;
 }
 
+.stat-card small,
 .stat-card span {
   font-size: 14px;
   font-weight: 500;
@@ -461,14 +462,14 @@
   }
 }
 
-/* Otimização Proporcional e Enxuta para Celular (< 768px) */
+/* Otimização Proporcional e Enxuta para Celular (Galaxy S23 e Smartphones) */
 @media (max-width: 768px) {
   .page-body {
-    padding: 14px 14px 74px 14px; /* Respiro compacto para a barra inferior */
+    padding: 12px 12px 68px 12px; /* Respiro compacto para a barra inferior */
   }
 
   .section-heading {
-    margin: 14px 0 10px 0;
+    margin: 12px 0 10px 0;
     flex-direction: column;
     align-items: flex-start;
     gap: 8px;
@@ -478,31 +479,86 @@
     font-size: 15px;
   }
 
+  .section-heading p {
+    font-size: 11px;
+  }
+
+  .section-heading .button-row,
+  .section-heading .btn-group {
+    display: flex;
+    width: 100%;
+    gap: 6px;
+  }
+
+  .section-heading .btn {
+    flex: 1;
+    text-align: center;
+    justify-content: center;
+    padding: 7px 8px;
+    font-size: 11px;
+    white-space: nowrap;
+  }
+
+  /* Grid de Cards de Estatísticas em Celulares (S23 ~360px - 412px) */
   .stats-grid {
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
     margin-bottom: 12px;
   }
 
   .stat-card {
-    padding: 12px 14px;
-    min-height: 80px;
-    height: 80px;
-    border-radius: 10px;
+    padding: 10px 12px;
+    min-height: 72px;
+    height: auto;
+    border-radius: 8px;
+    box-sizing: border-box;
   }
 
+  .stat-card small,
   .stat-card span {
-    font-size: 11px;
+    font-size: 10px;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
   }
 
   .stat-card strong {
-    font-size: 18px;
+    font-size: 16px;
+    margin-top: 4px;
+    line-height: 1.1;
   }
 
-  .card {
-    padding: 14px 14px;
+  /* Gráficos no Celular */
+  .chart-card {
+    padding: 12px;
+    min-height: 240px;
+    height: auto;
     border-radius: 10px;
-    margin-bottom: 14px;
+    margin-bottom: 12px;
+  }
+
+  .chart-card h2 {
+    font-size: 13px;
+    margin-bottom: 8px;
+  }
+
+  .chart-wrapper {
+    min-height: 180px;
+    max-height: 200px;
+    height: 190px;
+  }
+
+  /* Cards Globais */
+  .card {
+    padding: 12px;
+    border-radius: 10px;
+    margin-bottom: 12px;
+  }
+
+  .card-pad {
+    padding: 12px;
   }
 
   .filter-card {
@@ -534,8 +590,9 @@
   }
 
   .data-table th, .data-table td {
-    padding: 10px 12px;
-    font-size: 12px;
+    padding: 8px 10px;
+    font-size: 11px;
+    white-space: nowrap;
   }
 
   .mobile-bottom-nav {
@@ -545,6 +602,23 @@
   .topbar-actions .pwa-install-btn span,
   .topbar-actions .pwa-push-btn span {
     display: none; /* Exibe apenas ícones no topo em telas pequenas */
+  }
+
+  .topbar-actions .pwa-push-btn,
+  .topbar-actions .pwa-install-btn {
+    padding: 6px 10px;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .topbar-actions .pwa-push-btn i,
+  .topbar-actions .pwa-install-btn i {
+    font-size: 14px;
+    margin: 0;
   }
 
   .pwa-banner {
