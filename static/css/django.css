@@ -32,6 +32,35 @@
   margin-left: auto; /* Força todo o grupo para a extrema direita no PC */
 }
 
+/* Dashboard Container e Otimizações */
+.dashboard-container {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.dashboard-header {
+  margin-bottom: 20px;
+}
+
+.dashboard-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.font-bold {
+  font-weight: 700;
+}
+
+.text-sm {
+  font-size: 13px;
+}
+
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
 /* Seções e Títulos */
 .section-heading {
   margin: 28px 0 18px 0;
@@ -462,186 +491,181 @@
   }
 }
 
-/* Otimização Proporcional e Enxuta para Celular (Galaxy S23 e Smartphones) */
+/* Otimização Proporcional e Enxuta para Celular (Galaxy S23, iPhone, etc.) */
 @media (max-width: 768px) {
   .page-body {
-    padding: 12px 12px 68px 12px; /* Respiro compacto para a barra inferior */
+    padding: 12px 12px 68px 12px !important; /* Respiro compacto para a barra inferior */
   }
 
-  .section-heading {
-    margin: 12px 0 10px 0;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
+  .dashboard-container {
+    overflow-x: hidden !important;
+    width: 100% !important;
   }
 
-  .section-heading h2 {
-    font-size: 15px;
+  .dashboard-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 8px !important;
+    margin-bottom: 12px !important;
   }
 
-  .section-heading p {
-    font-size: 11px;
+  .dashboard-actions {
+    width: 100% !important;
+    display: flex !important;
+    gap: 6px !important;
   }
 
-  .section-heading .button-row,
-  .section-heading .btn-group {
-    display: flex;
-    width: 100%;
-    gap: 6px;
+  .dashboard-actions .btn {
+    flex: 1 !important;
+    justify-content: center !important;
+    text-align: center !important;
+    padding: 7px 6px !important;
+    font-size: 11px !important;
+    white-space: nowrap !important;
   }
 
-  .section-heading .btn {
-    flex: 1;
-    text-align: center;
-    justify-content: center;
-    padding: 7px 8px;
-    font-size: 11px;
-    white-space: nowrap;
+  .dashboard-actions .btn span {
+    display: inline !important;
   }
 
-  /* Grid de Cards de Estatísticas em Celulares (S23 ~360px - 412px) */
+  .two-col {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    gap: 10px !important;
+    margin-bottom: 10px !important;
+  }
+
+  .grid {
+    gap: 10px !important;
+  }
+
   .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 8px;
-    margin-bottom: 12px;
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+    margin-bottom: 10px !important;
   }
 
   .stat-card {
-    padding: 10px 12px;
-    min-height: 72px;
-    height: auto;
-    border-radius: 8px;
-    box-sizing: border-box;
+    padding: 10px 12px !important;
+    min-height: 66px !important;
+    height: auto !important;
+    border-radius: 8px !important;
+    box-sizing: border-box !important;
   }
 
-  .stat-card small,
-  .stat-card span {
-    font-size: 10px;
-    line-height: 1.2;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    display: block;
+  .stat-card small {
+    font-size: 10px !important;
+    line-height: 1.2 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    display: block !important;
   }
 
   .stat-card strong {
-    font-size: 16px;
-    margin-top: 4px;
-    line-height: 1.1;
+    font-size: 15px !important;
+    margin-top: 2px !important;
+    line-height: 1.1 !important;
   }
 
-  /* Gráficos no Celular */
   .chart-card {
-    padding: 12px;
-    min-height: 240px;
-    height: auto;
-    border-radius: 10px;
-    margin-bottom: 12px;
+    padding: 10px !important;
+    min-height: 200px !important;
+    height: auto !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+    border-radius: 10px !important;
   }
 
   .chart-card h2 {
-    font-size: 13px;
-    margin-bottom: 8px;
+    font-size: 12px !important;
+    margin-bottom: 6px !important;
   }
 
   .chart-wrapper {
-    min-height: 180px;
-    max-height: 200px;
-    height: 190px;
-  }
-
-  /* Cards Globais */
-  .card {
-    padding: 12px;
-    border-radius: 10px;
-    margin-bottom: 12px;
+    height: 160px !important;
+    min-height: 160px !important;
+    max-height: 160px !important;
+    width: 100% !important;
+    position: relative !important;
   }
 
   .card-pad {
-    padding: 12px;
+    padding: 10px !important;
+    border-radius: 10px !important;
   }
 
-  .filter-card {
-    padding: 12px 14px;
-    margin-bottom: 12px;
+  .table-wrap {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
   }
 
-  .filter-card form {
-    gap: 8px 10px;
+  .data-table th,
+  .data-table td {
+    padding: 8px 10px !important;
+    font-size: 11px !important;
+    white-space: nowrap !important;
   }
 
-  .kanban {
-    grid-template-columns: repeat(4, minmax(240px, 82vw));
-    gap: 10px;
-    padding-bottom: 8px;
-    margin-bottom: 12px;
+  .section-heading {
+    margin: 10px 0 8px 0 !important;
   }
 
-  .kanban-column {
-    padding: 12px;
-    border-radius: 10px;
-    min-height: 420px;
-  }
-
-  .order-card {
-    padding: 12px 14px;
-    border-radius: 8px;
-    gap: 8px;
-  }
-
-  .data-table th, .data-table td {
-    padding: 8px 10px;
-    font-size: 11px;
-    white-space: nowrap;
+  .section-heading h2 {
+    font-size: 14px !important;
   }
 
   .mobile-bottom-nav {
-    display: flex;
+    display: flex !important;
   }
 
   .topbar-actions .pwa-install-btn span,
   .topbar-actions .pwa-push-btn span {
-    display: none; /* Exibe apenas ícones no topo em telas pequenas */
+    display: none !important;
   }
 
   .topbar-actions .pwa-push-btn,
   .topbar-actions .pwa-install-btn {
-    padding: 6px 10px;
-    border-radius: 50%;
-    width: 32px;
-    height: 32px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
+    padding: 6px 10px !important;
+    border-radius: 50% !important;
+    width: 32px !important;
+    height: 32px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
   }
 
   .topbar-actions .pwa-push-btn i,
   .topbar-actions .pwa-install-btn i {
-    font-size: 14px;
-    margin: 0;
+    font-size: 14px !important;
+    margin: 0 !important;
   }
 
   .pwa-banner {
-    bottom: 66px; /* Ajustado acima da barra inferior mobile */
-    padding: 12px;
+    bottom: 66px !important;
+    padding: 10px !important;
   }
 
   .pwa-banner-content {
-    flex-direction: column;
-    text-align: center;
-    gap: 10px;
+    flex-direction: column !important;
+    text-align: center !important;
+    gap: 8px !important;
   }
 
   .pwa-banner-actions {
-    flex-direction: row;
-    width: 100%;
-    justify-content: center;
-    gap: 8px;
+    flex-direction: row !important;
+    width: 100% !important;
+    justify-content: center !important;
+    gap: 8px !important;
   }
 
   .pwa-banner-actions .btn {
-    flex: 1;
-    font-size: 12px;
-    padding: 6px 10px;
+    flex: 1 !important;
+    font-size: 11px !important;
+    padding: 5px 8px !important;
   }
 }
