@@ -43,7 +43,7 @@
     </div>
 
     <div class="grid two-col">
-      <section class="card card-pad">
+      <section class="card card-pad dashboard-card">
         <div class="section-heading">
           <h2>Pedidos recentes</h2>
           <a class="text-green text-sm" href="{% url 'production:kanban' %}">Ver produção &rarr;</a>
@@ -55,7 +55,7 @@
               {% for order in recent_orders %}
                 <tr>
                   <td><a class="text-green font-bold" href="{% url 'production:detail' pk=order.pk %}">{{ order.number }}</a></td>
-                  <td>{{ order.client_name }}</td>
+                  <td><span class="client-name-truncate">{{ order.client_name }}</span></td>
                   <td>R$ {{ order.total_amount|floatformat:2 }}</td>
                   <td><span class="badge badge-{{ order.stage }}">{{ order.get_stage_display }}</span></td>
                 </tr>
@@ -67,12 +67,12 @@
         </div>
       </section>
 
-      <section class="card card-pad">
+      <section class="card card-pad dashboard-card">
         <div class="section-heading"><h2>Últimas movimentações</h2></div>
         <div class="timeline">
           {% for movement in movements %}
             <div class="timeline-item">
-              <strong>{{ movement.order.number }} · {{ movement.description }}</strong>
+              <strong class="timeline-title">{{ movement.order.number }} · {{ movement.description }}</strong>
               <p>{{ movement.user.name|default:"Sistema" }} · {{ movement.created_at|date:"d/m/Y H:i" }}</p>
             </div>
           {% empty %}
@@ -82,7 +82,7 @@
       </section>
     </div>
 
-    <section class="card card-pad">
+    <section class="card card-pad dashboard-card">
       <div class="section-heading"><h2>Alertas de produção</h2><p>Prazo ultrapassado ou mais de 48 h sem movimentação.</p></div>
       {% if late_orders %}
         <div class="table-wrap">
@@ -92,7 +92,7 @@
               {% for order in late_orders %}
                 <tr>
                   <td><a class="text-green font-bold" href="{% url 'production:detail' pk=order.pk %}">{{ order.number }}</a></td>
-                  <td>{{ order.client_name }}</td>
+                  <td><span class="client-name-truncate">{{ order.client_name }}</span></td>
                   <td><span class="badge badge-{{ order.stage }}">{{ order.get_stage_display }}</span></td>
                   <td class="text-danger">{% if order.due_at %}{{ order.due_at|date:"d/m/Y H:i" }}{% else %}Sem previsão{% endif %}</td>
                 </tr>
