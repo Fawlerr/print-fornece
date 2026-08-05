@@ -9,6 +9,7 @@ from django.core.exceptions import PermissionDenied, ValidationError
 from django.db.models import Count, Prefetch, Q
 from django.http import HttpResponseBadRequest, JsonResponse
 from django.shortcuts import get_object_or_404, redirect
+from django.urls import reverse
 from django.views.decorators.http import require_POST
 from django.views.generic import DetailView, TemplateView
 
@@ -28,7 +29,15 @@ class KanbanView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         form = OrderFilterForm(self.request.GET or None)
-        orders = Order.objects.filter(stage__in=[Order.Stage.NEW, Order.Stage.PREPARATION, Order.Stage.PRODUCTION, Order.Stage.READY]).select_related("responsible").annotate(
+        active_stages_list = [
+            Order.Stage.NEW,
+            Order.Stage.AWAITING_PAYMENT,
+            Order.Stage.PAYMENT_CONFIRMED,
+            Order.Stage.PRE_PRESS,
+            Order.Stage.PRODUCTION,
+            Order.Stage.READY,
+        ]
+        orders = Order.objects.filter(stage__in=active_stages_list).select_related("responsible").annotate(
             attachment_count=Count("attachments", filter=Q(attachments__removed_at__isnull=True))
         )
         if form.is_valid():
@@ -42,9 +51,10 @@ class KanbanView(LoginRequiredMixin, TemplateView):
             if data.get("responsible"):
                 orders = orders.filter(responsible_id=data["responsible"])
             orders = orders.order_by("-created_at" if data.get("order") == "newest" else "created_at")
-        columns = {stage: [] for stage in (Order.Stage.NEW, Order.Stage.PREPARATION, Order.Stage.PRODUCTION, Order.Stage.READY)}
+        columns = {stage: [] for stage in active_stages_list}
         for order in orders:
-            columns[order.stage].append(order)
+            if order.stage in columns:
+                columns[order.stage].append(order)
         context.update({
             "filter_form": form,
             "columns": columns,
@@ -71,9 +81,26 @@ class OrderDetailView(LoginRequiredMixin, DetailView):
         return order
 
     def get_context_data(self, **kwargs):
+        import urllib.parse
         context = super().get_context_data(**kwargs)
         context["note_form"] = OrderNoteForm()
-        context["active_stages"] = [Order.Stage.NEW, Order.Stage.PREPARATION, Order.Stage.PRODUCTION, Order.Stage.READY]
+        context["active_stages"] = [
+            Order.Stage.NEW,
+            Order.Stage.AWAITING_PAYMENT,
+            Order.Stage.PAYMENT_CONFIRMED,
+            Order.Stage.PRE_PRESS,
+            Order.Stage.PRODUCTION,
+            Order.Stage.READY,
+        ]
+        order = self.object
+        host = self.request.build_absolute_uri('/')[:-1]
+        quote_url = f"{host}{reverse('orders:public_quote', kwargs={'token': order.quote_token})}"
+        clean_phone = "".join(filter(str.isdigit, order.client_whatsapp or ""))
+        if clean_phone and not clean_phone.startswith("55") and len(clean_phone) in (10, 11):
+            clean_phone = f"55{clean_phone}"
+        message = f"Olá {order.client_name}! Segue seu orçamento para o pedido #{order.number}:\n\nValor: R$ {order.total_amount:.2f}\n\nAcesse o link abaixo para visualizar a arte e aprovar seu orçamento:\n{quote_url}"
+        context["whatsapp_share_url"] = f"https://wa.me/{clean_phone}?text={urllib.parse.quote(message)}" if clean_phone else "#"
+        context["public_quote_url"] = quote_url
         return context
 
 

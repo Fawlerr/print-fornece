@@ -43,9 +43,11 @@
     </form>
   </nav>
 
+  {% if user.is_authenticated %}
   <div class="sidebar-user">
     <strong>{{ user.name|default:user.email }}</strong>
     <small>{% if user.is_administrator %}Administrador{% else %}Funcionário{% endif %}</small>
   </div>
+  {% endif %}
 </aside>
 <div class="menu-overlay" data-menu-close></div>

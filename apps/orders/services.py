@@ -15,7 +15,14 @@ from apps.notifications.services import notify_role, notify_user
 
 from .models import Order, OrderAttachment, OrderHistory, OrderNote, OrderStageHistory
 
-ACTIVE_STAGES = {Order.Stage.NEW, Order.Stage.PREPARATION, Order.Stage.PRODUCTION, Order.Stage.READY}
+ACTIVE_STAGES = {
+    Order.Stage.NEW,
+    Order.Stage.AWAITING_PAYMENT,
+    Order.Stage.PAYMENT_CONFIRMED,
+    Order.Stage.PRE_PRESS,
+    Order.Stage.PRODUCTION,
+    Order.Stage.READY,
+}
 
 
 def can_access_order(user, order: Order) -> bool:

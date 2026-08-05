@@ -49,14 +49,14 @@ def finish_order(*, order_id: int, actor, request=None) -> Order:
     require_order_access(actor, order)
     if order.stage != Order.Stage.READY:
         raise ValidationError("Somente pedidos prontos podem ser finalizados.")
-    order.stage = Order.Stage.FINISHED
+    order.stage = Order.Stage.DELIVERED
     order.finished_at = timezone.now()
     order.stage_updated_at = timezone.now()
     order.save(update_fields=["stage", "finished_at", "stage_updated_at", "updated_at"])
-    OrderStageHistory.objects.create(order=order, previous_stage=Order.Stage.READY, new_stage=Order.Stage.FINISHED, user=actor)
+    OrderStageHistory.objects.create(order=order, previous_stage=Order.Stage.READY, new_stage=Order.Stage.DELIVERED, user=actor)
     OrderHistory.objects.create(order=order, user=actor, action="finalizacao", description="Pedido entregue/finalizado.")
-    record_audit(actor, "finalizacao", "pedido", order.pk, before={"etapa": Order.Stage.READY}, after={"etapa": Order.Stage.FINISHED}, request=request)
-    transaction.on_commit(lambda: notify_role("administrador", "Pedido finalizado", f"{order.number} foi finalizado.", f"/production/{order.pk}/"))
+    record_audit(actor, "finalizacao", "pedido", order.pk, before={"etapa": Order.Stage.READY}, after={"etapa": Order.Stage.DELIVERED}, request=request)
+    transaction.on_commit(lambda: notify_role("administrador", "Pedido entregue", f"{order.number} foi entregue/finalizado.", f"/production/{order.pk}/"))
     return order
 
 
@@ -66,7 +66,7 @@ def cancel_order(*, order_id: int, actor, request=None) -> Order:
     require_order_access(actor, order)
     if order.stage == Order.Stage.CANCELLED:
         raise ValidationError("Este pedido já está cancelado.")
-    if order.stage == Order.Stage.FINISHED:
+    if order.stage in (Order.Stage.DELIVERED, "finalizado"):
         raise ValidationError("Pedidos finalizados não podem ser cancelados.")
     previous_stage = order.stage
     order.stage = Order.Stage.CANCELLED

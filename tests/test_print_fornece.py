@@ -110,7 +110,7 @@ class PrintForneceTestCase(TestCase):
         with self.captureOnCommitCallbacks(execute=True):
             response = self.client.post(
                 reverse("production:move_stage", args=[self.order.pk]),
-                data='{"stage":"producao"}', content_type="application/json", HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+                data='{"stage":"em_producao"}', content_type="application/json", HTTP_X_REQUESTED_WITH="XMLHttpRequest",
             )
         self.assertEqual(response.status_code, 200)
         self.order.refresh_from_db()
@@ -122,7 +122,7 @@ class PrintForneceTestCase(TestCase):
 
     def test_invalid_stage_and_finalization_are_blocked(self):
         self.login_as(self.employee)
-        response = self.client.post(reverse("production:move_stage", args=[self.order.pk]), {"stage": Order.Stage.FINISHED})
+        response = self.client.post(reverse("production:move_stage", args=[self.order.pk]), {"stage": Order.Stage.DELIVERED})
         self.assertEqual(response.status_code, 422)
         response = self.client.post(reverse("production:finalize", args=[self.order.pk]))
         self.assertRedirects(response, reverse("production:detail", args=[self.order.pk]))
@@ -207,3 +207,30 @@ class PrintForneceTestCase(TestCase):
         self.assertEqual(first.imported["usuarios"], 1)
         self.assertEqual(second.updated["usuarios"], 1)
         self.assertEqual(legacy_link("producao/detalhes.php?id=8"), "/production/8/")
+
+    def test_pdf_art_preview_and_public_quote_approval(self):
+        # 1. Test PDF Receipt generation endpoint
+        self.login_as(self.admin)
+        response = self.client.get(reverse("orders:download_receipt", args=[self.order.pk]))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "application/pdf")
+
+        # 2. Test Art Preview on gray background endpoint
+        response = self.client.get(reverse("orders:art_preview", args=[self.order.pk]))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "image/png")
+
+        # 3. Test Public Quote View & Approval
+        self.client.logout()
+        quote_url = reverse("orders:public_quote", args=[self.order.quote_token])
+        response = self.client.get(quote_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, self.order.number)
+
+        approve_url = reverse("orders:approve_quote", args=[self.order.quote_token])
+        response = self.client.post(approve_url)
+        self.assertRedirects(response, quote_url)
+        
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.stage, Order.Stage.AWAITING_PAYMENT)
+        self.assertTrue(OrderHistory.objects.filter(order=self.order, action="aprovacao_orcamento").exists())

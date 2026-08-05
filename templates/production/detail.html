@@ -4,12 +4,19 @@
 {% block page_heading %}Pedido {{ order.number }}{% endblock %}
 
 {% block content %}
+  <!-- Temporary Layout Watermark Banner -->
+  <div style="background-color: #fffbebfb; border: 1px solid #f59e0b; border-radius: 6px; padding: 10px 14px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; color: #92400e;">
+    <span><strong>⚠️ Layout de Pedido Temporário:</strong> Marca d'água ativa aguardando envio do modelo HTML de referência.</span>
+    <span class="badge" style="background: #f59e0b; color: white;">TEMPORÁRIO</span>
+  </div>
+
   <div class="section-heading">
     <div>
       <h2>{{ order.client_name }}</h2>
       <p>Criado em {{ order.created_at|date:"d/m/Y H:i" }} por {{ order.created_by.name }}</p>
     </div>
     <div class="button-row no-print">
+      <a class="btn btn-secondary" href="{% url 'orders:download_receipt' pk=order.pk %}"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i> Comprovante PDF</a>
       <a class="btn btn-secondary" href="{% url 'production:kanban' %}"><i class="fa-solid fa-table-columns" aria-hidden="true"></i> Produção</a>
       <a class="btn btn-primary" href="{% url 'orders:edit' pk=order.pk %}"><i class="fa-solid fa-pen" aria-hidden="true"></i> Editar pedido</a>
     </div>
@@ -41,23 +48,25 @@
           {% csrf_token %}
           <label for="stage">Mover para
             <select name="stage" id="stage">
-              <option value="novo"{% if order.stage == "novo" %} selected{% endif %}>Pedido novo</option>
-              <option value="preparacao"{% if order.stage == "preparacao" %} selected{% endif %}>Preparação de arquivo</option>
-              <option value="producao"{% if order.stage == "producao" %} selected{% endif %}>Em produção</option>
-              <option value="pronto"{% if order.stage == "pronto" %} selected{% endif %}>Pronto</option>
+              <option value="novo"{% if order.stage == "novo" %} selected{% endif %}>Novo Pedido</option>
+              <option value="aguardando_pagamento"{% if order.stage == "aguardando_pagamento" %} selected{% endif %}>Aguardando Pagamento</option>
+              <option value="pagamento_confirmado"{% if order.stage == "pagamento_confirmado" %} selected{% endif %}>Pagamento Confirmado</option>
+              <option value="pre_impressao"{% if order.stage == "pre_impressao" %} selected{% endif %}>Pré-Impressão</option>
+              <option value="em_producao"{% if order.stage == "em_producao" or order.stage == "producao" %} selected{% endif %}>Em Produção</option>
+              <option value="pronto_retirada"{% if order.stage == "pronto_retirada" or order.stage == "pronto" %} selected{% endif %}>Pronto pra Retirada</option>
             </select>
           </label>
           <div class="form-actions"><button class="btn btn-secondary" type="submit">Atualizar etapa</button></div>
         </form>
       {% endif %}
       <div class="button-row">
-        {% if order.stage == "pronto" %}
+        {% if order.stage == "pronto_retirada" or order.stage == "pronto" %}
           <form method="post" action="{% url 'production:finalize' pk=order.pk %}">
             {% csrf_token %}
-            <button class="btn btn-primary" type="submit" data-confirm="Confirmar a finalização deste pedido?">Finalizar e entregar</button>
+            <button class="btn btn-primary" type="submit" data-confirm="Confirmar a finalização e entrega deste pedido?">Finalizar e entregar</button>
           </form>
         {% endif %}
-        {% if order.stage != "cancelado" and order.stage != "finalizado" %}
+        {% if order.stage != "cancelado" and order.stage != "entregue" and order.stage != "finalizado" %}
           <form method="post" action="{% url 'production:cancel' pk=order.pk %}">
             {% csrf_token %}
             <button class="btn btn-danger" type="submit" data-confirm="Cancelar este pedido?">Cancelar pedido</button>
@@ -71,20 +80,31 @@
         {% endif %}
       </div>
 
-      <div class="section-heading"><h2>Cobranças Stone</h2></div>
-      {% if order.payment_status == "pago" %}
-        <p class="text-green">Pedido integralmente pago.</p>
-      {% else %}
-        <p class="text-muted">A integração de cobrança ainda não está disponível.</p>
-        <div class="button-row">
-          <button class="btn btn-secondary" type="button" disabled>Gerar cobrança PIX <small>Em breve</small></button>
-          <button class="btn btn-secondary" type="button" disabled>Cobrança no cartão <small>Em breve</small></button>
-        </div>
-      {% endif %}
+      <!-- Envio de Orçamento WhatsApp -->
+      <div class="section-heading" style="margin-top: 20px;"><h2>Envio de Orçamento (WhatsApp)</h2></div>
+      <p class="text-muted" style="font-size: 0.9rem;">Envie o orçamento direto para o cliente com o link de aprovação e o preview da arte em fundo cinza.</p>
+      <div class="button-row" style="margin-bottom: 12px;">
+        <a href="{{ whatsapp_share_url }}" target="_blank" class="btn btn-primary" style="background-color: #25D366; border-color: #25D366;">
+          <i class="fa-brands fa-whatsapp"></i> Enviar pelo WhatsApp
+        </a>
+        <a href="{% url 'orders:art_preview' pk=order.pk %}" target="_blank" class="btn btn-secondary">
+          <i class="fa-solid fa-image"></i> Baixar Arte (Fundo Cinza)
+        </a>
+      </div>
+      <p><small class="text-muted">Link do orçamento: <a href="{{ public_quote_url }}" target="_blank">{{ public_quote_url }}</a></small></p>
+
     </section>
   </div>
 
+  <!-- Preview de Arte em Fundo Cinza -->
   <div class="grid two-col">
+    <section class="card card-pad">
+      <div class="section-heading"><h2>Preview da Arte (Fundo Cinza)</h2></div>
+      <div style="background-color: #e2e8f0; border-radius: 8px; padding: 16px; text-align: center; position: relative;">
+        <img src="{% url 'orders:art_preview' pk=order.pk %}" alt="Preview da Arte" style="max-width: 100%; max-height: 280px; border-radius: 4px;" />
+      </div>
+    </section>
+
     <section class="card card-pad">
       <div class="section-heading"><h2>Anexos</h2></div>
       <div class="files">
@@ -103,7 +123,9 @@
         {% endfor %}
       </div>
     </section>
+  </div>
 
+  <div class="grid two-col">
     <section class="card card-pad">
       <div class="section-heading"><h2>Observações internas</h2></div>
       <form method="post" action="{% url 'production:add_note' pk=order.pk %}">
@@ -123,19 +145,19 @@
         {% endfor %}
       </div>
     </section>
-  </div>
 
-  <section class="card card-pad">
-    <div class="section-heading"><h2>Histórico completo</h2></div>
-    <div class="timeline">
-      {% for item in order.history.all %}
-        <div class="timeline-item">
-          <strong>{{ item.description }}</strong>
-          <p>{{ item.user.name|default:"Sistema" }} · {{ item.created_at|date:"d/m/Y H:i" }}</p>
-        </div>
-      {% empty %}
-        <div class="empty-state">Nenhuma movimentação registrada.</div>
-      {% endfor %}
-    </div>
-  </section>
+    <section class="card card-pad">
+      <div class="section-heading"><h2>Histórico completo</h2></div>
+      <div class="timeline">
+        {% for item in order.history.all %}
+          <div class="timeline-item">
+            <strong>{{ item.description }}</strong>
+            <p>{{ item.user.name|default:"Sistema / Cliente" }} · {{ item.created_at|date:"d/m/Y H:i" }}</p>
+          </div>
+        {% empty %}
+          <div class="empty-state">Nenhuma movimentação registrada.</div>
+        {% endfor %}
+      </div>
+    </section>
+  </div>
 {% endblock %}

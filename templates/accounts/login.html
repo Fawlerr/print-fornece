@@ -21,11 +21,28 @@
     <form method="post" novalidate>
       {% csrf_token %}
       {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
-      {% include "includes/form_fields.html" with form=form %}
-      <button class="btn btn-primary btn-block" type="submit">
+      {% if form.non_field_errors %}
+        <div class="form-error" role="alert" style="margin-bottom: 16px;">{{ form.non_field_errors }}</div>
+      {% endif %}
+      
+      <div style="display: flex; flex-direction: column; gap: 16px; margin-bottom: 20px; text-align: left;">
+        {% for field in form.visible_fields %}
+          <div class="form-group" style="display: flex; flex-direction: column; gap: 6px;">
+            <label for="{{ field.id_for_label }}" style="font-weight: 500; font-size: 0.95rem; color: var(--text-color, #e2e8f0);">
+              {{ field.label }}
+            </label>
+            {{ field }}
+            {% if field.errors %}
+              <span class="field-errors" role="alert" style="color: #ef4444; font-size: 0.85rem; margin-top: 2px;">{{ field.errors }}</span>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+
+      <button class="btn btn-primary btn-block" type="submit" style="width: 100%;">
         Entrar <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
       </button>
     </form>
-    <p class="auth-links"><a href="{% url 'accounts:password_reset' %}">Esqueci minha senha</a></p>
+    <p class="auth-links" style="margin-top: 16px;"><a href="{% url 'accounts:password_reset' %}">Esqueci minha senha</a></p>
   </main>
 {% endblock %}

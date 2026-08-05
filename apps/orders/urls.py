@@ -7,5 +7,8 @@ urlpatterns = [
     path("new/", views.OrderCreateView.as_view(), name="create"),
     path("<int:pk>/edit/", views.OrderUpdateView.as_view(), name="edit"),
     path("<int:order_pk>/attachments/<int:pk>/download/", views.download_attachment, name="download_attachment"),
+    path("<int:pk>/receipt/pdf/", views.download_receipt_pdf, name="download_receipt"),
+    path("<int:pk>/art-preview/", views.art_preview_view, name="art_preview"),
+    path("quote/<str:token>/", views.public_quote_view, name="public_quote"),
+    path("quote/<str:token>/approve/", views.approve_quote_action, name="approve_quote"),
 ]
-

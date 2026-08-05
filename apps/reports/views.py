@@ -55,10 +55,11 @@ class ReportView(LoginRequiredMixin, AdministratorRequiredMixin, TemplateView):
             history = list(order.stage_history.all())
             for index, item in enumerate(history):
                 next_at = history[index + 1].created_at if index + 1 < len(history) else now
-                if item.new_stage in {Order.Stage.NEW, Order.Stage.PREPARATION, Order.Stage.PRODUCTION, Order.Stage.READY} and next_at >= item.created_at:
+                if item.new_stage in {Order.Stage.NEW, Order.Stage.AWAITING_PAYMENT, Order.Stage.PAYMENT_CONFIRMED, Order.Stage.PRE_PRESS, Order.Stage.PRODUCTION, Order.Stage.READY} and next_at >= item.created_at:
                     totals[item.new_stage] += Decimal(str((next_at - item.created_at).total_seconds() / 3600))
                     counts[item.new_stage] += 1
-        return {stage: (round(totals[stage] / counts[stage], 1) if counts[stage] else None) for stage in (Order.Stage.NEW, Order.Stage.PREPARATION, Order.Stage.PRODUCTION, Order.Stage.READY)}
+        active_stages = (Order.Stage.NEW, Order.Stage.AWAITING_PAYMENT, Order.Stage.PAYMENT_CONFIRMED, Order.Stage.PRE_PRESS, Order.Stage.PRODUCTION, Order.Stage.READY)
+        return {stage: (round(totals[stage] / counts[stage], 1) if counts[stage] else None) for stage in active_stages}
 
     def get(self, request, *args, **kwargs):
         form, data, start, end = self._filters()
@@ -68,7 +69,7 @@ class ReportView(LoginRequiredMixin, AdministratorRequiredMixin, TemplateView):
         active = [order for order in orders if order.stage != Order.Stage.CANCELLED]
         paid = sum((order.paid_amount for order in active), Decimal("0"))
         pending = sum((max(Decimal("0"), order.total_amount - order.paid_amount) for order in active), Decimal("0"))
-        completed = sum(order.stage == Order.Stage.FINISHED for order in orders)
+        completed = sum(order.stage in (Order.Stage.DELIVERED, "finalizado") for order in orders)
         cancelled = sum(order.stage == Order.Stage.CANCELLED for order in orders)
         ticket = sum((order.total_amount for order in active), Decimal("0")) / len(active) if active else Decimal("0")
         expenses = Expense.objects.filter(status=Expense.Status.ACTIVE, expense_date__range=(start, end)).aggregate(total=Sum("amount"))["total"] or Decimal("0")

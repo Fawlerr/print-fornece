@@ -33,14 +33,17 @@ class Order(models.Model):
         URGENT = "urgente", "Urgente"
 
     class Stage(models.TextChoices):
-        NEW = "novo", "Pedido novo"
-        PREPARATION = "preparacao", "Preparação de arquivo"
-        PRODUCTION = "producao", "Em produção"
-        READY = "pronto", "Pronto"
-        FINISHED = "finalizado", "Finalizado"
+        NEW = "novo", "Novo Pedido"
+        AWAITING_PAYMENT = "aguardando_pagamento", "Aguardando Pagamento"
+        PAYMENT_CONFIRMED = "pagamento_confirmado", "Pagamento Confirmado"
+        PRE_PRESS = "pre_impressao", "Pré-Impressão"
+        PRODUCTION = "em_producao", "Em Produção"
+        READY = "pronto_retirada", "Pronto pra Retirada"
+        DELIVERED = "entregue", "Entregue"
         CANCELLED = "cancelado", "Cancelado"
 
     number = models.CharField("número", max_length=30, unique=True)
+    quote_token = models.CharField("token do orçamento", max_length=64, default=uuid.uuid4, db_index=True, editable=False)
     client_name = models.CharField("nome do cliente", max_length=150)
     client_whatsapp = models.CharField("WhatsApp do cliente", max_length=25)
     description = models.TextField("descrição")
@@ -51,7 +54,7 @@ class Order(models.Model):
     due_at = models.DateTimeField("entrega prevista", null=True, blank=True)
     priority = models.CharField(max_length=10, choices=Priority.choices, default=Priority.NORMAL)
     internal_notes = models.TextField("observações internas", blank=True)
-    stage = models.CharField(max_length=15, choices=Stage.choices, default=Stage.NEW)
+    stage = models.CharField(max_length=30, choices=Stage.choices, default=Stage.NEW)
     responsible = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="responsible_orders")
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="created_orders")
     stage_updated_at = models.DateTimeField(default=timezone.now)
@@ -83,7 +86,14 @@ class Order(models.Model):
 
     @property
     def is_active_stage(self) -> bool:
-        return self.stage in {self.Stage.NEW, self.Stage.PREPARATION, self.Stage.PRODUCTION, self.Stage.READY}
+        return self.stage in {
+            self.Stage.NEW,
+            self.Stage.AWAITING_PAYMENT,
+            self.Stage.PAYMENT_CONFIRMED,
+            self.Stage.PRE_PRESS,
+            self.Stage.PRODUCTION,
+            self.Stage.READY,
+        }
 
     @property
     def is_late(self) -> bool:
@@ -141,8 +151,8 @@ class OrderNote(models.Model):
 
 class OrderStageHistory(models.Model):
     order = models.ForeignKey(Order, on_delete=models.PROTECT, related_name="stage_history")
-    previous_stage = models.CharField(max_length=15, choices=Order.Stage.choices, null=True, blank=True)
-    new_stage = models.CharField(max_length=15, choices=Order.Stage.choices)
+    previous_stage = models.CharField(max_length=30, choices=Order.Stage.choices, null=True, blank=True)
+    new_stage = models.CharField(max_length=30, choices=Order.Stage.choices)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="order_stage_changes")
     created_at = models.DateTimeField(auto_now_add=True)
 

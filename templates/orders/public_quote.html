@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Orçamento Pedido #{{ order.number }} | Print Fornece{% endblock %}
+{% block page_heading %}Orçamento do Pedido #{{ order.number }}{% endblock %}
+
+{% block content %}
+<div class="card card-pad" style="max-width: 900px; margin: 0 auto;">
+  
+  <!-- Temporary Layout & Watermark Notice -->
+  <div style="background-color: #fef2f2; border: 2px dashed #ef4444; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; text-align: center; color: #991b1b;">
+    <strong style="font-size: 1.1rem; display: block; margin-bottom: 4px;">⚠️ AVISO: LAYOUT DE PEDIDO TEMPORÁRIO</strong>
+    <p style="margin: 0; font-size: 0.9rem;">
+      Este layout é uma demonstração de referência temporária. Marca d'água ativa aguardando o arquivo HTML de modelo definitivo.
+    </p>
+  </div>
+
+  {% if messages %}
+    {% for message in messages %}
+      <div class="alert alert-{{ message.tags }}" style="margin-bottom: 16px;">
+        {{ message }}
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  <div class="section-heading" style="border-bottom: 1px solid var(--border-color); padding-bottom: 16px; margin-bottom: 20px;">
+    <div>
+      <h2 style="margin: 0;">{{ order.client_name }}</h2>
+      <p class="text-muted" style="margin-top: 4px;">Pedido <strong>#{{ order.number }}</strong> · Criado em {{ order.created_at|date:"d/m/Y H:i" }}</p>
+    </div>
+    <div>
+      <span class="badge badge-{{ order.stage }}">{{ order.get_stage_display }}</span>
+    </div>
+  </div>
+
+  <div class="grid two-col" style="margin-bottom: 24px;">
+    <div>
+      <h3>Resumo do Orçamento</h3>
+      <p style="font-size: 1.05rem; line-height: 1.6;">
+        {{ order.description|linebreaksbr }}
+      </p>
+      <div style="margin-top: 16px; background: var(--bg-surface-elevated, #f8f9fa); padding: 16px; border-radius: 8px;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+          <span>Valor Total:</span>
+          <strong style="font-size: 1.25rem; color: var(--color-success, #10b981);">R$ {{ order.total_amount|floatformat:2 }}</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+          <span>Status do Pagamento:</span>
+          <strong>{{ order.get_payment_status_display }}</strong>
+        </div>
+        {% if order.payment_method %}
+        <div style="display: flex; justify-content: space-between;">
+          <span>Forma de Pagamento:</span>
+          <strong>{{ order.get_payment_method_display }}</strong>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div>
+      <h3>Preview da Arte (Fundo Cinza)</h3>
+      <div style="background: #e2e8f0; border-radius: 8px; padding: 12px; text-align: center; position: relative; min-height: 250px; display: flex; align-items: center; justify-content: center;">
+        <!-- Watermark overlay -->
+        <div style="position: absolute; top: 10px; right: 10px; background: rgba(239, 68, 68, 0.9); color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold;">
+          MARCA D'ÁGUA TEMPORÁRIA
+        </div>
+        <img src="{% url 'orders:art_preview' pk=order.pk %}?token={{ token }}" alt="Preview da Arte em Fundo Cinza" style="max-width: 100%; max-height: 300px; border-radius: 4px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);" />
+      </div>
+      <div style="margin-top: 8px; text-align: right;">
+        <a href="{% url 'orders:art_preview' pk=order.pk %}?token={{ token }}" target="_blank" class="btn btn-secondary btn-small">
+          <i class="fa-solid fa-download"></i> Baixar Imagem (Fundo Cinza)
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="button-row" style="margin-top: 30px; padding-top: 20px; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+    <div>
+      <a href="{% url 'orders:download_receipt' pk=order.pk %}?token={{ token }}" class="btn btn-secondary">
+        <i class="fa-solid fa-file-pdf"></i> Baixar Espelho / Nota em PDF
+      </a>
+    </div>
+
+    <div style="display: flex; gap: 12px;">
+      {% if order.stage == "novo" or order.stage == "aguardando_pagamento" %}
+        <form method="post" action="{% url 'orders:approve_quote' token=token %}">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-primary btn-large" style="background-color: #10b981; border-color: #10b981; padding: 12px 24px; font-size: 1.1rem;">
+            <i class="fa-solid fa-circle-check"></i> APROVAR ORÇAMENTO
+          </button>
+        </form>
+      {% else %}
+        <div style="background: #d1fae5; color: #065f46; padding: 10px 20px; border-radius: 6px; font-weight: bold; display: flex; align-items: center; gap: 8px;">
+          <i class="fa-solid fa-check-circle" style="font-size: 1.3rem;"></i> Orçamento Aprovado
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+{% endblock %}
