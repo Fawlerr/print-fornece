@@ -43,30 +43,25 @@ def main():
     log("Connected successfully via SSH!")
 
     remote_app_dir = "/opt/print-fornece"
-    execute_remote(ssh, f"mkdir -p {remote_app_dir}")
 
-    # Ensure git repo is cloned or pulled from GitHub
-    log("Updating remote repository from GitHub...")
+    log("Initializing git repository on VPS...")
     code, _, _ = execute_remote(ssh, f"cd {remote_app_dir} && git status")
     if code != 0:
-        log("Cloning repository from GitHub...")
-        execute_remote(ssh, f"git clone {GIT_REPO} {remote_app_dir}")
+        log("Setting up Git clone on VPS...")
+        execute_remote(ssh, f"cd /opt && rm -rf print-fornece && git clone {GIT_REPO} print-fornece")
     else:
-        log("Pulling latest commit from GitHub...")
+        log("Pulling latest code from GitHub on VPS...")
         execute_remote(ssh, f"cd {remote_app_dir} && git fetch origin && git reset --hard origin/main")
 
-    # Ensure .env exists
     execute_remote(ssh, f"cd {remote_app_dir} && [ -f .env ] || cp .env.example .env")
-
-    # Fix CRLF line endings on entrypoint script inside remote container context
     execute_remote(ssh, f"sed -i 's/\\r$//' {remote_app_dir}/docker/entrypoint.sh")
 
-    log("Building and starting Docker containers from GitHub repo...")
+    log("Building and starting Docker containers from GitHub repository...")
     execute_remote(ssh, f"cd {remote_app_dir} && docker compose up -d --build")
 
     log("Waiting for containers to initialize...")
     execute_remote(ssh, f"sleep 5 && cd {remote_app_dir} && docker compose ps")
-    execute_remote(ssh, f"cd {remote_app_dir} && docker compose logs app --tail 20")
+    execute_remote(ssh, f"cd {remote_app_dir} && docker compose logs app --tail 15")
 
     log("Testing HTTP response on VPS...")
     execute_remote(ssh, "curl -s -i http://localhost:8080/health/ || curl -s -i http://localhost:8080/")
