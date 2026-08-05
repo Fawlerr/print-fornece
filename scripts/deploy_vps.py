@@ -10,11 +10,7 @@ HOST = "177.7.52.70"
 PORT = 22
 USER = "root"
 PASS = "Rootcliion961084#"
-
-LOCAL_DIR = Path(__file__).resolve().parent.parent
-
-EXCLUDE_DIRS = {".git", ".venv", ".pytest_cache", "__pycache__", "staticfiles", "media", ".idea", ".vscode"}
-EXCLUDE_FILES = {"db.sqlite3", ".env.local"}
+GIT_REPO = "https://github.com/Fawlerr/print-fornece.git"
 
 def log(msg):
     print(f"[VPS DEPLOY] {msg}")
@@ -39,25 +35,6 @@ def execute_remote(ssh, cmd):
         log(f"Command failed with exit code {exit_code}")
     return exit_code, out, err
 
-def sftp_upload_dir(sftp, local_path, remote_path):
-    local_path = Path(local_path)
-    for root, dirs, files in os.walk(local_path):
-        rel_root = Path(root).relative_to(local_path)
-        dirs[:] = [d for d in dirs if d not in EXCLUDE_DIRS and not d.startswith(".")]
-        
-        target_remote_dir = f"{remote_path}/{rel_root.as_posix()}".rstrip("/")
-        try:
-            sftp.mkdir(target_remote_dir)
-        except IOError:
-            pass
-        
-        for file in files:
-            if file in EXCLUDE_FILES or file.endswith(".pyc"):
-                continue
-            local_file = Path(root) / file
-            remote_file = f"{target_remote_dir}/{file}"
-            sftp.put(str(local_file), remote_file)
-
 def main():
     log(f"Connecting to {USER}@{HOST}:{PORT}...")
     ssh = paramiko.SSHClient()
@@ -67,30 +44,35 @@ def main():
 
     remote_app_dir = "/opt/print-fornece"
     execute_remote(ssh, f"mkdir -p {remote_app_dir}")
-    execute_remote(ssh, f"cd {remote_app_dir} && [ -f .env ] || cp .env.example .env")
 
-    log("Uploading workspace files via SFTP...")
-    sftp = ssh.open_sftp()
-    sftp_upload_dir(sftp, LOCAL_DIR, remote_app_dir)
-    sftp.close()
-    log("File upload completed!")
+    # Ensure git repo is cloned or pulled from GitHub
+    log("Updating remote repository from GitHub...")
+    code, _, _ = execute_remote(ssh, f"cd {remote_app_dir} && git status")
+    if code != 0:
+        log("Cloning repository from GitHub...")
+        execute_remote(ssh, f"git clone {GIT_REPO} {remote_app_dir}")
+    else:
+        log("Pulling latest commit from GitHub...")
+        execute_remote(ssh, f"cd {remote_app_dir} && git fetch origin && git reset --hard origin/main")
+
+    # Ensure .env exists
+    execute_remote(ssh, f"cd {remote_app_dir} && [ -f .env ] || cp .env.example .env")
 
     # Fix CRLF line endings on entrypoint script inside remote container context
     execute_remote(ssh, f"sed -i 's/\\r$//' {remote_app_dir}/docker/entrypoint.sh")
 
-    log("Recreating DB volume and starting Docker containers...")
-    execute_remote(ssh, f"cd {remote_app_dir} && docker compose down -v")
+    log("Building and starting Docker containers from GitHub repo...")
     execute_remote(ssh, f"cd {remote_app_dir} && docker compose up -d --build")
 
     log("Waiting for containers to initialize...")
-    execute_remote(ssh, f"sleep 8 && cd {remote_app_dir} && docker compose ps")
-    execute_remote(ssh, f"cd {remote_app_dir} && docker compose logs app --tail 30")
+    execute_remote(ssh, f"sleep 5 && cd {remote_app_dir} && docker compose ps")
+    execute_remote(ssh, f"cd {remote_app_dir} && docker compose logs app --tail 20")
 
     log("Testing HTTP response on VPS...")
     execute_remote(ssh, "curl -s -i http://localhost:8080/health/ || curl -s -i http://localhost:8080/")
 
     ssh.close()
-    log("Deployment and validation complete!")
+    log("Deployment from GitHub to VPS completed successfully!")
 
 if __name__ == "__main__":
     main()
