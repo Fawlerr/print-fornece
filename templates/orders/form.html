@@ -4,17 +4,18 @@
 {% block page_heading %}{% if object %}Editar pedido{% else %}Novo pedido{% endif %}{% endblock %}
 
 {% block content %}
+<div class="form-container" style="max-width: 920px; margin: 0 auto;">
   <div class="section-heading">
     <div>
       <h2>{% if object %}Atualizar pedido {{ object.number }}{% else %}Registrar pedido{% endif %}</h2>
-      <p>Os campos marcados são necessários para iniciar a produção.</p>
+      <p>Preencha os campos abaixo para registrar o pedido no sistema.</p>
     </div>
   </div>
 
-  <form class="card form-card" method="post" enctype="multipart/form-data" novalidate>
+  <form class="card form-card" method="post" enctype="multipart/form-data" novalidate style="margin: 0 auto 32px auto;">
     {% csrf_token %}
     {% include "includes/form_fields.html" with form=form %}
-    <label class="full" for="id_attachments">
+    <label class="full" for="id_attachments" style="margin-top: 16px;">
       {% if object %}Adicionar anexos{% else %}Arquivos da arte{% endif %}
       <input id="id_attachments" type="file" name="attachments" multiple accept=".pdf,.png,.jpg,.jpeg,.webp,.svg,.cdr,.ai,.eps,.psd,.tiff,.zip">
       <span class="help">PDF, imagens, SVG, CDR, AI, EPS, PSD, TIFF ou ZIP. Máximo de 25 MB por arquivo.</span>
@@ -28,4 +29,5 @@
       <button class="btn btn-primary" type="submit"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> {% if object %}Salvar alterações{% else %}Salvar pedido{% endif %}</button>
     </div>
   </form>
+</div>
 {% endblock %}

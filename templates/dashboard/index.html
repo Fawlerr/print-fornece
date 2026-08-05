@@ -31,13 +31,13 @@
       <section class="card chart-card">
         <h2>Faturamento e despesas · últimos 7 dias</h2>
         <div class="chart-wrapper">
-          <canvas id="finance-chart" aria-label="Gráfico de faturamento e despesas"></canvas>
+          <canvas id="finance-chart" aria-label="Gráfico interativo de faturamento e despesas"></canvas>
         </div>
       </section>
       <section class="card chart-card">
         <h2>Pedidos por etapa</h2>
         <div class="chart-wrapper">
-          <canvas id="stage-chart" aria-label="Gráfico de pedidos por etapa"></canvas>
+          <canvas id="stage-chart" aria-label="Gráfico interativo de pedidos por etapa"></canvas>
         </div>
       </section>
     </div>
@@ -122,18 +122,142 @@
       const revenue = read("finance-chart-revenue");
       const expenses = read("finance-chart-expenses");
       const stages = read("stage-chart-values");
+
+      const formatBRL = (value) => {
+        return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
+      };
+
+      // Interactive Finance Line Chart
       new Chart(document.getElementById("finance-chart"), {
         type: "line",
-        data: {labels, datasets: [
-          {label: "Faturamento", data: revenue, borderColor: "#24d366", backgroundColor: "rgba(36,211,102,.13)", fill: true, tension: .35},
-          {label: "Despesas", data: expenses, borderColor: "#ef4444", backgroundColor: "rgba(239,68,68,.1)", fill: true, tension: .35}
-        ]},
-        options: {responsive: true, maintainAspectRatio: false, plugins: {legend: {labels: {color: "#f5f7f5"}}}, scales: {x: {ticks: {color: "#9da69f"}, grid: {color: "#2a332d"}}, y: {ticks: {color: "#9da69f"}, grid: {color: "#2a332d"}}}}
+        data: {
+          labels,
+          datasets: [
+            {
+              label: "Faturamento Pago",
+              data: revenue,
+              borderColor: "#24d366",
+              backgroundColor: "rgba(36,211,102,0.15)",
+              fill: true,
+              tension: 0.35,
+              pointRadius: 5,
+              pointHoverRadius: 8,
+              pointBackgroundColor: "#24d366",
+              pointHoverBackgroundColor: "#ffffff",
+              pointHoverBorderColor: "#24d366",
+              pointHoverBorderWidth: 3,
+            },
+            {
+              label: "Despesas Operacionais",
+              data: expenses,
+              borderColor: "#ef4444",
+              backgroundColor: "rgba(239,68,68,0.12)",
+              fill: true,
+              tension: 0.35,
+              pointRadius: 5,
+              pointHoverRadius: 8,
+              pointBackgroundColor: "#ef4444",
+              pointHoverBackgroundColor: "#ffffff",
+              pointHoverBorderColor: "#ef4444",
+              pointHoverBorderWidth: 3,
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: {
+            mode: 'index',
+            intersect: false,
+          },
+          plugins: {
+            legend: {
+              position: 'top',
+              labels: {
+                color: "#f5f7f5",
+                font: { size: 13, weight: 'bold' },
+                padding: 16,
+                usePointStyle: true,
+              }
+            },
+            tooltip: {
+              enabled: true,
+              backgroundColor: "rgba(21, 25, 23, 0.95)",
+              titleColor: "#ffffff",
+              titleFont: { size: 14, weight: "bold" },
+              bodyColor: "#e2e8f0",
+              bodyFont: { size: 13 },
+              borderColor: "#2a332d",
+              borderWidth: 1,
+              padding: 12,
+              displayColors: true,
+              callbacks: {
+                label: function(context) {
+                  return " " + context.dataset.label + ": " + formatBRL(context.parsed.y);
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              ticks: { color: "#9da69f", font: { size: 12 } },
+              grid: { color: "rgba(42, 51, 45, 0.6)" }
+            },
+            y: {
+              ticks: {
+                color: "#9da69f",
+                font: { size: 12 },
+                callback: (val) => formatBRL(val)
+              },
+              grid: { color: "rgba(42, 51, 45, 0.6)" }
+            }
+          }
+        }
       });
+
+      // Interactive Doughnut Chart
       new Chart(document.getElementById("stage-chart"), {
         type: "doughnut",
-        data: {labels: ["Pedido novo", "Preparação de arquivo", "Em produção", "Pronto"], datasets: [{data: stages, backgroundColor: ["#77827b", "#f5b942", "#60a5fa", "#24d366"]}]},
-        options: {responsive: true, maintainAspectRatio: false, plugins: {legend: {position: "bottom", labels: {color: "#f5f7f5"}}}}
+        data: {
+          labels: ["Novo Pedido", "Processamento", "Em Produção", "Pronto pra Retirada"],
+          datasets: [{
+            data: stages,
+            backgroundColor: ["#77827b", "#f5b942", "#60a5fa", "#24d366"],
+            borderWidth: 2,
+            borderColor: "#151917",
+            hoverOffset: 12,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: "bottom",
+              labels: {
+                color: "#f5f7f5",
+                font: { size: 12, weight: 'bold' },
+                padding: 14,
+                usePointStyle: true,
+              }
+            },
+            tooltip: {
+              enabled: true,
+              backgroundColor: "rgba(21, 25, 23, 0.95)",
+              titleColor: "#ffffff",
+              bodyColor: "#e2e8f0",
+              padding: 10,
+              callbacks: {
+                label: function(context) {
+                  const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                  const val = context.parsed;
+                  const pct = total ? ((val / total) * 100).toFixed(1) : 0;
+                  return " " + context.label + ": " + val + " pedido(s) (" + pct + "%)";
+                }
+              }
+            }
+          }
+        }
       });
     })();
   </script>
