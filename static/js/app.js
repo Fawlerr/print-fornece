@@ -90,8 +90,78 @@
     status.textContent = message;
   }
 
+  // --- Kanban Column & Card Actions Manager ---
+
+  function updateColumnStates() {
+    document.querySelectorAll(".kanban-column").forEach((col) => {
+      const cardsContainer = col.querySelector(".kanban-cards");
+      if (!cardsContainer) return;
+      
+      const cards = cardsContainer.querySelectorAll(".order-card");
+      const countSpan = col.querySelector(".kanban-title span:last-child");
+      if (countSpan) {
+        countSpan.textContent = String(cards.length);
+      }
+
+      const emptyStates = cardsContainer.querySelectorAll(".empty-state");
+      if (cards.length > 0) {
+        emptyStates.forEach(es => es.remove());
+      } else {
+        if (emptyStates.length === 0) {
+          const colTitle = col.querySelector(".kanban-title span:first-child")?.textContent || "esta etapa";
+          const emptyDiv = document.createElement("div");
+          emptyDiv.className = "empty-state";
+          emptyDiv.textContent = `Nenhum pedido em ${colTitle.toLowerCase()}.`;
+          cardsContainer.appendChild(emptyDiv);
+        }
+      }
+    });
+  }
+
+  const STAGE_ACTION_CONFIG = {
+    'novo': [
+      { label: 'Avançar', stage: 'aguardando_pagamento', class: 'btn-secondary' }
+    ],
+    'aguardando_pagamento': [
+      { label: 'Voltar', stage: 'novo', class: 'btn-secondary' },
+      { label: 'Avançar', stage: 'pagamento_confirmado', class: 'btn-secondary' }
+    ],
+    'pagamento_confirmado': [
+      { label: 'Voltar', stage: 'aguardando_pagamento', class: 'btn-secondary' },
+      { label: 'Avançar', stage: 'pre_impressao', class: 'btn-secondary' }
+    ],
+    'pre_impressao': [
+      { label: 'Voltar', stage: 'pagamento_confirmado', class: 'btn-secondary' },
+      { label: 'Avançar', stage: 'em_producao', class: 'btn-secondary' }
+    ],
+    'em_producao': [
+      { label: 'Voltar', stage: 'pre_impressao', class: 'btn-secondary' },
+      { label: 'Avançar', stage: 'pronto_retirada', class: 'btn-secondary' }
+    ],
+    'pronto_retirada': [
+      { label: 'Voltar', stage: 'em_producao', class: 'btn-secondary' },
+      { label: 'Entregar', href: true, class: 'btn-primary' }
+    ]
+  };
+
+  function updateCardActionButtons(card, newStage) {
+    const actionsDiv = card.querySelector(".order-stage-actions");
+    if (!actionsDiv) return;
+    const orderId = card.dataset.orderId || card.dataset.orderMove;
+    const actions = STAGE_ACTION_CONFIG[newStage] || [];
+
+    actionsDiv.innerHTML = actions.map(act => {
+      if (act.href) {
+        return `<a class="btn ${act.class} btn-small" href="/production/${orderId}/">Entregar</a>`;
+      }
+      return `<button class="btn ${act.class} btn-small" type="button" data-order-move="${orderId}" data-stage="${act.stage}">${act.label}</button>`;
+    }).join(' ');
+
+    bindMoveButtons(actionsDiv);
+  }
+
   async function moveOrder(source, orderId, stage) {
-    const endpoint = datasetValue(source, "kanbanEndpoint");
+    const endpoint = datasetValue(source, "kanbanEndpoint") || `/production/${orderId}/stage/`;
     if (!endpoint) throw new Error("A atualização da produção não está disponível.");
 
     const orderField = datasetValue(source, "kanbanOrderField") || "order_id";
@@ -124,28 +194,75 @@
     return data;
   }
 
-  document.querySelectorAll("[data-order-move]").forEach((button) => {
-    button.addEventListener("click", async () => {
-      const orderId = button.dataset.orderMove || button.dataset.orderId;
-      const stage = button.dataset.stage;
-      if (!orderId || !stage) return;
+  function bindMoveButtons(container = document) {
+    container.querySelectorAll("[data-order-move]").forEach((button) => {
+      if (button.dataset.bound) return;
+      button.dataset.bound = "true";
 
-      button.disabled = true;
-      try {
-        const data = await moveOrder(button, orderId, stage);
-        showStatus(data.message || "Pedido movido com sucesso.");
-        if (data.redirect) {
-          window.location.assign(data.redirect);
-          return;
+      button.addEventListener("click", async (e) => {
+        e.stopPropagation();
+        const orderId = button.dataset.orderMove || button.dataset.orderId;
+        const stage = button.dataset.stage;
+        if (!orderId || !stage) return;
+
+        const card = button.closest(".order-card");
+        button.disabled = true;
+
+        try {
+          const data = await moveOrder(button, orderId, stage);
+          showStatus(data.message || "Pedido movido com sucesso.");
+          
+          if (data.redirect) {
+            window.location.assign(data.redirect);
+            return;
+          }
+
+          if (card) {
+            const targetColumn = document.querySelector(`.kanban-column[data-stage="${stage}"]`);
+            if (targetColumn) {
+              const cardsContainer = targetColumn.querySelector(".kanban-cards");
+              if (cardsContainer) {
+                cardsContainer.appendChild(card);
+                card.dataset.stage = stage;
+                updateCardActionButtons(card, stage);
+                updateColumnStates();
+              }
+            } else {
+              window.location.reload();
+            }
+          } else {
+            window.location.reload();
+          }
+        } catch (error) {
+          window.alert(error.message || "Não foi possível mover o pedido.");
+          button.disabled = false;
         }
-        window.location.reload();
-      } catch (error) {
-        window.alert(error.message || "Não foi possível mover o pedido.");
-        button.disabled = false;
-      }
+      });
     });
-  });
+  }
 
+  function bindCardClickHandlers() {
+    document.querySelectorAll(".order-card").forEach((card) => {
+      if (card.dataset.clickBound) return;
+      card.dataset.clickBound = "true";
+      card.style.cursor = "pointer";
+
+      card.addEventListener("click", (e) => {
+        if (e.target.closest("button, a, input, select, form")) return;
+        const orderId = card.dataset.orderId;
+        if (orderId) {
+          window.location.href = `/production/${orderId}/`;
+        }
+      });
+    });
+  }
+
+  // Bind initial buttons and card clicks
+  bindMoveButtons();
+  bindCardClickHandlers();
+  updateColumnStates();
+
+  // --- Drag and Drop Setup ---
   let draggedCard = null;
   document.querySelectorAll(".order-card[draggable]").forEach((card) => {
     card.addEventListener("dragstart", () => {
@@ -178,8 +295,12 @@
       try {
         const data = await moveOrder(card, orderId, targetStage);
         const cards = column.querySelector(".kanban-cards");
-        if (cards) cards.append(card);
-        card.dataset.stage = targetStage;
+        if (cards) {
+          cards.appendChild(card);
+          card.dataset.stage = targetStage;
+          updateCardActionButtons(card, targetStage);
+          updateColumnStates();
+        }
         showStatus(data.message || "Pedido movido com sucesso.");
       } catch (error) {
         window.alert(error.message || "Não foi possível mover o pedido.");
@@ -318,6 +439,6 @@
   }
 
   if (body.dataset.notificationsPollEndpoint && document.querySelector("[data-unread-count]")) {
-    window.setInterval(pollNotifications, 60000);
+    window.setInterval(pollNotifications, 30000);
   }
 })();
