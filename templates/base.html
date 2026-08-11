@@ -17,6 +17,7 @@
   <link rel="stylesheet" href="{% static 'css/style.css' %}">
   <link rel="stylesheet" href="{% static 'css/overrides.css' %}">
   <link rel="stylesheet" href="{% static 'css/django.css' %}">
+  <link rel="stylesheet" href="{% static 'css/print-fornece-updates.css' %}">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" referrerpolicy="no-referrer">
   {% block extra_head %}{% endblock %}
 </head>
@@ -28,6 +29,9 @@
       {% block body_attributes %}{% endblock %}>
   {% block page_layout %}
     <div class="app-shell">
+      <div class="mobile-brand-watermark" aria-hidden="true">
+        <img src="{% static 'logo.jpg' %}" alt="">
+      </div>
       {% include "includes/sidebar.html" %}
       <main class="main-content" id="main-content">
         <header class="topbar">

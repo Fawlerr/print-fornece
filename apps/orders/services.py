@@ -1,19 +1,23 @@
 from __future__ import annotations
 
+import json
 import mimetypes
 import secrets
+from decimal import Decimal
 from pathlib import Path
 
 from django.conf import settings
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
+from django.db.models import Max
 from django.utils import timezone
 
 from apps.audit.services import record_audit
 from apps.notifications.models import Notification
 from apps.notifications.services import notify_role, notify_user
 
-from .models import Order, OrderAttachment, OrderHistory, OrderNote, OrderStageHistory
+from .calculator import CalculatorValidationError, Quote, calculate_quote
+from .models import Order, OrderAttachment, OrderHistory, OrderItem, OrderNote, OrderStageHistory
 
 ACTIVE_STAGES = {
     Order.Stage.NEW,
@@ -44,15 +48,129 @@ def generate_order_number() -> str:
     return f"PF-{timezone.localtime():%Y%m%d-%H%M%S}-{secrets.randbelow(9000) + 1000}"
 
 
+def _quote_from_payload(payload) -> Quote | None:
+    """Validate browser calculator input against the authoritative backend rules."""
+    if not payload:
+        return None
+    try:
+        data = json.loads(payload) if isinstance(payload, str) else payload
+    except (TypeError, json.JSONDecodeError):
+        raise ValidationError("Os dados do orçamento são inválidos. Recalcule antes de salvar.") from None
+    if not isinstance(data, dict):
+        raise ValidationError("Os dados do orçamento são inválidos. Recalcule antes de salvar.")
+    try:
+        return calculate_quote(
+            material_code=str(data.get("material_code", "")),
+            width_cm=data.get("width_cm"),
+            height_cm=data.get("height_cm"),
+            quantity=data.get("quantity"),
+        )
+    except CalculatorValidationError as exc:
+        raise ValidationError(str(exc)) from None
+
+
+def _create_order_item_from_quote(order: Order, quote: Quote) -> OrderItem:
+    highest_position = OrderItem.objects.filter(order=order).aggregate(value=Max("position"))["value"] or 0
+    if quote.pricing_type == "per_meter":
+        calculation_detail = f"{quote.film_used_m:.2f}".replace(".", ",") + f" m × R$ {quote.unit_price:.2f}".replace(".", ",")
+    else:
+        calculation_detail = f"{quote.pricing_rule} · valor fixo R$ {quote.total:.2f}".replace(".", ",")
+    return OrderItem.objects.create(
+        order=order,
+        position=highest_position + 1,
+        kind=OrderItem.Kind.MATERIAL,
+        material_code=quote.material.code,
+        material_name=quote.material.name,
+        category=quote.material.category,
+        art_width_cm=quote.art_width_cm,
+        art_height_cm=quote.art_height_cm,
+        film_width_cm=int(quote.material.film_width_cm),
+        art_quantity=quote.quantity,
+        items_per_row=quote.pieces_per_row,
+        rows=quote.rows,
+        used_length_cm=int(quote.film_used_cm),
+        charged_length_cm=int(quote.film_used_cm),
+        billing_quantity=quote.film_used_m,
+        billing_unit=quote.material.unit,
+        pricing_rule=quote.pricing_rule,
+        unit_price=quote.unit_price,
+        line_total=quote.total,
+        calculation_detail=calculation_detail,
+        calculation_snapshot=quote.persisted_snapshot(),
+    )
+
+
+def _create_manual_adjustment_item(order: Order, quote: Quote) -> OrderItem | None:
+    """Preserve a deliberate manual total change alongside calculator output.
+
+    The order form intentionally lets an attendant negotiate the final amount.
+    Saving the difference as its own historical row keeps the receipt's item
+    totals equal to the frozen sale total without altering the calculator row.
+    """
+    adjustment = (order.total_amount - quote.total).quantize(Decimal("0.01"))
+    if adjustment == Decimal("0.00"):
+        return None
+    highest_position = OrderItem.objects.filter(order=order).aggregate(value=Max("position"))["value"] or 0
+    formatted = f"{adjustment:.2f}".replace(".", ",")
+    return OrderItem.objects.create(
+        order=order,
+        position=highest_position + 1,
+        kind=OrderItem.Kind.ADJUSTMENT,
+        material_code="manual_adjustment",
+        material_name="Ajuste manual do valor",
+        category="Ajuste",
+        billing_quantity=Decimal("1.00"),
+        billing_unit="Ajuste",
+        pricing_rule="Ajuste manual do valor",
+        unit_price=adjustment,
+        line_total=adjustment,
+        calculation_detail=f"1,00 (Ajuste) X R$ {formatted}",
+        calculation_snapshot={
+            "source": "manual_total_adjustment",
+            "quote_total": str(quote.total),
+            "order_total": str(order.total_amount),
+            "adjustment": str(adjustment),
+        },
+    )
+
+
+def _snapshot_receipt_on_payment(order: Order, actor) -> None:
+    """Freeze the sales data used by all future receipt downloads."""
+    seller = order.responsible or order.created_by or actor
+    seller_name = ""
+    if seller is not None:
+        seller_name = seller.name or seller.email
+    order.payment_confirmed_at = timezone.now()
+    order.payment_confirmed_by = actor
+    order.receipt_client_name = order.client_name
+    order.receipt_seller_name = seller_name
+    order.receipt_total_amount = order.total_amount
+    order.receipt_paid_amount = order.paid_amount
+    order.receipt_payment_method = order.payment_method or ""
+
+
 def create_order(*, form, actor, files, request=None) -> Order:
+    quote = _quote_from_payload(form.cleaned_data.get("calculation_payload"))
     with transaction.atomic():
         order = form.save(commit=False)
         order.number = generate_order_number()
         order.created_by = actor
         order.stage = Order.Stage.NEW
         order.stage_updated_at = timezone.now()
+        if order.payment_status == Order.PaymentStatus.PAID:
+            _snapshot_receipt_on_payment(order, actor)
         order.save()
+        if quote is not None:
+            _create_order_item_from_quote(order, quote)
+            _create_manual_adjustment_item(order, quote)
         OrderHistory.objects.create(order=order, user=actor, action="criacao", description="Pedido criado.")
+        if order.payment_status == Order.PaymentStatus.PAID:
+            OrderHistory.objects.create(
+                order=order,
+                user=actor,
+                action="pagamento_confirmado",
+                description="Pagamento confirmado; dados do comprovante foram registrados.",
+            )
         OrderStageHistory.objects.create(order=order, previous_stage=None, new_stage=Order.Stage.NEW, user=actor)
         save_order_attachments(order, files, actor, request=request)
         record_audit(actor, "criacao", "pedido", order.pk, after={"numero": order.number, "valor_total": str(order.total_amount)}, request=request)
@@ -63,11 +181,29 @@ def create_order(*, form, actor, files, request=None) -> Order:
     return order
 
 
-def update_order(*, order: Order, form, actor, files, request=None) -> Order:
+def update_order(*, order: Order, form, actor, files, request=None, previous_state=None) -> Order:
     require_order_access(actor, order)
-    previous = {"payment_status": order.payment_status, "paid_amount": str(order.paid_amount), "responsible_id": order.responsible_id}
+    previous = previous_state or {
+        "payment_status": order.payment_status,
+        "paid_amount": str(order.paid_amount),
+        "responsible_id": order.responsible_id,
+    }
     with transaction.atomic():
-        updated = form.save()
+        updated = form.save(commit=False)
+        payment_just_confirmed = (
+            previous["payment_status"] != Order.PaymentStatus.PAID
+            and updated.payment_status == Order.PaymentStatus.PAID
+        )
+        if payment_just_confirmed:
+            _snapshot_receipt_on_payment(updated, actor)
+        updated.save()
+        if payment_just_confirmed:
+            OrderHistory.objects.create(
+                order=updated,
+                user=actor,
+                action="pagamento_confirmado",
+                description="Pagamento confirmado; dados do comprovante foram registrados.",
+            )
         OrderHistory.objects.create(order=updated, user=actor, action="edicao", description="Informações do pedido atualizadas.")
         save_order_attachments(updated, files, actor, request=request)
         record_audit(actor, "edicao", "pedido", updated.pk, before=previous, after={"payment_status": updated.payment_status, "paid_amount": str(updated.paid_amount), "responsible_id": updated.responsible_id}, request=request)

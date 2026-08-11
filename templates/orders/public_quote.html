@@ -6,15 +6,6 @@
 
 {% block content %}
 <div class="card card-pad" style="max-width: 900px; margin: 0 auto;">
-  
-  <!-- Temporary Layout & Watermark Notice -->
-  <div style="background-color: #fef2f2; border: 2px dashed #ef4444; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; text-align: center; color: #991b1b;">
-    <strong style="font-size: 1.1rem; display: block; margin-bottom: 4px;">⚠️ AVISO: LAYOUT DE PEDIDO TEMPORÁRIO</strong>
-    <p style="margin: 0; font-size: 0.9rem;">
-      Este layout é uma demonstração de referência temporária. Marca d'água ativa aguardando o arquivo HTML de modelo definitivo.
-    </p>
-  </div>
-
   {% if messages %}
     {% for message in messages %}
       <div class="alert alert-{{ message.tags }}" style="margin-bottom: 16px;">
@@ -60,10 +51,6 @@
     <div>
       <h3>Preview da Arte (Fundo Cinza)</h3>
       <div style="background: #e2e8f0; border-radius: 8px; padding: 12px; text-align: center; position: relative; min-height: 250px; display: flex; align-items: center; justify-content: center;">
-        <!-- Watermark overlay -->
-        <div style="position: absolute; top: 10px; right: 10px; background: rgba(239, 68, 68, 0.9); color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold;">
-          MARCA D'ÁGUA TEMPORÁRIA
-        </div>
         <img src="{% url 'orders:art_preview' pk=order.pk %}?token={{ token }}" alt="Preview da Arte em Fundo Cinza" style="max-width: 100%; max-height: 300px; border-radius: 4px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);" />
       </div>
       <div style="margin-top: 8px; text-align: right;">
@@ -75,12 +62,6 @@
   </div>
 
   <div class="button-row" style="margin-top: 30px; padding-top: 20px; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
-    <div>
-      <a href="{% url 'orders:download_receipt' pk=order.pk %}?token={{ token }}" class="btn btn-secondary">
-        <i class="fa-solid fa-file-pdf"></i> Baixar Espelho / Nota em PDF
-      </a>
-    </div>
-
     <div style="display: flex; gap: 12px;">
       {% if order.stage == "novo" or order.stage == "aguardando_pagamento" %}
         <form method="post" action="{% url 'orders:approve_quote' token=token %}">

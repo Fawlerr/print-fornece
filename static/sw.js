@@ -1,10 +1,13 @@
-const CACHE_NAME = 'print-fornece-v1';
+const CACHE_NAME = 'print-fornece-v7';
 const ASSETS_TO_CACHE = [
   '/',
   '/static/css/style.css',
   '/static/css/overrides.css',
   '/static/css/django.css',
+  '/static/css/print-fornece-updates.css',
   '/static/js/app.js',
+  '/static/js/order-calculator.js',
+  '/static/logo.jpg',
   '/static/manifest.webmanifest'
 ];
 

@@ -119,43 +119,42 @@
   }
 
   const STAGE_ACTION_CONFIG = {
-    'novo': [
-      { label: 'Avançar', stage: 'aguardando_pagamento', class: 'btn-secondary' }
-    ],
-    'aguardando_pagamento': [
-      { label: 'Voltar', stage: 'novo', class: 'btn-secondary' },
-      { label: 'Avançar', stage: 'pagamento_confirmado', class: 'btn-secondary' }
-    ],
-    'pagamento_confirmado': [
-      { label: 'Voltar', stage: 'aguardando_pagamento', class: 'btn-secondary' },
-      { label: 'Avançar', stage: 'pre_impressao', class: 'btn-secondary' }
-    ],
-    'pre_impressao': [
-      { label: 'Voltar', stage: 'pagamento_confirmado', class: 'btn-secondary' },
-      { label: 'Avançar', stage: 'em_producao', class: 'btn-secondary' }
-    ],
-    'em_producao': [
-      { label: 'Voltar', stage: 'pre_impressao', class: 'btn-secondary' },
-      { label: 'Avançar', stage: 'pronto_retirada', class: 'btn-secondary' }
-    ],
-    'pronto_retirada': [
-      { label: 'Voltar', stage: 'em_producao', class: 'btn-secondary' },
-      { label: 'Entregar', href: true, class: 'btn-primary' }
-    ]
+    novo: { next: "aguardando_pagamento" },
+    aguardando_pagamento: { previous: "novo", next: "pagamento_confirmado" },
+    pagamento_confirmado: { previous: "aguardando_pagamento", next: "pre_impressao" },
+    pre_impressao: { previous: "pagamento_confirmado", next: "em_producao" },
+    em_producao: { previous: "pre_impressao", next: "pronto_retirada" },
+    pronto_retirada: { previous: "em_producao", finalize: true },
   };
+
+  function stageButton(orderId, stage, direction) {
+    const isNext = direction === "next";
+    const label = isNext ? "Avançar uma etapa" : "Voltar uma etapa";
+    const icon = isNext ? "fa-chevron-right" : "fa-chevron-left";
+    const nextClass = isNext ? " kanban-stage-button-next" : "";
+    return `<button class="kanban-stage-button${nextClass}" type="button" data-order-move="${orderId}" data-stage="${stage}" aria-label="${label}" title="${label}"><i class="fa-solid ${icon}" aria-hidden="true"></i><span class="sr-only">${label}</span></button>`;
+  }
 
   function updateCardActionButtons(card, newStage) {
     const actionsDiv = card.querySelector(".order-stage-actions");
     if (!actionsDiv) return;
     const orderId = card.dataset.orderId || card.dataset.orderMove;
-    const actions = STAGE_ACTION_CONFIG[newStage] || [];
-
-    actionsDiv.innerHTML = actions.map(act => {
-      if (act.href) {
-        return `<a class="btn ${act.class} btn-small" href="/production/${orderId}/">Entregar</a>`;
-      }
-      return `<button class="btn ${act.class} btn-small" type="button" data-order-move="${orderId}" data-stage="${act.stage}">${act.label}</button>`;
-    }).join(' ');
+    const actions = STAGE_ACTION_CONFIG[newStage] || {};
+    const previous = actions.previous
+      ? stageButton(orderId, actions.previous, "previous")
+      : '<span class="kanban-stage-spacer" aria-hidden="true"></span>';
+    let next = "";
+    if (actions.next) {
+      next = stageButton(orderId, actions.next, "next");
+    } else if (actions.finalize) {
+      next = `<a class="kanban-stage-button kanban-stage-button-next" href="/production/${orderId}/" aria-label="Abrir pedido para finalizar" title="Abrir pedido para finalizar"><i class="fa-solid fa-check" aria-hidden="true"></i><span class="sr-only">Abrir pedido para finalizar</span></a>`;
+    }
+    // Retain the server-rendered client link as a DOM node.  Client names are
+    // user data and must never be interpolated back into HTML strings.
+    const heading = actionsDiv.querySelector("h3");
+    actionsDiv.innerHTML = previous;
+    if (heading) actionsDiv.appendChild(heading);
+    actionsDiv.insertAdjacentHTML("beforeend", next);
 
     bindMoveButtons(actionsDiv);
   }

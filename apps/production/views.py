@@ -15,7 +15,7 @@ from django.views.generic import DetailView, TemplateView
 
 from apps.accounts.models import User
 from apps.orders.forms import OrderFilterForm, OrderNoteForm
-from apps.orders.models import Order, OrderAttachment, OrderHistory, OrderNote
+from apps.orders.models import Order, OrderAttachment, OrderHistory, OrderItem, OrderNote
 from apps.orders.services import add_note as create_note
 from apps.orders.services import remove_attachment as soft_remove_attachment
 from apps.orders.services import require_order_access
@@ -55,9 +55,29 @@ class KanbanView(LoginRequiredMixin, TemplateView):
         for order in orders:
             if order.stage in columns:
                 columns[order.stage].append(order)
+        previous_next = {
+            Order.Stage.NEW: (None, Order.Stage.AWAITING_PAYMENT),
+            Order.Stage.AWAITING_PAYMENT: (Order.Stage.NEW, Order.Stage.PAYMENT_CONFIRMED),
+            Order.Stage.PAYMENT_CONFIRMED: (Order.Stage.AWAITING_PAYMENT, Order.Stage.PRE_PRESS),
+            Order.Stage.PRE_PRESS: (Order.Stage.PAYMENT_CONFIRMED, Order.Stage.PRODUCTION),
+            Order.Stage.PRODUCTION: (Order.Stage.PRE_PRESS, Order.Stage.READY),
+            Order.Stage.READY: (Order.Stage.PRODUCTION, None),
+        }
+        kanban_columns = [
+            {
+                "stage": stage,
+                "label": Order.Stage(stage).label,
+                "orders": columns[stage],
+                "previous_stage": previous_next[stage][0],
+                "next_stage": previous_next[stage][1],
+                "finalize": stage == Order.Stage.READY,
+            }
+            for stage in active_stages_list
+        ]
         context.update({
             "filter_form": form,
             "columns": columns,
+            "kanban_columns": kanban_columns,
             "stage_choices": Order.Stage.choices,
             "active_users": User.objects.filter(is_active=True).only("id", "name").order_by("name"),
         })
@@ -71,6 +91,7 @@ class OrderDetailView(LoginRequiredMixin, DetailView):
     def get_queryset(self):
         return Order.objects.select_related("responsible", "created_by", "cancelled_by").prefetch_related(
             Prefetch("attachments", queryset=OrderAttachment.objects.filter(removed_at__isnull=True).select_related("created_by")),
+            Prefetch("items", queryset=OrderItem.objects.all()),
             Prefetch("notes", queryset=OrderNote.objects.select_related("user")),
             Prefetch("history", queryset=OrderHistory.objects.select_related("user")),
         )

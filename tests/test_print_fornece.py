@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from datetime import timedelta
 from decimal import Decimal
 
@@ -13,8 +14,9 @@ from apps.accounts.models import User
 from apps.audit.models import AuditEvent
 from apps.expenses.models import Expense
 from apps.notifications.models import Notification
+from apps.orders.calculator import CalculatorValidationError, calculate_quote
 from apps.orders.legacy_import import LegacyImporter, legacy_link
-from apps.orders.models import Order, OrderAttachment, OrderHistory, OrderNote, OrderStageHistory
+from apps.orders.models import Order, OrderAttachment, OrderHistory, OrderItem, OrderNote, OrderStageHistory
 
 
 class FakeCursor:
@@ -209,11 +211,38 @@ class PrintForneceTestCase(TestCase):
         self.assertEqual(legacy_link("producao/detalhes.php?id=8"), "/production/8/")
 
     def test_pdf_art_preview_and_public_quote_approval(self):
-        # 1. Test PDF Receipt generation endpoint
+        # 1. An unpaid order cannot generate a final payment receipt.
         self.login_as(self.admin)
+        response = self.client.get(reverse("orders:download_receipt", args=[self.order.pk]))
+        self.assertEqual(response.status_code, 403)
+
+        # Confirming payment records the sales snapshot and unlocks the receipt.
+        response = self.client.post(reverse("orders:edit", args=[self.order.pk]), {
+            "client_name": self.order.client_name,
+            "client_whatsapp": self.order.client_whatsapp,
+            "description": self.order.description,
+            "total_amount": "100,00",
+            "payment_status": Order.PaymentStatus.PAID,
+            "paid_amount": "100,00",
+            "payment_method": Order.PaymentMethod.PIX,
+            "priority": Order.Priority.NORMAL,
+        })
+        self.assertEqual(response.status_code, 302)
+        self.order.refresh_from_db()
+        self.assertIsNotNone(self.order.payment_confirmed_at)
+        self.assertEqual(self.order.receipt_total_amount, Decimal("100.00"))
+
         response = self.client.get(reverse("orders:download_receipt", args=[self.order.pk]))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response["Content-Type"], "application/pdf")
+        self.assertTrue(response.content.startswith(b"%PDF"))
+        self.assertIn("inline", response["Content-Disposition"])
+
+        # The public quote token is no longer accepted for a paid receipt.
+        self.client.logout()
+        response = self.client.get(reverse("orders:download_receipt", args=[self.order.pk]) + f"?token={self.order.quote_token}")
+        self.assertEqual(response.status_code, 403)
+        self.login_as(self.admin)
 
         # 2. Test Art Preview on gray background endpoint
         response = self.client.get(reverse("orders:art_preview", args=[self.order.pk]))
@@ -221,16 +250,104 @@ class PrintForneceTestCase(TestCase):
         self.assertEqual(response["Content-Type"], "image/png")
 
         # 3. Test Public Quote View & Approval
+        quote_order = Order.objects.create(
+            number="PF-QUOTE-0001",
+            client_name="Cliente do orçamento",
+            client_whatsapp="84999999999",
+            description="Orçamento público",
+            total_amount=Decimal("50.00"),
+            paid_amount=Decimal("0"),
+            created_by=self.admin,
+        )
         self.client.logout()
-        quote_url = reverse("orders:public_quote", args=[self.order.quote_token])
+        quote_url = reverse("orders:public_quote", args=[quote_order.quote_token])
         response = self.client.get(quote_url)
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, self.order.number)
+        self.assertContains(response, quote_order.number)
 
-        approve_url = reverse("orders:approve_quote", args=[self.order.quote_token])
+        approve_url = reverse("orders:approve_quote", args=[quote_order.quote_token])
         response = self.client.post(approve_url)
         self.assertRedirects(response, quote_url)
         
-        self.order.refresh_from_db()
-        self.assertEqual(self.order.stage, Order.Stage.AWAITING_PAYMENT)
-        self.assertTrue(OrderHistory.objects.filter(order=self.order, action="aprovacao_orcamento").exists())
+        quote_order.refresh_from_db()
+        self.assertEqual(quote_order.stage, Order.Stage.AWAITING_PAYMENT)
+        self.assertTrue(OrderHistory.objects.filter(order=quote_order, action="aprovacao_orcamento").exists())
+
+    def test_native_calculator_matches_rules_and_persists_historical_item(self):
+        # Regression grid copied from the original calculator's public rules.
+        for material, width, height, expected_cm, expected_total in (
+            ("dtf_textil", "30", "30", "30", "23.00"),
+            ("dtf_textil", "31", "31", "31", "30.00"),
+            ("dtf_textil", "51", "80", "80", "48.00"),
+            ("dtf_textil", "51", "81", "81", "50.00"),
+            ("dtf_textil", "58", "900", "900", "450.00"),
+            ("dtf_textil", "58", "901", "901", "405.45"),
+            ("dtf_uv", "28", "30", "30", "35.00"),
+            ("dtf_uv", "28", "50", "50", "45.00"),
+            ("dtf_uv", "28", "90", "90", "81.00"),
+            ("dtf_uv", "28", "91", "91", "75.00"),
+            ("dtf_uv", "28", "199", "199", "149.25"),
+            ("dtf_uv", "28", "200", "200", "140.00"),
+        ):
+            with self.subTest(material=material, width=width, height=height):
+                local_quote = calculate_quote(material_code=material, width_cm=width, height_cm=height, quantity="1")
+                self.assertEqual(local_quote.film_used_cm, Decimal(expected_cm))
+                self.assertEqual(local_quote.total, Decimal(expected_total))
+        with self.assertRaises(CalculatorValidationError):
+            calculate_quote(material_code="dtf_textil", width_cm="59", height_cm="59", quantity="1")
+
+        self.login_as(self.admin)
+        calculate_url = reverse("orders:calculate_quote")
+        response = self.client.post(
+            calculate_url,
+            data=json.dumps({"material_code": "dtf_textil", "width_cm": "51", "height_cm": "80", "quantity": "1"}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+        quote = response.json()["quote"]
+        self.assertEqual(quote["film_used_cm"], "80")
+        self.assertEqual(quote["unit_price"], "60")
+        self.assertEqual(quote["total"], "48.00")
+
+        response = self.client.post(
+            calculate_url,
+            data=json.dumps({"material_code": "dtf_uv", "width_cm": "28", "height_cm": "200", "quantity": "1"}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["quote"]["total"], "140.00")
+
+        calculation_payload = json.dumps({
+            "material_code": "dtf_textil",
+            "width_cm": "51",
+            "height_cm": "80",
+            "quantity": "1",
+        })
+        response = self.client.post(reverse("orders:create"), {
+            "client_name": "Cliente do calculador",
+            "client_whatsapp": "84999999999",
+            "description": "DTF Têxtil calculado",
+            "total_amount": "50,00",
+            "payment_status": Order.PaymentStatus.PAID,
+            "paid_amount": "50,00",
+            "payment_method": Order.PaymentMethod.PIX,
+            "priority": Order.Priority.NORMAL,
+            "calculation_payload": calculation_payload,
+        })
+        self.assertEqual(response.status_code, 302)
+        created = Order.objects.get(client_name="Cliente do calculador")
+        item = OrderItem.objects.get(order=created, kind=OrderItem.Kind.MATERIAL)
+        self.assertEqual(item.material_name, "DTF Têxtil")
+        self.assertEqual(item.art_quantity, 1)
+        self.assertEqual(item.used_length_cm, 80)
+        self.assertEqual(item.billing_quantity, Decimal("0.80"))
+        self.assertEqual(item.unit_price, Decimal("60.00"))
+        self.assertEqual(item.line_total, Decimal("48.00"))
+        adjustment = OrderItem.objects.get(order=created, kind=OrderItem.Kind.ADJUSTMENT)
+        self.assertEqual(adjustment.line_total, Decimal("2.00"))
+        self.assertEqual(adjustment.calculation_snapshot["source"], "manual_total_adjustment")
+        self.assertEqual(created.receipt_total_amount, Decimal("50.00"))
+
+        # The stored snapshot remains untouched if a future price configuration changes.
+        snapshot = item.calculation_snapshot
+        self.assertEqual(snapshot["total"], "48.00")

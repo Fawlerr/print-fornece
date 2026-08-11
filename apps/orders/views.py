@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import json
+
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.core.exceptions import ValidationError
-from django.http import FileResponse, Http404, HttpResponse
+from django.core.exceptions import PermissionDenied, ValidationError
+from django.http import FileResponse, Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, render, redirect
 from django.urls import reverse
 from django.utils import timezone
@@ -13,6 +15,7 @@ from apps.notifications.services import notify_role
 from apps.audit.services import record_audit
 
 from .art_preview import generate_art_preview_image
+from .calculator import CalculatorValidationError, calculate_quote, material_catalogue
 from .forms import OrderForm
 from .models import Order, OrderAttachment, OrderHistory, OrderStageHistory
 from .pdf import generate_order_receipt_pdf
@@ -28,6 +31,12 @@ class OrderCreateView(LoginRequiredMixin, CreateView):
         kwargs["user"] = self.request.user
         return kwargs
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["calculator_materials"] = material_catalogue()
+        context["calculator_endpoint"] = reverse("orders:calculate_quote")
+        return context
+
     def form_valid(self, form):
         try:
             self.object = create_order(form=form, actor=self.request.user, files=self.request.FILES.getlist("attachments"), request=self.request)
@@ -35,6 +44,9 @@ class OrderCreateView(LoginRequiredMixin, CreateView):
             form.add_error(None, exc.messages[0])
             return self.form_invalid(form)
         messages.success(self.request, f"Pedido {self.object.number} criado com sucesso.")
+        if self.object.payment_status == Order.PaymentStatus.PAID:
+            messages.info(self.request, "Pagamento confirmado. Gere o comprovante no detalhe do pedido.")
+            return redirect("production:detail", pk=self.object.pk)
         return redirect("production:kanban")
 
 
@@ -49,6 +61,13 @@ class OrderUpdateView(LoginRequiredMixin, UpdateView):
     def get_object(self, queryset=None):
         order = super().get_object(queryset)
         require_order_access(self.request.user, order)
+        # ModelForm validation writes cleaned values onto this instance before
+        # form_valid() runs, so retain the persisted state for payment history.
+        self._previous_order_state = {
+            "payment_status": order.payment_status,
+            "paid_amount": str(order.paid_amount),
+            "responsible_id": order.responsible_id,
+        }
         return order
 
     def get_form_kwargs(self):
@@ -58,7 +77,14 @@ class OrderUpdateView(LoginRequiredMixin, UpdateView):
 
     def form_valid(self, form):
         try:
-            self.object = update_order(order=self.object, form=form, actor=self.request.user, files=self.request.FILES.getlist("attachments"), request=self.request)
+            self.object = update_order(
+                order=self.object,
+                form=form,
+                actor=self.request.user,
+                files=self.request.FILES.getlist("attachments"),
+                request=self.request,
+                previous_state=getattr(self, "_previous_order_state", None),
+            )
         except ValidationError as exc:
             form.add_error(None, exc.messages[0])
             return self.form_invalid(form)
@@ -79,17 +105,45 @@ def download_attachment(request, order_pk: int, pk: int):
 
 
 def download_receipt_pdf(request, pk: int):
-    """Download receipt/nota PDF for an order."""
-    order = get_object_or_404(Order, pk=pk)
-    # Accessible to authenticated users or via public token query param
-    token = request.GET.get("token")
-    if not request.user.is_authenticated and token != str(order.quote_token):
-        return redirect(f"{reverse('accounts:login')}?next={request.get_full_path()}")
-    
+    """Generate a paid-order receipt after checking the shared queue access rule."""
+    order = get_object_or_404(
+        Order.objects.select_related("responsible", "created_by", "payment_confirmed_by").prefetch_related("items"),
+        pk=pk,
+    )
+    require_order_access(request.user, order)
+    if order.payment_status != Order.PaymentStatus.PAID:
+        raise PermissionDenied("O comprovante só pode ser gerado após a confirmação do pagamento.")
     pdf_bytes = generate_order_receipt_pdf(order)
+    if order.receipt_generated_at is None:
+        order.receipt_generated_at = timezone.now()
+        order.save(update_fields=["receipt_generated_at", "updated_at"])
     response = HttpResponse(pdf_bytes, content_type="application/pdf")
-    response["Content-Disposition"] = f'attachment; filename="comprovante_pedido_{order.number}.pdf"'
+    response["Content-Disposition"] = f'inline; filename="comprovante_pedido_{order.number}.pdf"'
     return response
+
+
+def calculate_order_quote(request):
+    """Return an authenticated, server-authoritative calculator result."""
+    if not request.user.is_authenticated:
+        return JsonResponse({"message": "Autenticação necessária."}, status=403)
+    if request.method != "POST":
+        return JsonResponse({"message": "Método não permitido."}, status=405)
+    try:
+        payload = json.loads(request.body or "{}")
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return JsonResponse({"message": "Dados do orçamento inválidos."}, status=400)
+    if not isinstance(payload, dict):
+        return JsonResponse({"message": "Dados do orçamento inválidos."}, status=400)
+    try:
+        quote = calculate_quote(
+            material_code=str(payload.get("material_code", "")),
+            width_cm=payload.get("width_cm"),
+            height_cm=payload.get("height_cm"),
+            quantity=payload.get("quantity"),
+        )
+    except CalculatorValidationError as exc:
+        return JsonResponse({"message": str(exc)}, status=422)
+    return JsonResponse({"ok": True, "quote": quote.payload()})
 
 
 def art_preview_view(request, pk: int):

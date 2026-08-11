@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}{% if object %}Editar pedido{% else %}Novo pedido{% endif %} | Print Fornece{% endblock %}
 {% block page_heading %}{% if object %}Editar pedido{% else %}Novo pedido{% endif %}{% endblock %}
@@ -12,9 +13,84 @@
     </div>
   </div>
 
-  <form class="card form-card" method="post" enctype="multipart/form-data" novalidate style="margin: 0 auto 32px auto;">
+  <form class="card form-card order-form" method="post" enctype="multipart/form-data" novalidate style="margin: 0 auto 32px auto;">
     {% csrf_token %}
-    {% include "includes/form_fields.html" with form=form %}
+    {% if form.non_field_errors %}
+      <div class="form-error" role="alert">{{ form.non_field_errors }}</div>
+    {% endif %}
+    {% for hidden_field in form.hidden_fields %}
+      {{ hidden_field }}
+      {% if hidden_field.errors %}<div class="field-errors" role="alert">{{ hidden_field.errors }}</div>{% endif %}
+    {% endfor %}
+
+    <div class="form-grid order-client-fields">
+      {% include "includes/form_field.html" with field=form.client_name %}
+      {% include "includes/form_field.html" with field=form.client_whatsapp %}
+    </div>
+
+    {% if calculator_materials %}
+      <section class="calculator-panel" data-order-calculator data-endpoint="{{ calculator_endpoint }}" aria-labelledby="calculator-title">
+        <div class="calculator-heading">
+          <div>
+            <p class="eyebrow">Orçamento integrado</p>
+            <h2 id="calculator-title">Calculadora Print Fornece</h2>
+            <p>Selecione o material, informe a medida da arte e a quantidade. O valor é calculado no servidor conforme a tabela atual.</p>
+          </div>
+          <span class="calculator-status" data-calculator-status aria-live="polite">Preencha as medidas para calcular.</span>
+        </div>
+
+        <div class="calculator-materials" role="radiogroup" aria-label="Material">
+          {% for material in calculator_materials %}
+            <label class="calculator-material-option">
+              <input type="radio" name="calculator_material" value="{{ material.code }}"{% if forloop.first %} checked{% endif %}>
+              <span>
+                <strong>{{ material.name }}</strong>
+                <small>Filme {{ material.film_width_cm }} cm · útil até {{ material.maximum_art_width_cm }} cm</small>
+              </span>
+            </label>
+          {% endfor %}
+        </div>
+
+        <div class="calculator-inputs">
+          <label for="calculator-width">Largura da arte (cm)
+            <input id="calculator-width" type="number" inputmode="decimal" min="0.01" step="0.1" name="calculator_width" data-calculator-width placeholder="Ex.: 30">
+          </label>
+          <label for="calculator-height">Altura da arte (cm)
+            <input id="calculator-height" type="number" inputmode="decimal" min="0.01" step="0.1" name="calculator_height" data-calculator-height placeholder="Ex.: 40">
+          </label>
+          <label for="calculator-quantity">Quantidade
+            <input id="calculator-quantity" type="number" inputmode="numeric" min="1" step="1" name="calculator_quantity" data-calculator-quantity placeholder="Ex.: 1">
+          </label>
+          <button class="btn btn-secondary" type="button" data-calculator-calculate><i class="fa-solid fa-calculator" aria-hidden="true"></i> Atualizar cálculo</button>
+        </div>
+
+        <div class="calculator-result" data-calculator-result hidden>
+          <div class="calculator-total">
+            <span>Valor calculado</span>
+            <strong data-calculator-total>R$ 0,00</strong>
+          </div>
+          <dl class="calculator-breakdown">
+            <div><dt>Filme usado</dt><dd data-calculator-film>—</dd></div>
+            <div><dt>Regra aplicada</dt><dd data-calculator-rule>—</dd></div>
+            <div><dt>Disposição</dt><dd data-calculator-layout>—</dd></div>
+          </dl>
+          <button class="btn btn-primary" type="button" data-use-calculated disabled><i class="fa-solid fa-arrow-down" aria-hidden="true"></i> Usar valor calculado no pedido</button>
+        </div>
+        <p class="calculator-note"><i class="fa-solid fa-circle-info" aria-hidden="true"></i> Espaçamento de 1 cm entre as artes. O valor final do pedido continua editável.</p>
+      </section>
+    {% endif %}
+
+    <div class="form-grid order-details-fields">
+      {% include "includes/form_field.html" with field=form.description full=True %}
+      {% include "includes/form_field.html" with field=form.total_amount %}
+      {% include "includes/form_field.html" with field=form.payment_status %}
+      {% include "includes/form_field.html" with field=form.paid_amount %}
+      {% include "includes/form_field.html" with field=form.payment_method %}
+      {% include "includes/form_field.html" with field=form.due_at %}
+      {% include "includes/form_field.html" with field=form.priority %}
+      {% include "includes/form_field.html" with field=form.responsible %}
+      {% include "includes/form_field.html" with field=form.internal_notes full=True %}
+    </div>
     <label class="full" for="id_attachments" style="margin-top: 16px;">
       {% if object %}Adicionar anexos{% else %}Arquivos da arte{% endif %}
       <input id="id_attachments" type="file" name="attachments" multiple accept=".pdf,.png,.jpg,.jpeg,.webp,.svg,.cdr,.ai,.eps,.psd,.tiff,.zip">
@@ -30,4 +106,8 @@
     </div>
   </form>
 </div>
+{% endblock %}
+
+{% block extra_scripts %}
+  {% if calculator_materials %}<script src="{% static 'js/order-calculator.js' %}" defer></script>{% endif %}
 {% endblock %}

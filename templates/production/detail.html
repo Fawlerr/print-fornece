@@ -4,19 +4,15 @@
 {% block page_heading %}Pedido {{ order.number }}{% endblock %}
 
 {% block content %}
-  <!-- Temporary Layout Watermark Banner -->
-  <div style="background-color: #fffbebfb; border: 1px solid #f59e0b; border-radius: 6px; padding: 10px 14px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; color: #92400e;">
-    <span><strong>⚠️ Layout de Pedido Temporário:</strong> Marca d'água ativa aguardando envio do modelo HTML de referência.</span>
-    <span class="badge" style="background: #f59e0b; color: white;">TEMPORÁRIO</span>
-  </div>
-
   <div class="section-heading">
     <div>
       <h2>{{ order.client_name }}</h2>
       <p>Criado em {{ order.created_at|date:"d/m/Y H:i" }} por {{ order.created_by.name }}</p>
     </div>
     <div class="button-row no-print">
-      <a class="btn btn-secondary" href="{% url 'orders:download_receipt' pk=order.pk %}"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i> Comprovante PDF</a>
+      {% if order.payment_status == "pago" %}
+        <a class="btn btn-secondary" href="{% url 'orders:download_receipt' pk=order.pk %}" target="_blank" rel="noopener"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i> Gerar comprovante</a>
+      {% endif %}
       <a class="btn btn-secondary" href="{% url 'production:kanban' %}"><i class="fa-solid fa-table-columns" aria-hidden="true"></i> Produção</a>
       <a class="btn btn-primary" href="{% url 'orders:edit' pk=order.pk %}"><i class="fa-solid fa-pen" aria-hidden="true"></i> Editar pedido</a>
     </div>
@@ -38,6 +34,20 @@
       {% if order.internal_notes %}
         <div class="section-heading"><h2>Observações do cadastro</h2></div>
         <p>{{ order.internal_notes|linebreaksbr }}</p>
+      {% endif %}
+      {% if order.items.all %}
+        <div class="section-heading"><h2>Itens do orçamento</h2></div>
+        <div class="order-item-list">
+          {% for item in order.items.all %}
+            <div class="order-item-row">
+              <div>
+                <strong>{{ item.material_name }}</strong>
+                <small>{{ item.billing_quantity|floatformat:2 }} {{ item.billing_unit }} · {{ item.pricing_rule }}</small>
+              </div>
+              <strong>R$ {{ item.line_total|floatformat:2 }}</strong>
+            </div>
+          {% endfor %}
+        </div>
       {% endif %}
     </section>
 

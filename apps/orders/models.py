@@ -51,6 +51,22 @@ class Order(models.Model):
     payment_status = models.CharField(max_length=15, choices=PaymentStatus.choices, default=PaymentStatus.UNPAID)
     paid_amount = models.DecimalField("valor pago", max_digits=12, decimal_places=2, default=0)
     payment_method = models.CharField(max_length=20, choices=PaymentMethod.choices, null=True, blank=True)
+    payment_confirmed_at = models.DateTimeField("pagamento confirmado em", null=True, blank=True)
+    payment_confirmed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="confirmed_order_payments",
+    )
+    # These values are frozen when a payment becomes paid.  A receipt generated
+    # later must reflect the sale, not a subsequently edited customer or amount.
+    receipt_client_name = models.CharField("cliente no comprovante", max_length=150, blank=True)
+    receipt_seller_name = models.CharField("vendedor no comprovante", max_length=150, blank=True)
+    receipt_total_amount = models.DecimalField("total no comprovante", max_digits=12, decimal_places=2, null=True, blank=True)
+    receipt_paid_amount = models.DecimalField("valor pago no comprovante", max_digits=12, decimal_places=2, null=True, blank=True)
+    receipt_payment_method = models.CharField("forma de pagamento no comprovante", max_length=20, blank=True)
+    receipt_generated_at = models.DateTimeField("comprovante gerado em", null=True, blank=True)
     due_at = models.DateTimeField("entrega prevista", null=True, blank=True)
     priority = models.CharField(max_length=10, choices=Priority.choices, default=Priority.NORMAL)
     internal_notes = models.TextField("observações internas", blank=True)
@@ -122,6 +138,50 @@ class OrderAttachment(models.Model):
 
     def __str__(self) -> str:
         return self.original_name
+
+
+class OrderItem(models.Model):
+    """Historical item rows used by the calculator and the sales receipt.
+
+    The table shape intentionally matches the pre-existing calculator snapshot
+    table found in deployed databases.  This lets the new implementation reuse
+    those records instead of replacing or losing them.
+    """
+
+    class Kind(models.TextChoices):
+        MATERIAL = "material", "Material"
+        ADJUSTMENT = "ajuste", "Ajuste"
+
+    order = models.ForeignKey(Order, on_delete=models.PROTECT, related_name="items")
+    position = models.PositiveSmallIntegerField(default=1)
+    kind = models.CharField(max_length=12, choices=Kind.choices, default=Kind.MATERIAL)
+    material_code = models.CharField(max_length=60)
+    material_name = models.CharField(max_length=160)
+    category = models.CharField(max_length=100)
+    film_width_cm = models.PositiveSmallIntegerField(null=True, blank=True)
+    art_width_cm = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
+    art_height_cm = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
+    art_quantity = models.PositiveIntegerField(null=True, blank=True)
+    items_per_row = models.PositiveIntegerField(null=True, blank=True)
+    rows = models.PositiveIntegerField(null=True, blank=True)
+    used_length_cm = models.PositiveIntegerField(null=True, blank=True)
+    charged_length_cm = models.PositiveIntegerField(null=True, blank=True)
+    billing_quantity = models.DecimalField(max_digits=10, decimal_places=2)
+    billing_unit = models.CharField(max_length=30)
+    unit_price = models.DecimalField(max_digits=12, decimal_places=2)
+    line_total = models.DecimalField(max_digits=12, decimal_places=2)
+    pricing_rule = models.CharField(max_length=120)
+    calculation_detail = models.CharField(max_length=255, blank=True)
+    calculation_snapshot = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "pf_order_items"
+        ordering = ["position", "pk"]
+        indexes = [models.Index(fields=["order", "created_at"], name="pf_item_order_date")]
+
+    def __str__(self) -> str:
+        return f"{self.order.number} - {self.material_name}"
 
 
 class OrderHistory(models.Model):

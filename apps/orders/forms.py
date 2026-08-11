@@ -18,8 +18,23 @@ class BrazilianMoneyField(forms.DecimalField):
 
 
 class OrderForm(forms.ModelForm):
-    total_amount = BrazilianMoneyField(label="Valor total", max_digits=12, decimal_places=2, min_value=Decimal("0.01"))
-    paid_amount = BrazilianMoneyField(label="Valor pago", max_digits=12, decimal_places=2, min_value=Decimal("0"), required=False, initial=Decimal("0"))
+    total_amount = BrazilianMoneyField(
+        label="Valor total",
+        max_digits=12,
+        decimal_places=2,
+        min_value=Decimal("0.01"),
+        widget=forms.TextInput(attrs={"data-money": "", "inputmode": "decimal"}),
+    )
+    paid_amount = BrazilianMoneyField(
+        label="Valor pago",
+        max_digits=12,
+        decimal_places=2,
+        min_value=Decimal("0"),
+        required=False,
+        initial=Decimal("0"),
+        widget=forms.TextInput(attrs={"data-money": "", "inputmode": "decimal"}),
+    )
+    calculation_payload = forms.CharField(required=False, widget=forms.HiddenInput())
 
     class Meta:
         model = Order

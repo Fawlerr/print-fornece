@@ -1,0 +1,27 @@
+<article class="order-card" draggable="true" data-order-id="{{ order.pk }}" data-stage="{{ order.stage }}" data-kanban-endpoint="{% url 'production:move_stage' pk=order.pk %}">
+  <div class="order-card-controls order-stage-actions">
+    {% if previous_stage %}
+      <button class="kanban-stage-button" type="button" data-order-move="{{ order.pk }}" data-stage="{{ previous_stage }}" aria-label="Voltar uma etapa" title="Voltar uma etapa">
+        <i class="fa-solid fa-chevron-left" aria-hidden="true"></i><span class="sr-only">Voltar uma etapa</span>
+      </button>
+    {% else %}
+      <span class="kanban-stage-spacer" aria-hidden="true"></span>
+    {% endif %}
+
+    <h3><a href="{% url 'production:detail' pk=order.pk %}" title="{{ order.client_name }}">{{ order.client_name }}</a></h3>
+
+    {% if next_stage %}
+      <button class="kanban-stage-button kanban-stage-button-next" type="button" data-order-move="{{ order.pk }}" data-stage="{{ next_stage }}" aria-label="Avançar uma etapa" title="Avançar uma etapa">
+        <i class="fa-solid fa-chevron-right" aria-hidden="true"></i><span class="sr-only">Avançar uma etapa</span>
+      </button>
+    {% elif finalize %}
+      <a class="kanban-stage-button kanban-stage-button-next" href="{% url 'production:detail' pk=order.pk %}" aria-label="Abrir pedido para finalizar" title="Abrir pedido para finalizar">
+        <i class="fa-solid fa-check" aria-hidden="true"></i><span class="sr-only">Abrir pedido para finalizar</span>
+      </a>
+    {% endif %}
+  </div>
+  <div class="order-card-meta">
+    <span class="badge badge-{{ order.payment_status }}">{{ order.get_payment_status_display }}</span>
+    <span class="order-attachments" title="{{ order.attachment_count }} arquivo(s) anexado(s)"><i class="fa-solid fa-paperclip" aria-hidden="true"></i> {{ order.attachment_count }}</span>
+  </div>
+</article>
