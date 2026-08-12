@@ -131,13 +131,33 @@
   <!-- Visualização da Arte e Arquivos Anexados -->
   <div class="grid two-col">
     <section class="card card-pad">
-      <div class="section-heading"><h2>Visualização da Arte</h2></div>
-      <div style="background-color: #e2e8f0; border-radius: 8px; padding: 16px; text-align: center; position: relative;">
-        <img src="{% url 'orders:art_preview' pk=order.pk %}" alt="Visualização da Arte" style="max-width: 100%; max-height: 420px; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" />
+      <div class="section-heading" style="display: flex; justify-content: space-between; align-items: center;">
+        <h2 style="margin: 0;">Visualização da Arte</h2>
+        <span class="text-muted" style="font-size: 0.85rem;"><i class="fa-solid fa-shield-halved"></i> Marca d'água</span>
       </div>
-      <div style="margin-top: 12px; text-align: right;">
-        <a class="btn btn-secondary btn-small" href="{% url 'orders:art_preview' pk=order.pk %}" target="_blank">
-          <i class="fa-solid fa-up-right-from-square"></i> Abrir imagem em tela cheia
+      <div style="background-color: #e2e8f0; border-radius: 8px; padding: 14px; text-align: center; position: relative; min-height: 280px; display: flex; align-items: center; justify-content: center;">
+        <img id="detail-art-preview-img" src="{% url 'orders:art_preview' pk=order.pk %}" alt="Visualização da Arte" style="max-width: 100%; max-height: 420px; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); transition: opacity 0.2s;" />
+      </div>
+
+      {% if order.attachments.all|length > 1 %}
+        <div style="margin-top: 12px;">
+          <small class="text-muted" style="display: block; margin-bottom: 6px; font-weight: 600;">Selecione o arquivo para visualizar:</small>
+          <div style="display: flex; gap: 6px; flex-wrap: wrap;" id="detail-preview-thumbnails">
+            {% for attachment in order.attachments.all %}
+              <button type="button" class="btn btn-secondary btn-small detail-thumb-btn {% if forloop.first %}active{% endif %}"
+                onclick="switchDetailPreview('{% url 'orders:art_preview' pk=order.pk %}?attachment_id={{ attachment.pk }}', this)"
+                style="font-size: 0.8rem; padding: 4px 10px; display: inline-flex; align-items: center; gap: 4px; border-radius: 6px;">
+                <i class="fa-solid fa-file-image"></i> {{ attachment.original_name|truncatechars:20 }}
+              </button>
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
+
+      <div style="margin-top: 12px; display: flex; justify-content: space-between; align-items: center;">
+        <span class="text-muted" style="font-size: 0.8rem;">Visualização protegida</span>
+        <a id="detail-art-fullscreen-link" class="btn btn-secondary btn-small" href="{% url 'orders:art_preview' pk=order.pk %}" target="_blank">
+          <i class="fa-solid fa-up-right-from-square"></i> Abrir em tela cheia
         </a>
       </div>
     </section>
@@ -146,14 +166,26 @@
       <div class="section-heading"><h2>Arquivos e Comprovantes</h2></div>
       <div class="files">
         {% for attachment in order.attachments.all %}
-          <div class="file-row">
-            <i class="fa-regular fa-file" aria-hidden="true"></i>
-            <span>{{ attachment.original_name }} <small class="text-muted">· {{ attachment.size|filesizeformat }}</small></span>
-            <a class="btn btn-secondary btn-small" href="{% url 'orders:download_attachment' order_pk=order.pk pk=attachment.pk %}" target="_blank"><i class="fa-solid fa-download" aria-hidden="true"></i> Baixar</a>
-            <form method="post" class="no-print" action="{% url 'production:remove_attachment' pk=order.pk attachment_pk=attachment.pk %}">
-              {% csrf_token %}
-              <button class="btn btn-danger btn-small" type="submit" data-confirm="Remover este anexo do pedido?">Remover</button>
-            </form>
+          <div class="file-row" style="display: flex; align-items: center; justify-content: space-between; padding: 10px; border-bottom: 1px solid var(--border-color, rgba(255,255,255,0.06)); gap: 8px;">
+            <div style="display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0;">
+              <i class="fa-regular fa-file" aria-hidden="true"></i>
+              <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ attachment.original_name }} <small class="text-muted">· {{ attachment.size|filesizeformat }}</small></span>
+            </div>
+            <div style="display: flex; gap: 6px; align-items: center;">
+              <button type="button" class="btn btn-secondary btn-small" title="Visualizar prévia deste arquivo"
+                onclick="switchDetailPreview('{% url 'orders:art_preview' pk=order.pk %}?attachment_id={{ attachment.pk }}')">
+                <i class="fa-solid fa-eye"></i> Ver
+              </button>
+              <a class="btn btn-secondary btn-small" href="{% url 'orders:download_attachment' order_pk=order.pk pk=attachment.pk %}" target="_blank" title="Baixar arquivo original">
+                <i class="fa-solid fa-download"></i> Baixar
+              </a>
+              <form method="post" class="no-print" action="{% url 'production:remove_attachment' pk=order.pk attachment_pk=attachment.pk %}" style="display: inline-block;">
+                {% csrf_token %}
+                <button class="btn btn-danger btn-small" type="submit" data-confirm="Remover este anexo do pedido?" title="Remover anexo">
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+              </form>
+            </div>
           </div>
         {% empty %}
           <p class="text-muted">Nenhum arquivo ou comprovante anexado.</p>
@@ -204,4 +236,29 @@
       </div>
     </section>
   </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  function switchDetailPreview(url, btn) {
+    const img = document.getElementById('detail-art-preview-img');
+    const link = document.getElementById('detail-art-fullscreen-link');
+    if (img) {
+      img.style.opacity = '0.4';
+      img.onload = () => { img.style.opacity = '1'; };
+      img.src = url;
+    }
+    if (link) {
+      link.href = url;
+    }
+    document.querySelectorAll('.detail-thumb-btn').forEach(b => {
+      b.style.borderColor = '';
+      b.style.backgroundColor = '';
+    });
+    if (btn) {
+      btn.style.borderColor = '#10b981';
+      btn.style.backgroundColor = 'rgba(16, 185, 129, 0.15)';
+    }
+  }
+</script>
 {% endblock %}

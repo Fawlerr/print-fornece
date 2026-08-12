@@ -150,13 +150,14 @@ def calculate_order_quote(request):
 
 
 def art_preview_view(request, pk: int):
-    """Serve composite artwork preview image on gray background."""
+    """Serve composite artwork preview image on gray background with watermark."""
     order = get_object_or_404(Order, pk=pk)
     token = request.GET.get("token")
     if not request.user.is_authenticated and token != str(order.quote_token):
         return redirect(f"{reverse('accounts:login')}?next={request.get_full_path()}")
 
-    png_bytes = generate_art_preview_image(order)
+    attachment_id = request.GET.get("attachment_id")
+    png_bytes = generate_art_preview_image(order, attachment_id=attachment_id)
     return HttpResponse(png_bytes, content_type="image/png")
 
 

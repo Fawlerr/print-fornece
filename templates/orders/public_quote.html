@@ -49,13 +49,36 @@
     </div>
 
     <div>
-      <h3>Visualização da Arte</h3>
-      <div style="background: #e2e8f0; border-radius: 8px; padding: 12px; text-align: center; position: relative; min-height: 250px; display: flex; align-items: center; justify-content: center;">
-        <img src="{% url 'orders:art_preview' pk=order.pk %}?token={{ token }}" alt="Visualização da Arte" style="max-width: 100%; max-height: 300px; border-radius: 4px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);" />
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+        <h3 style="margin: 0;">Visualização da Arte</h3>
+        <span class="text-muted" style="font-size: 0.85rem;"><i class="fa-solid fa-shield-halved"></i> Prévia protegida</span>
       </div>
-      <div style="margin-top: 8px; text-align: right;">
-        <a href="{% url 'orders:art_preview' pk=order.pk %}?token={{ token }}" target="_blank" class="btn btn-secondary btn-small">
-          <i class="fa-solid fa-download"></i> Visualizar / Baixar Arte
+
+      <div style="background: #e2e8f0; border-radius: 8px; padding: 12px; text-align: center; position: relative; min-height: 260px; display: flex; align-items: center; justify-content: center;">
+        <img id="quote-art-preview-img" src="{% url 'orders:art_preview' pk=order.pk %}?token={{ token }}" alt="Visualização da Arte" style="max-width: 100%; max-height: 320px; border-radius: 4px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); transition: opacity 0.2s;" />
+      </div>
+
+      {% if order.attachments.all|length > 1 %}
+        <div style="margin-top: 10px;">
+          <div style="font-size: 0.85rem; font-weight: 600; margin-bottom: 6px; color: var(--muted, #64748b);">
+            Arquivos anexados ({{ order.attachments.all|length }}):
+          </div>
+          <div style="display: flex; gap: 6px; flex-wrap: wrap;" id="preview-thumbnails">
+            {% for att in order.attachments.all %}
+              <button type="button" class="btn btn-secondary btn-small preview-thumb-btn {% if forloop.first %}active{% endif %}" 
+                onclick="switchQuotePreview('{% url 'orders:art_preview' pk=order.pk %}?attachment_id={{ att.pk }}&token={{ token }}', this)"
+                style="font-size: 0.8rem; padding: 5px 10px; display: inline-flex; align-items: center; gap: 4px; border-radius: 6px;">
+                <i class="fa-solid fa-file-image"></i> {{ att.original_name|truncatechars:22 }}
+              </button>
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
+
+      <div style="margin-top: 12px; display: flex; justify-content: space-between; align-items: center;">
+        <span class="text-muted" style="font-size: 0.8rem;">Marca d'água de conferência</span>
+        <a id="quote-art-download-link" href="{% url 'orders:art_preview' pk=order.pk %}?token={{ token }}" target="_blank" class="btn btn-secondary btn-small">
+          <i class="fa-solid fa-up-right-from-square"></i> Abrir em Alta Resolução
         </a>
       </div>
     </div>
@@ -79,4 +102,29 @@
   </div>
 
 </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  function switchQuotePreview(url, btn) {
+    const img = document.getElementById('quote-art-preview-img');
+    const link = document.getElementById('quote-art-download-link');
+    if (img) {
+      img.style.opacity = '0.4';
+      img.onload = () => { img.style.opacity = '1'; };
+      img.src = url;
+    }
+    if (link) {
+      link.href = url;
+    }
+    document.querySelectorAll('.preview-thumb-btn').forEach(b => {
+      b.style.borderColor = '';
+      b.style.backgroundColor = '';
+    });
+    if (btn) {
+      btn.style.borderColor = '#10b981';
+      btn.style.backgroundColor = 'rgba(16, 185, 129, 0.15)';
+    }
+  }
+</script>
 {% endblock %}
