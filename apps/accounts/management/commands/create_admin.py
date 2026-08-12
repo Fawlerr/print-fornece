@@ -11,7 +11,8 @@ class Command(BaseCommand):
         password = os.environ.get("ADMIN_PASSWORD", "admin123456")
         name = os.environ.get("ADMIN_NAME", "Administrador")
 
-        if not User.objects.filter(role=User.Role.ADMINISTRATOR).exists():
+        admin_user = User.objects.filter(email=email).first()
+        if not admin_user:
             User.objects.create_superuser(
                 email=email,
                 name=name,
@@ -26,7 +27,17 @@ class Command(BaseCommand):
         dev_password = os.environ.get("DEV_PASSWORD", "dev123456")
         dev_name = os.environ.get("DEV_NAME", "Desenvolvedor")
 
-        if not User.objects.filter(role=User.Role.DEV).exists():
+        dev_user = User.objects.filter(email=dev_email).first()
+        if dev_user:
+            if dev_user.role != User.Role.DEV:
+                dev_user.role = User.Role.DEV
+                dev_user.is_staff = True
+                dev_user.is_superuser = True
+                dev_user.save()
+                self.stdout.write(self.style.SUCCESS(f"Usuário '{dev_email}' promovido para perfil DEV."))
+            else:
+                self.stdout.write(f"Usuário DEV '{dev_email}' já existe.")
+        else:
             User.objects.create_superuser(
                 email=dev_email,
                 name=dev_name,
