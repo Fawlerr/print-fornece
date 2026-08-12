@@ -7,11 +7,11 @@
   <div class="section-heading">
     <div>
       <h2>{{ order.client_name }}</h2>
-      <p>Criado em {{ order.created_at|date:"d/m/Y H:i" }} por {{ order.created_by.name }}</p>
+      <p>Criado em {{ order.created_at|date:"d/m/Y H:i" }}{% if order.created_by.is_dev and not user.is_dev %}{% else %} por {{ order.created_by.name }}{% endif %}</p>
     </div>
     <div class="button-row no-print">
       {% if order.payment_status == "pago" %}
-        <a class="btn btn-secondary" href="{% url 'orders:download_receipt' pk=order.pk %}" target="_blank" rel="noopener"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i> Gerar comprovante</a>
+        <a class="btn btn-secondary" href="{% url 'orders:download_receipt' pk=order.pk %}" target="_blank" rel="noopener"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i> Gerar comprovante PDF</a>
       {% endif %}
       <a class="btn btn-secondary" href="{% url 'production:kanban' %}"><i class="fa-solid fa-table-columns" aria-hidden="true"></i> Produção</a>
       <a class="btn btn-primary" href="{% url 'orders:edit' pk=order.pk %}"><i class="fa-solid fa-pen" aria-hidden="true"></i> Editar pedido</a>
@@ -26,7 +26,7 @@
         <div><small>Valor total</small><strong>R$ {{ order.total_amount|floatformat:2 }}</strong></div>
         <div><small>Valor pago</small><strong>R$ {{ order.paid_amount|floatformat:2 }}</strong></div>
         <div><small>Pagamento</small><strong>{{ order.get_payment_status_display }}</strong></div>
-        <div><small>Responsável</small><strong>{{ order.responsible.name|default:"Não definido" }}</strong></div>
+        <div><small>Responsável</small><strong>{% if order.responsible.is_dev and not user.is_dev %}Equipe Técnica{% else %}{{ order.responsible.name|default:"Não definido" }}{% endif %}</strong></div>
         <div><small>Entrega prevista</small><strong>{% if order.due_at %}{{ order.due_at|date:"d/m/Y H:i" }}{% else %}Não definida{% endif %}</strong></div>
       </div>
       <div class="section-heading"><h2>Descrição</h2></div>
@@ -92,46 +92,58 @@
 
       <!-- Envio de Orçamento WhatsApp -->
       <div class="section-heading" style="margin-top: 20px;"><h2>Envio de Orçamento (WhatsApp)</h2></div>
-      <p class="text-muted" style="font-size: 0.9rem;">Envie o orçamento direto para o cliente com o link de aprovação e o preview da arte em fundo cinza.</p>
+      <p class="text-muted" style="font-size: 0.9rem;">Envie o link de aprovação e visualização do pedido diretamente para o WhatsApp do cliente.</p>
       <div class="button-row" style="margin-bottom: 12px;">
         <a href="{{ whatsapp_share_url }}" target="_blank" class="btn btn-primary" style="background-color: #25D366; border-color: #25D366;">
           <i class="fa-brands fa-whatsapp"></i> Enviar pelo WhatsApp
         </a>
         <a href="{% url 'orders:art_preview' pk=order.pk %}" target="_blank" class="btn btn-secondary">
-          <i class="fa-solid fa-image"></i> Baixar Arte (Fundo Cinza)
+          <i class="fa-solid fa-image"></i> Visualizar Arte / Documento
         </a>
       </div>
-      <p><small class="text-muted">Link do orçamento: <a href="{{ public_quote_url }}" target="_blank">{{ public_quote_url }}</a></small></p>
+      <p><small class="text-muted">Link do cliente: <a href="{{ public_quote_url }}" target="_blank">{{ public_quote_url }}</a></small></p>
 
     </section>
   </div>
 
-  <!-- Preview de Arte em Fundo Cinza -->
+  <!-- Visualização da Arte e Arquivos Anexados -->
   <div class="grid two-col">
     <section class="card card-pad">
-      <div class="section-heading"><h2>Preview da Arte (Fundo Cinza)</h2></div>
+      <div class="section-heading"><h2>Visualização da Arte</h2></div>
       <div style="background-color: #e2e8f0; border-radius: 8px; padding: 16px; text-align: center; position: relative;">
-        <img src="{% url 'orders:art_preview' pk=order.pk %}" alt="Preview da Arte" style="max-width: 100%; max-height: 420px; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" />
+        <img src="{% url 'orders:art_preview' pk=order.pk %}" alt="Visualização da Arte" style="max-width: 100%; max-height: 420px; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" />
+      </div>
+      <div style="margin-top: 12px; text-align: right;">
+        <a class="btn btn-secondary btn-small" href="{% url 'orders:art_preview' pk=order.pk %}" target="_blank">
+          <i class="fa-solid fa-up-right-from-square"></i> Abrir imagem em tela cheia
+        </a>
       </div>
     </section>
 
     <section class="card card-pad">
-      <div class="section-heading"><h2>Anexos</h2></div>
+      <div class="section-heading"><h2>Arquivos e Comprovantes</h2></div>
       <div class="files">
         {% for attachment in order.attachments.all %}
           <div class="file-row">
             <i class="fa-regular fa-file" aria-hidden="true"></i>
             <span>{{ attachment.original_name }} <small class="text-muted">· {{ attachment.size|filesizeformat }}</small></span>
-            <a href="{% url 'orders:download_attachment' order_pk=order.pk pk=attachment.pk %}"><i class="fa-solid fa-download" aria-hidden="true"></i> Baixar</a>
+            <a class="btn btn-secondary btn-small" href="{% url 'orders:download_attachment' order_pk=order.pk pk=attachment.pk %}" target="_blank"><i class="fa-solid fa-download" aria-hidden="true"></i> Baixar</a>
             <form method="post" class="no-print" action="{% url 'production:remove_attachment' pk=order.pk attachment_pk=attachment.pk %}">
               {% csrf_token %}
               <button class="btn btn-danger btn-small" type="submit" data-confirm="Remover este anexo do pedido?">Remover</button>
             </form>
           </div>
         {% empty %}
-          <p class="text-muted">Nenhum arquivo anexado.</p>
+          <p class="text-muted">Nenhum arquivo ou comprovante anexado.</p>
         {% endfor %}
       </div>
+
+      <form method="post" action="{% url 'production:add_attachment' pk=order.pk %}" enctype="multipart/form-data" class="no-print" style="margin-top: 16px; border-top: 1px solid var(--border-color); padding-top: 14px;">
+        {% csrf_token %}
+        <label for="id_detail_attachments" style="display: block; font-size: 0.9rem; margin-bottom: 8px;"><strong>Anexar novo arquivo ou comprovante:</strong></label>
+        <input id="id_detail_attachments" type="file" name="attachments" multiple accept=".pdf,.png,.jpg,.jpeg,.webp,.svg,.cdr,.ai,.eps,.psd,.tiff,.zip" style="width: 100%; margin-bottom: 8px;">
+        <button class="btn btn-secondary btn-small" type="submit"><i class="fa-solid fa-paperclip"></i> Adicionar anexo</button>
+      </form>
     </section>
   </div>
 
@@ -146,7 +158,7 @@
       <div class="timeline">
         {% for note in order.notes.all %}
           <div class="timeline-item">
-            <strong>{{ note.user.name }}</strong>
+            <strong>{% if note.user.is_dev and not user.is_dev %}Equipe Interna{% else %}{{ note.user.name }}{% endif %}</strong>
             <p>{{ note.text|linebreaksbr }}</p>
             <small class="text-muted">{{ note.created_at|date:"d/m/Y H:i" }}</small>
           </div>
@@ -162,7 +174,7 @@
         {% for item in order.history.all %}
           <div class="timeline-item">
             <strong>{{ item.description }}</strong>
-            <p>{{ item.user.name|default:"Sistema / Cliente" }} · {{ item.created_at|date:"d/m/Y H:i" }}</p>
+            <p>{% if item.user.is_dev and not user.is_dev %}Sistema{% else %}{{ item.user.name|default:"Sistema / Cliente" }}{% endif %} · {{ item.created_at|date:"d/m/Y H:i" }}</p>
           </div>
         {% empty %}
           <div class="empty-state">Nenhuma movimentação registrada.</div>

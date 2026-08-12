@@ -42,29 +42,36 @@ def main():
     ssh.connect(HOST, port=PORT, username=USER, password=PASS, timeout=15)
     log("Connected successfully via SSH!")
 
-    remote_app_dir = "/opt/print-fornece"
+    target_dirs = ["/var/www/print-fornece", "/opt/print-fornece"]
 
-    log("Initializing git repository on VPS...")
-    code, _, _ = execute_remote(ssh, f"cd {remote_app_dir} && git status")
-    if code != 0:
-        log("Setting up Git clone on VPS...")
-        execute_remote(ssh, f"cd /opt && rm -rf print-fornece && git clone {GIT_REPO} print-fornece")
-    else:
-        log("Pulling latest code from GitHub on VPS...")
-        execute_remote(ssh, f"cd {remote_app_dir} && git fetch origin && git reset --hard origin/main")
+    for remote_app_dir in target_dirs:
+        log(f"--- Deploying to {remote_app_dir} ---")
+        parent_dir = str(Path(remote_app_dir).parent)
+        dir_name = Path(remote_app_dir).name
 
-    execute_remote(ssh, f"cd {remote_app_dir} && [ -f .env ] || cp .env.example .env")
-    execute_remote(ssh, f"sed -i 's/\\r$//' {remote_app_dir}/docker/entrypoint.sh")
+        execute_remote(ssh, f"mkdir -p {parent_dir}")
+        code, _, _ = execute_remote(ssh, f"cd {remote_app_dir} && git status")
+        if code != 0:
+            log(f"Setting up Git clone in {remote_app_dir}...")
+            execute_remote(ssh, f"cd {parent_dir} && rm -rf {dir_name} && git clone {GIT_REPO} {dir_name}")
+        else:
+            log(f"Pulling latest code in {remote_app_dir}...")
+            execute_remote(ssh, f"cd {remote_app_dir} && git fetch origin main && git reset --hard origin/main")
 
-    log("Building and starting Docker containers from GitHub repository...")
-    execute_remote(ssh, f"cd {remote_app_dir} && docker compose up -d --build")
+        execute_remote(ssh, f"cd {remote_app_dir} && [ -f .env ] || cp .env.example .env")
+        execute_remote(ssh, f"[ -f {remote_app_dir}/docker/entrypoint.sh ] && sed -i 's/\\r$//' {remote_app_dir}/docker/entrypoint.sh")
+
+    # Primary running app dir
+    main_dir = "/var/www/print-fornece"
+    log(f"Building and starting Docker containers in {main_dir}...")
+    execute_remote(ssh, f"cd {main_dir} && docker compose up -d --build")
 
     log("Waiting for containers to initialize...")
-    execute_remote(ssh, f"sleep 5 && cd {remote_app_dir} && docker compose ps")
-    execute_remote(ssh, f"cd {remote_app_dir} && docker compose logs app --tail 15")
+    execute_remote(ssh, f"sleep 5 && cd {main_dir} && docker compose ps")
+    execute_remote(ssh, f"cd {main_dir} && docker compose logs app --tail 25")
 
     log("Testing HTTP response on VPS...")
-    execute_remote(ssh, "curl -s -i http://localhost:8080/health/ || curl -s -i http://localhost:8080/")
+    execute_remote(ssh, "curl -s -i http://localhost:8080/health/ || curl -s -i http://localhost:80/ || curl -s -i http://localhost/")
 
     ssh.close()
     log("Deployment from GitHub to VPS completed successfully!")

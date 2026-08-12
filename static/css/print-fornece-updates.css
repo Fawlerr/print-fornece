@@ -542,12 +542,42 @@
 
 .brand .brand-logo {
   display: block;
-  max-width: 200px;
-  max-height: 50px;
+  max-width: 210px;
+  max-height: 52px;
   width: auto;
   height: auto;
   object-fit: contain;
   object-position: left center;
+}
+
+/* Destaque visual para campos obrigatórios */
+.required-asterisk {
+  color: #ef4444 !important;
+  font-weight: 800 !important;
+  margin-left: 3px !important;
+  font-size: 1.1em !important;
+  line-height: 1;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+label.required > span,
+label.required {
+  font-weight: 600;
+}
+
+.order-form label.required input,
+.order-form label.required textarea,
+.order-form label.required select {
+  border-left: 3px solid #f59e0b !important;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.order-form label.required input:focus,
+.order-form label.required textarea:focus,
+.order-form label.required select:focus {
+  border-left: 3px solid #10b981 !important;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.25) !important;
 }
 
 

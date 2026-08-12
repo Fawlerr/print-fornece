@@ -40,7 +40,7 @@
           </button>
           <div class="topbar-title">
             <h1>{% block page_heading %}{{ page_title|default:"Print Fornece" }}{% endblock %}</h1>
-            <p>{% if user.is_authenticated %}{{ user.name|default:user.email }} · {% if user.is_administrator %}Administrador{% else %}Funcionário{% endif %}{% else %}Acesso Público{% endif %}</p>
+            <p>{% if user.is_authenticated %}{{ user.name|default:user.email }} · {% if user.is_dev %}Desenvolvedor{% elif user.is_administrator %}Administrador{% else %}Funcionário{% endif %}{% else %}Acesso Público{% endif %}</p>
           </div>
           
           <div class="topbar-actions">

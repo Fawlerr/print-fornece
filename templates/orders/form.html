@@ -32,9 +32,9 @@
       <section class="calculator-panel" data-order-calculator data-endpoint="{{ calculator_endpoint }}" aria-labelledby="calculator-title">
         <div class="calculator-heading">
           <div>
-            <p class="eyebrow">Orçamento integrado</p>
-            <h2 id="calculator-title">Calculadora Print Fornece</h2>
-            <p>Selecione o material, informe a medida da arte e a quantidade. O valor é calculado no servidor conforme a tabela atual.</p>
+            <p class="eyebrow">Cálculo de Preço</p>
+            <h2 id="calculator-title">Calculadora de Orçamento</h2>
+            <p>Selecione o material, informe a medida da arte e a quantidade para calcular o valor automaticamente conforme a tabela atual.</p>
           </div>
           <span class="calculator-status" data-calculator-status aria-live="polite">Preencha as medidas para calcular.</span>
         </div>
@@ -92,9 +92,9 @@
       {% include "includes/form_field.html" with field=form.internal_notes full=True %}
     </div>
     <label class="full" for="id_attachments" style="margin-top: 16px;">
-      {% if object %}Adicionar anexos{% else %}Arquivos da arte{% endif %}
+      <span>{% if object %}Adicionar novos arquivos / comprovantes{% else %}Arquivos da arte e comprovantes{% endif %}</span>
       <input id="id_attachments" type="file" name="attachments" multiple accept=".pdf,.png,.jpg,.jpeg,.webp,.svg,.cdr,.ai,.eps,.psd,.tiff,.zip">
-      <span class="help">PDF, imagens, SVG, CDR, AI, EPS, PSD, TIFF ou ZIP. Máximo de 25 MB por arquivo.</span>
+      <span class="help">PDF, imagens (PNG, JPG, WEBP), SVG, CDR, AI, EPS, PSD, TIFF ou ZIP. Máximo de 25 MB por arquivo.</span>
     </label>
     <div class="form-actions">
       {% if object %}

@@ -70,9 +70,10 @@ def _receipt_snapshot(order) -> dict[str, object]:
 
 
 def _logo_flowable(styles):
-    logo_path = Path(settings.BASE_DIR) / "images" / "logo.jpg"
-    if logo_path.is_file():
-        return Image(str(logo_path), width=34 * mm, height=14.5 * mm)
+    for candidate in ("logo.png", "logo.jpg"):
+        logo_path = Path(settings.BASE_DIR) / "images" / candidate
+        if logo_path.is_file():
+            return Image(str(logo_path), width=34 * mm, height=14.5 * mm)
     return Paragraph("<b>PRINT FORNECE</b>", styles["brand"])
 
 

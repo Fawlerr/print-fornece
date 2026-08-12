@@ -21,3 +21,16 @@ class Command(BaseCommand):
             self.stdout.write(self.style.SUCCESS(f"Superusuário '{email}' criado com sucesso."))
         else:
             self.stdout.write("Administrador já existe no banco de dados.")
+
+        dev_email = os.environ.get("DEV_EMAIL", "dev@printfornece.com.br")
+        dev_password = os.environ.get("DEV_PASSWORD", "dev123456")
+        dev_name = os.environ.get("DEV_NAME", "Desenvolvedor")
+
+        if not User.objects.filter(role=User.Role.DEV).exists():
+            User.objects.create_superuser(
+                email=dev_email,
+                name=dev_name,
+                password=dev_password,
+                role=User.Role.DEV,
+            )
+            self.stdout.write(self.style.SUCCESS(f"Usuário DEV '{dev_email}' criado com sucesso."))

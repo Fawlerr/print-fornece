@@ -77,7 +77,7 @@ def generate_art_preview_image(order) -> bytes:
 
         # Header banner
         draw.rectangle([pos_x, pos_y, pos_x + card_w, pos_y + 90], fill=(30, 41, 59))
-        draw.text((pos_x + 35, pos_y + 28), "PRINT FORNECE — PREVIEW DA ARTE", fill=(255, 255, 255))
+        draw.text((pos_x + 35, pos_y + 28), "PRINT FORNECE — VISUALIZAÇÃO DO PEDIDO", fill=(255, 255, 255))
 
         # Order details
         draw.text((pos_x + 40, pos_y + 120), f"Pedido: #{order.number}", fill=(17, 24, 39))
@@ -91,17 +91,16 @@ def generate_art_preview_image(order) -> bytes:
             first_att = active_attachments[0]
             size_kb = max(1, first_att.size // 1024)
             draw.rectangle([pos_x + 40, pos_y + 300, pos_x + card_w - 40, pos_y + 460], fill=(241, 245, 249), outline=(203, 213, 225), width=1)
-            draw.text((pos_x + 60, pos_y + 325), f"📁 ARQUIVO DE IMPRESSÃO: {first_att.original_name}", fill=(15, 23, 42))
+            draw.text((pos_x + 60, pos_y + 325), f"📁 ARQUIVO: {first_att.original_name}", fill=(15, 23, 42))
             draw.text((pos_x + 60, pos_y + 365), f"Tamanho: {size_kb} KB · Total de arquivos: {len(active_attachments)}", fill=(71, 85, 105))
-            draw.text((pos_x + 60, pos_y + 410), "STATUS: DOCUMENTO ANEXADO - PRONTO PARA IMPRESSÃO", fill=(36, 120, 60))
+            draw.text((pos_x + 60, pos_y + 410), "ARQUIVO ANEXADO AO PEDIDO", fill=(36, 120, 60))
         else:
             draw.rectangle([pos_x + 40, pos_y + 310, pos_x + card_w - 40, pos_y + 450], fill=(254, 242, 242), outline=(254, 202, 202), width=1)
-            draw.text((pos_x + 60, pos_y + 345), "⚠️ ARTE EM FASE DE PREPARAÇÃO", fill=(185, 28, 28))
-            draw.text((pos_x + 60, pos_y + 390), "Nenhum arquivo de arte foi anexado a este pedido ainda.", fill=(120, 40, 40))
+            draw.text((pos_x + 60, pos_y + 345), "ARQUIVO PENDENTE DE ENVIO", fill=(185, 28, 28))
+            draw.text((pos_x + 60, pos_y + 390), "Nenhum arquivo ou documento foi anexado a este pedido ainda.", fill=(120, 40, 40))
 
-    # Watermark text at the bottom
-    draw.text((30, bg_height - 50), f"Print Fornece · Orçamento do Pedido #{order.number}", fill=(120, 125, 135))
-    draw.text((bg_width - 320, bg_height - 50), "⚠️ MARCA D'ÁGUA TEMPORÁRIA", fill=(220, 38, 38))
+    # Clean bottom branding
+    draw.text((30, bg_height - 50), f"Print Fornece · Pedido #{order.number}", fill=(120, 125, 135))
 
     output = io.BytesIO()
     canvas.save(output, format="PNG")

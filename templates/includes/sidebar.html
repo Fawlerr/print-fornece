@@ -47,7 +47,7 @@
   {% if user.is_authenticated %}
   <div class="sidebar-user">
     <strong>{{ user.name|default:user.email }}</strong>
-    <small>{% if user.is_administrator %}Administrador{% else %}Funcionário{% endif %}</small>
+    <small>{% if user.is_dev %}Desenvolvedor{% elif user.is_administrator %}Administrador{% else %}Funcionário{% endif %}</small>
   </div>
   {% endif %}
 </aside>

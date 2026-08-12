@@ -169,6 +169,23 @@ def add_note(request, pk: int):
 
 @login_required
 @require_POST
+def add_attachment(request, pk: int):
+    order = _order_for_request(request, pk)
+    files = request.FILES.getlist("attachments")
+    if not files:
+        messages.error(request, "Selecione ao menos um arquivo para anexar.")
+        return redirect("production:detail", pk=pk)
+    try:
+        from apps.orders.services import save_order_attachments
+        count = save_order_attachments(order=order, files=files, actor=request.user, request=request)
+        messages.success(request, f"{count} anexo(s) adicionado(s) com sucesso ao pedido.")
+    except ValidationError as exc:
+        messages.error(request, exc.messages[0])
+    return redirect("production:detail", pk=pk)
+
+
+@login_required
+@require_POST
 def remove_attachment(request, pk: int, attachment_pk: int):
     order = _order_for_request(request, pk)
     attachment = get_object_or_404(OrderAttachment, pk=attachment_pk, order=order, removed_at__isnull=True)

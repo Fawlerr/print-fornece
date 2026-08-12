@@ -36,6 +36,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     class Role(models.TextChoices):
         ADMINISTRATOR = "administrador", "Administrador"
         EMPLOYEE = "funcionario", "Funcionário"
+        DEV = "dev", "Desenvolvedor"
 
     name = models.CharField("nome", max_length=120)
     email = models.EmailField("e-mail", max_length=190, unique=True)
@@ -60,11 +61,15 @@ class User(AbstractBaseUser, PermissionsMixin):
         return self.name or self.email
 
     @property
+    def is_dev(self) -> bool:
+        return self.role == self.Role.DEV or (self.is_superuser and self.role == self.Role.DEV)
+
+    @property
     def is_administrator(self) -> bool:
-        return self.is_superuser or self.role == self.Role.ADMINISTRATOR
+        return self.is_superuser or self.role in {self.Role.ADMINISTRATOR, self.Role.DEV}
 
     def save(self, *args, **kwargs):
-        if self.role == self.Role.ADMINISTRATOR:
+        if self.role in {self.Role.ADMINISTRATOR, self.Role.DEV}:
             self.is_staff = True
         super().save(*args, **kwargs)
 

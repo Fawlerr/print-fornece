@@ -18,3 +18,9 @@ class PrintForneceUserAdmin(UserAdmin):
     search_fields = ("email", "name")
     readonly_fields = ("date_joined", "updated_at")
 
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        if not getattr(request.user, "is_dev", False):
+            qs = qs.exclude(role=User.Role.DEV)
+        return qs
+

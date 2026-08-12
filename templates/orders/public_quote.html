@@ -49,13 +49,13 @@
     </div>
 
     <div>
-      <h3>Preview da Arte (Fundo Cinza)</h3>
+      <h3>Visualização da Arte</h3>
       <div style="background: #e2e8f0; border-radius: 8px; padding: 12px; text-align: center; position: relative; min-height: 250px; display: flex; align-items: center; justify-content: center;">
-        <img src="{% url 'orders:art_preview' pk=order.pk %}?token={{ token }}" alt="Preview da Arte em Fundo Cinza" style="max-width: 100%; max-height: 300px; border-radius: 4px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);" />
+        <img src="{% url 'orders:art_preview' pk=order.pk %}?token={{ token }}" alt="Visualização da Arte" style="max-width: 100%; max-height: 300px; border-radius: 4px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);" />
       </div>
       <div style="margin-top: 8px; text-align: right;">
         <a href="{% url 'orders:art_preview' pk=order.pk %}?token={{ token }}" target="_blank" class="btn btn-secondary btn-small">
-          <i class="fa-solid fa-download"></i> Baixar Imagem (Fundo Cinza)
+          <i class="fa-solid fa-download"></i> Visualizar / Baixar Arte
         </a>
       </div>
     </div>

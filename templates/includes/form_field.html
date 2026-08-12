@@ -1,5 +1,5 @@
 <label class="{% if field.field.required %}required {% endif %}{% if full %}full{% endif %}" for="{{ field.id_for_label }}">
-  {{ field.label }}
+  <span>{{ field.label }}{% if field.field.required %} <span class="required-asterisk" title="Campo obrigatório">*</span>{% endif %}</span>
   {{ field }}
   {% if field.help_text %}<span class="help">{{ field.help_text }}</span>{% endif %}
   {% if field.errors %}<span class="field-errors" role="alert">{{ field.errors }}</span>{% endif %}

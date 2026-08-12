@@ -73,7 +73,7 @@
           {% for movement in movements %}
             <div class="timeline-item">
               <strong class="timeline-title">{{ movement.order.number }} · {{ movement.description }}</strong>
-              <p>{{ movement.user.name|default:"Sistema" }} · {{ movement.created_at|date:"d/m/Y H:i" }}</p>
+              <p>{% if movement.user.is_dev and not user.is_dev %}Sistema{% else %}{{ movement.user.name|default:"Sistema" }}{% endif %} · {{ movement.created_at|date:"d/m/Y H:i" }}</p>
             </div>
           {% empty %}
             <div class="empty-state">Nenhuma movimentação registrada.</div>

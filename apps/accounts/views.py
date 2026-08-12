@@ -140,13 +140,23 @@ class PasswordResetConfirmView(auth_views.PasswordResetConfirmView):
 class UserListView(LoginRequiredMixin, AdministratorRequiredMixin, ListView):
     template_name = "accounts/user_list.html"
     context_object_name = "users"
-    queryset = User.objects.order_by("-is_active", "name")
+
+    def get_queryset(self):
+        qs = User.objects.order_by("-is_active", "name")
+        if not getattr(self.request.user, "is_dev", False):
+            qs = qs.exclude(role=User.Role.DEV)
+        return qs
 
 
 class UserCreateView(LoginRequiredMixin, AdministratorRequiredMixin, CreateView):
     template_name = "accounts/user_form.html"
     form_class = UserCreateForm
     success_url = reverse_lazy("accounts:user_list")
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["current_user"] = self.request.user
+        return kwargs
 
     def form_valid(self, form):
         response = super().form_valid(form)
@@ -161,13 +171,24 @@ class UserUpdateView(LoginRequiredMixin, AdministratorRequiredMixin, UpdateView)
     model = User
     success_url = reverse_lazy("accounts:user_list")
 
+    def get_queryset(self):
+        qs = super().get_queryset()
+        if not getattr(self.request.user, "is_dev", False):
+            qs = qs.exclude(role=User.Role.DEV)
+        return qs
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["current_user"] = self.request.user
+        return kwargs
+
     def form_valid(self, form):
         if self.object.pk == self.request.user.pk and not form.cleaned_data.get("is_active", True):
             form.add_error("is_active", "Você não pode desativar sua própria conta.")
             return self.form_invalid(form)
-        remains_active_administrator = form.cleaned_data.get("role") == User.Role.ADMINISTRATOR and form.cleaned_data.get("is_active", True)
+        remains_active_administrator = form.cleaned_data.get("role") in {User.Role.ADMINISTRATOR, User.Role.DEV} and form.cleaned_data.get("is_active", True)
         if self.object.is_administrator and self.object.is_active and not remains_active_administrator:
-            if User.objects.filter(role=User.Role.ADMINISTRATOR, is_active=True).count() <= 1:
+            if User.objects.filter(role__in=[User.Role.ADMINISTRATOR, User.Role.DEV], is_active=True).count() <= 1:
                 form.add_error("role", "Mantenha ao menos um administrador ativo.")
                 return self.form_invalid(form)
         response = super().form_valid(form)

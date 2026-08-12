@@ -383,4 +383,92 @@ class PrintForneceTestCase(TestCase):
         self.assertContains(kanban_res, "Cliente Arte Preview")
         self.assertContains(kanban_res, "Banner 440g Ilhós")
         self.assertContains(kanban_res, "Urgente")
+        self.assertContains(kanban_res, "Quadro de Produção")
+
+    def test_dev_role_master_access_and_complete_isolation_from_admin(self):
+        # 1. Create DEV user
+        dev_user = User.objects.create_user(
+            email="devmaster@example.com",
+            name="Dev Master",
+            password="strong-password",
+            role=User.Role.DEV,
+        )
+        self.assertTrue(dev_user.is_dev)
+        self.assertTrue(dev_user.is_administrator)
+        self.assertTrue(dev_user.is_staff)
+
+        # 2. Admin cannot see DEV user in user list
+        self.login_as(self.admin)
+        res = self.client.get(reverse("accounts:user_list"))
+        self.assertEqual(res.status_code, 200)
+        self.assertNotContains(res, "devmaster@example.com")
+        self.assertNotContains(res, "Dev Master")
+        self.assertContains(res, self.admin.email)
+        self.assertContains(res, self.employee.email)
+
+        # 3. Admin cannot edit DEV user (returns 404)
+        edit_url = reverse("accounts:user_edit", args=[dev_user.pk])
+        res = self.client.get(edit_url)
+        self.assertEqual(res.status_code, 404)
+
+        # 4. Admin cannot create user with role DEV
+        create_res = self.client.post(reverse("accounts:user_create"), {
+            "name": "Tentativa Dev",
+            "email": "hacker@example.com",
+            "role": User.Role.DEV,
+            "password1": "strong-password123",
+            "password2": "strong-password123",
+        })
+        self.assertEqual(create_res.status_code, 200)
+        self.assertFalse(User.objects.filter(email="hacker@example.com").exists())
+
+        # 5. DEV can see all users in user list
+        self.client.logout()
+        self.login_as(dev_user)
+        dev_res = self.client.get(reverse("accounts:user_list"))
+        self.assertEqual(dev_res.status_code, 200)
+        self.assertContains(dev_res, "devmaster@example.com")
+        self.assertContains(dev_res, self.admin.email)
+        self.assertContains(dev_res, self.employee.email)
+
+        # 6. Audit logs: AuditEventAdmin hides DEV events from Admin
+        from django.test import RequestFactory
+        from apps.audit.admin import AuditEventAdmin
+        from apps.audit.models import AuditEvent
+        from apps.audit.services import record_audit
+
+        record_audit(dev_user, "teste_dev", "sistema", 1)
+        record_audit(self.admin, "teste_admin", "sistema", 2)
+
+        factory = RequestFactory()
+        admin_req = factory.get("/admin/")
+        admin_req.user = self.admin
+        dev_req = factory.get("/admin/")
+        dev_req.user = dev_user
+
+        audit_admin = AuditEventAdmin(AuditEvent, None)
+        admin_qs = audit_admin.get_queryset(admin_req)
+        dev_qs = audit_admin.get_queryset(dev_req)
+
+        self.assertFalse(admin_qs.filter(user=dev_user).exists())
+        self.assertTrue(admin_qs.filter(user=self.admin).exists())
+        self.assertTrue(dev_qs.filter(user=dev_user).exists())
+        self.assertTrue(dev_qs.filter(user=self.admin).exists())
+
+    def test_detail_add_attachment_and_required_field_indicators(self):
+        self.login_as(self.admin)
+        # Test required field indicator on order form
+        form_res = self.client.get(reverse("orders:create"))
+        self.assertEqual(form_res.status_code, 200)
+        self.assertContains(form_res, "required-asterisk")
+        self.assertContains(form_res, "Calculadora de Orçamento")
+
+        # Test adding attachment directly from detail page
+        new_pdf = SimpleUploadedFile("comprovante_pix.pdf", b"%PDF-1.4 comprovante pix", content_type="application/pdf")
+        add_att_res = self.client.post(
+            reverse("production:add_attachment", args=[self.order.pk]),
+            {"attachments": new_pdf},
+        )
+        self.assertRedirects(add_att_res, reverse("production:detail", args=[self.order.pk]))
+        self.assertTrue(OrderAttachment.objects.filter(order=self.order, original_name="comprovante_pix.pdf").exists())
 

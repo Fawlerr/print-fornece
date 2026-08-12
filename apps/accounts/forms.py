@@ -56,10 +56,18 @@ class UserCreateForm(forms.ModelForm):
         fields = ["name", "email", "role"]
         labels = {"name": "Nome", "email": "E-mail", "role": "Perfil"}
 
+    def __init__(self, *args, current_user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.current_user = current_user
+        if not (current_user and getattr(current_user, "is_dev", False)):
+            self.fields["role"].choices = [c for c in User.Role.choices if c[0] != User.Role.DEV]
+
     def clean(self):
         cleaned = super().clean()
         if cleaned.get("password1") != cleaned.get("password2"):
             self.add_error("password2", "As senhas não conferem.")
+        if cleaned.get("role") == User.Role.DEV and not (self.current_user and getattr(self.current_user, "is_dev", False)):
+            self.add_error("role", "Permissão insuficiente para atribuir este perfil.")
         return cleaned
 
     def save(self, commit=True):
@@ -78,6 +86,18 @@ class UserUpdateForm(forms.ModelForm):
         model = User
         fields = ["name", "email", "role", "is_active"]
         labels = {"name": "Nome", "email": "E-mail", "role": "Perfil", "is_active": "Ativo"}
+
+    def __init__(self, *args, current_user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.current_user = current_user
+        if not (current_user and getattr(current_user, "is_dev", False)):
+            self.fields["role"].choices = [c for c in User.Role.choices if c[0] != User.Role.DEV]
+
+    def clean(self):
+        cleaned = super().clean()
+        if cleaned.get("role") == User.Role.DEV and not (self.current_user and getattr(self.current_user, "is_dev", False)):
+            self.add_error("role", "Permissão insuficiente para atribuir este perfil.")
+        return cleaned
 
     def save(self, commit=True):
         user = super().save(commit=False)
