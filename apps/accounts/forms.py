@@ -8,7 +8,7 @@ from .models import User
 
 
 class LoginForm(forms.Form):
-    email = forms.EmailField(label="E-mail", widget=forms.EmailInput(attrs={"autocomplete": "email", "autofocus": True}))
+    email = forms.CharField(label="E-mail ou Usuário", widget=forms.TextInput(attrs={"autocomplete": "username", "autofocus": True}))
     password = forms.CharField(label="Senha", strip=False, widget=forms.PasswordInput(attrs={"autocomplete": "current-password"}))
 
     def __init__(self, request=None, *args, **kwargs):
@@ -18,10 +18,18 @@ class LoginForm(forms.Form):
 
     def clean(self):
         cleaned_data = super().clean()
-        email = cleaned_data.get("email")
+        email_or_user = cleaned_data.get("email", "").strip()
         password = cleaned_data.get("password")
-        if email and password:
-            self.user_cache = authenticate(self.request, username=email, password=password)
+        if email_or_user and password:
+            lookup_email = email_or_user
+            if "@" not in email_or_user:
+                matched = User.objects.filter(email__iexact=f"{email_or_user}@printfornece.com.br").first() or \
+                          User.objects.filter(email__istartswith=email_or_user).first() or \
+                          User.objects.filter(name__iexact=email_or_user).first()
+                if matched:
+                    lookup_email = matched.email
+
+            self.user_cache = authenticate(self.request, username=lookup_email, password=password)
             if self.user_cache is None:
                 raise forms.ValidationError("E-mail ou senha inválidos.")
             if not self.user_cache.is_active:
