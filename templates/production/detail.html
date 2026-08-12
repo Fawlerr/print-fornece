@@ -9,12 +9,16 @@
       <h2>{{ order.client_name }}</h2>
       <p>Criado em {{ order.created_at|date:"d/m/Y H:i" }}{% if order.created_by.is_dev and not user.is_dev %}{% else %} por {{ order.created_by.name }}{% endif %}</p>
     </div>
-    <div class="button-row no-print">
-      {% if order.payment_status == "pago" %}
-        <a class="btn btn-secondary" href="{% url 'orders:download_receipt' pk=order.pk %}" target="_blank" rel="noopener"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i> Gerar comprovante PDF</a>
-      {% endif %}
-      <a class="btn btn-secondary" href="{% url 'production:kanban' %}"><i class="fa-solid fa-table-columns" aria-hidden="true"></i> Produção</a>
-      <a class="btn btn-primary" href="{% url 'orders:edit' pk=order.pk %}"><i class="fa-solid fa-pen" aria-hidden="true"></i> Editar pedido</a>
+    <div class="button-row no-print" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+      <a class="btn btn-secondary" href="{% url 'orders:download_receipt' pk=order.pk %}" target="_blank" rel="noopener" title="Gerar comprovante do pedido em PDF">
+        <i class="fa-solid fa-file-pdf" aria-hidden="true"></i> Gerar comprovante
+      </a>
+      <a class="btn btn-secondary" href="{% url 'production:kanban' %}">
+        <i class="fa-solid fa-table-columns" aria-hidden="true"></i> Produção
+      </a>
+      <a class="btn btn-primary" href="{% url 'orders:edit' pk=order.pk %}">
+        <i class="fa-solid fa-pen" aria-hidden="true"></i> Editar pedido
+      </a>
     </div>
   </div>
 
@@ -52,12 +56,13 @@
     </section>
 
     <section class="card card-pad">
-      <div class="section-heading"><h2>Ações de produção</h2></div>
+      <div class="section-heading" style="margin-bottom: 16px;"><h2>Ações de produção</h2></div>
       {% if order.stage in active_stages %}
-        <form method="post" action="{% url 'production:move_stage' pk=order.pk %}" class="stage-form">
+        <form method="post" action="{% url 'production:move_stage' pk=order.pk %}" style="margin-bottom: 16px;">
           {% csrf_token %}
-          <label for="stage">Mover para
-            <select name="stage" id="stage">
+          <label for="stage" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 6px; color: var(--muted, #9ca3af);">Mover para etapa:</label>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <select name="stage" id="stage" style="flex: 1; height: 42px; padding: 0 12px; border-radius: 8px; background: var(--bg-surface-elevated, #161a18); border: 1px solid var(--line, rgba(255,255,255,0.15)); color: #fff; font-size: 0.95rem;">
               <option value="novo"{% if order.stage == "novo" %} selected{% endif %}>Novo Pedido</option>
               <option value="aguardando_pagamento"{% if order.stage == "aguardando_pagamento" %} selected{% endif %}>Aguardando Pagamento</option>
               <option value="pagamento_confirmado"{% if order.stage == "pagamento_confirmado" %} selected{% endif %}>Pagamento Confirmado</option>
@@ -65,43 +70,60 @@
               <option value="em_producao"{% if order.stage == "em_producao" or order.stage == "producao" %} selected{% endif %}>Em Produção</option>
               <option value="pronto_retirada"{% if order.stage == "pronto_retirada" or order.stage == "pronto" %} selected{% endif %}>Pronto pra Retirada</option>
             </select>
-          </label>
-          <div class="form-actions"><button class="btn btn-secondary" type="submit">Atualizar etapa</button></div>
+            <button class="btn btn-secondary" type="submit" style="height: 42px; padding: 0 16px; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px;">
+              <i class="fa-solid fa-arrows-rotate" aria-hidden="true"></i> Atualizar etapa
+            </button>
+          </div>
         </form>
       {% endif %}
-      <div class="button-row">
+      
+      <div class="button-row" style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px;">
         {% if order.stage == "pronto_retirada" or order.stage == "pronto" %}
-          <form method="post" action="{% url 'production:finalize' pk=order.pk %}">
+          <form method="post" action="{% url 'production:finalize' pk=order.pk %}" style="display: inline-block;">
             {% csrf_token %}
-            <button class="btn btn-primary" type="submit" data-confirm="Confirmar a finalização e entrega deste pedido?">Finalizar e entregar</button>
+            <button class="btn btn-primary" type="submit" data-confirm="Confirmar a finalização e entrega deste pedido?" style="height: 40px; display: inline-flex; align-items: center; gap: 6px;">
+              <i class="fa-solid fa-check" aria-hidden="true"></i> Finalizar e entregar
+            </button>
           </form>
         {% endif %}
         {% if order.stage != "cancelado" and order.stage != "entregue" and order.stage != "finalizado" %}
-          <form method="post" action="{% url 'production:cancel' pk=order.pk %}">
+          <form method="post" action="{% url 'production:cancel' pk=order.pk %}" style="display: inline-block;">
             {% csrf_token %}
-            <button class="btn btn-danger" type="submit" data-confirm="Cancelar este pedido?">Cancelar pedido</button>
+            <button class="btn btn-danger" type="submit" data-confirm="Cancelar este pedido?" style="height: 40px; display: inline-flex; align-items: center; gap: 6px;">
+              <i class="fa-solid fa-ban" aria-hidden="true"></i> Cancelar pedido
+            </button>
           </form>
         {% endif %}
         {% if order.stage == "cancelado" and user.is_administrator %}
-          <form method="post" action="{% url 'production:restore' pk=order.pk %}">
+          <form method="post" action="{% url 'production:restore' pk=order.pk %}" style="display: inline-block;">
             {% csrf_token %}
-            <button class="btn btn-warning" type="submit" data-confirm="Restaurar este pedido para a etapa inicial?">Restaurar pedido</button>
+            <button class="btn btn-warning" type="submit" data-confirm="Restaurar este pedido para a etapa inicial?" style="height: 40px; display: inline-flex; align-items: center; gap: 6px;">
+              <i class="fa-solid fa-rotate-left" aria-hidden="true"></i> Restaurar pedido
+            </button>
           </form>
         {% endif %}
       </div>
 
       <!-- Envio de Orçamento WhatsApp -->
-      <div class="section-heading" style="margin-top: 20px;"><h2>Envio de Orçamento (WhatsApp)</h2></div>
-      <p class="text-muted" style="font-size: 0.9rem;">Envie o link de aprovação e visualização do pedido diretamente para o WhatsApp do cliente.</p>
-      <div class="button-row" style="margin-bottom: 12px;">
-        <a href="{{ whatsapp_share_url }}" target="_blank" class="btn btn-primary" style="background-color: #25D366; border-color: #25D366;">
-          <i class="fa-brands fa-whatsapp"></i> Enviar pelo WhatsApp
-        </a>
-        <a href="{% url 'orders:art_preview' pk=order.pk %}" target="_blank" class="btn btn-secondary">
-          <i class="fa-solid fa-image"></i> Visualizar Arte / Documento
-        </a>
+      <div style="border-top: 1px solid var(--line, rgba(255,255,255,0.1)); padding-top: 16px;">
+        <div class="section-heading" style="margin-bottom: 8px;">
+          <h3 style="font-size: 1rem; margin: 0; display: flex; align-items: center; gap: 8px;">
+            <i class="fa-brands fa-whatsapp" style="color: #25D366; font-size: 1.15rem;"></i> Envio de Orçamento (WhatsApp)
+          </h3>
+        </div>
+        <p class="text-muted" style="font-size: 0.85rem; line-height: 1.4; margin-bottom: 12px;">Envie o link de aprovação e visualização do pedido diretamente para o WhatsApp do cliente.</p>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;">
+          <a href="{{ whatsapp_share_url }}" target="_blank" class="btn btn-primary" style="background-color: #25D366; border-color: #25D366; color: #fff; height: 42px; display: inline-flex; align-items: center; justify-content: center; gap: 8px;">
+            <i class="fa-brands fa-whatsapp"></i> Enviar pelo WhatsApp
+          </a>
+          <a href="{% url 'orders:art_preview' pk=order.pk %}" target="_blank" class="btn btn-secondary" style="height: 42px; display: inline-flex; align-items: center; justify-content: center; gap: 8px;">
+            <i class="fa-solid fa-image"></i> Visualizar Arte
+          </a>
+        </div>
+        <div style="padding: 8px 12px; background: rgba(255,255,255,0.03); border-radius: 6px; font-size: 0.8rem; word-break: break-all; color: var(--muted, #9ca3af);">
+          Link do cliente: <a href="{{ public_quote_url }}" target="_blank" style="color: #86efac; text-decoration: underline;">{{ public_quote_url }}</a>
+        </div>
       </div>
-      <p><small class="text-muted">Link do cliente: <a href="{{ public_quote_url }}" target="_blank">{{ public_quote_url }}</a></small></p>
 
     </section>
   </div>

@@ -211,10 +211,11 @@ class PrintForneceTestCase(TestCase):
         self.assertEqual(legacy_link("producao/detalhes.php?id=8"), "/production/8/")
 
     def test_pdf_art_preview_and_public_quote_approval(self):
-        # 1. An unpaid order cannot generate a final payment receipt.
+        # 1. Generating order PDF works for staff
         self.login_as(self.admin)
         response = self.client.get(reverse("orders:download_receipt", args=[self.order.pk]))
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "application/pdf")
 
         # Confirming payment records the sales snapshot and unlocks the receipt.
         response = self.client.post(reverse("orders:edit", args=[self.order.pk]), {
@@ -238,10 +239,11 @@ class PrintForneceTestCase(TestCase):
         self.assertTrue(response.content.startswith(b"%PDF"))
         self.assertIn("inline", response["Content-Disposition"])
 
-        # The public quote token is no longer accepted for a paid receipt.
+        # Unauthenticated access with token works
         self.client.logout()
         response = self.client.get(reverse("orders:download_receipt", args=[self.order.pk]) + f"?token={self.order.quote_token}")
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "application/pdf")
         self.login_as(self.admin)
 
         # 2. Test Art Preview on gray background endpoint

@@ -105,16 +105,19 @@ def download_attachment(request, order_pk: int, pk: int):
 
 
 def download_receipt_pdf(request, pk: int):
-    """Generate a paid-order receipt after checking the shared queue access rule."""
+    """Generate an order receipt/voucher PDF."""
     order = get_object_or_404(
         Order.objects.select_related("responsible", "created_by", "payment_confirmed_by").prefetch_related("items"),
         pk=pk,
     )
-    require_order_access(request.user, order)
-    if order.payment_status != Order.PaymentStatus.PAID:
-        raise PermissionDenied("O comprovante só pode ser gerado após a confirmação do pagamento.")
+    token = request.GET.get("token")
+    if not request.user.is_authenticated and token != str(order.quote_token):
+        return redirect(f"{reverse('accounts:login')}?next={request.get_full_path()}")
+    if request.user.is_authenticated:
+        require_order_access(request.user, order)
+
     pdf_bytes = generate_order_receipt_pdf(order)
-    if order.receipt_generated_at is None:
+    if order.payment_status == Order.PaymentStatus.PAID and order.receipt_generated_at is None:
         order.receipt_generated_at = timezone.now()
         order.save(update_fields=["receipt_generated_at", "updated_at"])
     response = HttpResponse(pdf_bytes, content_type="application/pdf")
