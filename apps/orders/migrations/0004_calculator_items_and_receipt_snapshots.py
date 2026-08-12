@@ -76,6 +76,7 @@ def apply_calculator_receipt_schema(apps, schema_editor):
         )
 
 class Migration(migrations.Migration):
+    atomic = False
 
     dependencies = [
         ("orders", "0002_order_quote_token_alter_order_stage_and_more"),
