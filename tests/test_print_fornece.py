@@ -351,3 +351,36 @@ class PrintForneceTestCase(TestCase):
         # The stored snapshot remains untouched if a future price configuration changes.
         snapshot = item.calculation_snapshot
         self.assertEqual(snapshot["total"], "48.00")
+
+    def test_art_preview_and_kanban_cards(self):
+        self.client.force_login(self.admin)
+        order = Order.objects.create(
+            client_name="Cliente Arte Preview",
+            description="Banner 440g Ilhós",
+            total_amount=Decimal("120.00"),
+            payment_status=Order.PaymentStatus.PAID,
+            priority=Order.Priority.URGENT,
+            stage=Order.Stage.PRODUCTION,
+            responsible=self.admin,
+            created_by=self.admin,
+        )
+        OrderAttachment.objects.create(
+            order=order,
+            original_name="arte_final.pdf",
+            file=SimpleUploadedFile("arte_final.pdf", b"%PDF-1.4 test content", content_type="application/pdf"),
+            content_type="application/pdf",
+            size=1024,
+            created_by=self.admin,
+        )
+
+        response = self.client.get(reverse("orders:art_preview", kwargs={"pk": order.pk}))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "image/png")
+        self.assertTrue(len(response.content) > 100)
+
+        kanban_res = self.client.get(reverse("production:kanban"))
+        self.assertEqual(kanban_res.status_code, 200)
+        self.assertContains(kanban_res, "Cliente Arte Preview")
+        self.assertContains(kanban_res, "Banner 440g Ilhós")
+        self.assertContains(kanban_res, "Urgente")
+
