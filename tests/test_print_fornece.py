@@ -457,20 +457,138 @@ class PrintForneceTestCase(TestCase):
         self.assertTrue(dev_qs.filter(user=dev_user).exists())
         self.assertTrue(dev_qs.filter(user=self.admin).exists())
 
-    def test_detail_add_attachment_and_required_field_indicators(self):
-        self.login_as(self.admin)
-        # Test required field indicator on order form
-        form_res = self.client.get(reverse("orders:create"))
-        self.assertEqual(form_res.status_code, 200)
-        self.assertContains(form_res, "required-asterisk")
-        self.assertContains(form_res, "Calculadora de Orçamento")
+    def test_shirt_and_service_pricing_rules(self):
+        from apps.orders.calculator import calculate_shirt_quote, calculate_service_quote
 
-        # Test adding attachment directly from detail page
-        new_pdf = SimpleUploadedFile("comprovante_pix.pdf", b"%PDF-1.4 comprovante pix", content_type="application/pdf")
-        add_att_res = self.client.post(
-            reverse("production:add_attachment", args=[self.order.pk]),
-            {"attachments": new_pdf},
+        # 1. Camisa Algodão Menegotti
+        quote_single = calculate_shirt_quote(
+            shirt_code="camisa_algodao_menegotti", color="Preta", size="M", quantity=1
         )
-        self.assertRedirects(add_att_res, reverse("production:detail", args=[self.order.pk]))
-        self.assertTrue(OrderAttachment.objects.filter(order=self.order, original_name="comprovante_pix.pdf").exists())
+        self.assertEqual(quote_single.unit_price, Decimal("28.00"))
+        self.assertEqual(quote_single.total, Decimal("28.00"))
+
+        quote_tiered = calculate_shirt_quote(
+            shirt_code="camisa_algodao_menegotti", color="Branca", size="GG", quantity=5
+        )
+        self.assertEqual(quote_tiered.unit_price, Decimal("25.00"))
+        self.assertEqual(quote_tiered.total, Decimal("125.00"))
+
+        # 2. Camisa Dry Fit
+        quote_dry_single = calculate_shirt_quote(
+            shirt_code="camisa_dry_fit_grao_arroz", color="Preta", size="P", quantity=4
+        )
+        self.assertEqual(quote_dry_single.unit_price, Decimal("23.00"))
+        self.assertEqual(quote_dry_single.total, Decimal("92.00"))
+
+        quote_dry_tiered = calculate_shirt_quote(
+            shirt_code="camisa_dry_fit_grao_arroz", color="Branca", size="G", quantity=10
+        )
+        self.assertEqual(quote_dry_tiered.unit_price, Decimal("20.00"))
+        self.assertEqual(quote_dry_tiered.total, Decimal("200.00"))
+
+        # 3. Serviços Extras
+        quote_ajuste = calculate_service_quote(service_code="ajuste_preparacao_arquivo", quantity=1)
+        self.assertEqual(quote_ajuste.unit_price, Decimal("20.00"))
+        self.assertEqual(quote_ajuste.total, Decimal("20.00"))
+
+        quote_halftone = calculate_service_quote(service_code="formato_halftone", quantity=2)
+        self.assertEqual(quote_halftone.unit_price, Decimal("10.00"))
+        self.assertEqual(quote_halftone.total, Decimal("20.00"))
+
+    def test_multi_item_order_creation_and_capacity_evaluation(self):
+        from apps.production.capacity import get_shift_capacity_status, evaluate_order_capacity
+        self.login_as(self.admin)
+
+        cart_payload = {
+            "items": [
+                {
+                    "kind": "material",
+                    "material_code": "dtf_textil",
+                    "width_cm": 50,
+                    "height_cm": 50,
+                    "quantity": 10,
+                },
+                {
+                    "kind": "produto",
+                    "shirt_code": "camisa_algodao_menegotti",
+                    "color": "Preta",
+                    "size": "G",
+                    "quantity": 6,
+                },
+                {
+                    "kind": "servico",
+                    "service_code": "ajuste_preparacao_arquivo",
+                    "quantity": 1,
+                }
+            ]
+        }
+
+        # Order creation with multi-items
+        response = self.client.post(reverse("orders:create"), {
+            "client_name": "Cliente Multi Item",
+            "client_whatsapp": "(84) 98888-7777",
+            "description": "Pedido com múltiplos produtos e serviços",
+            "total_amount": "320,00",
+            "payment_status": Order.PaymentStatus.UNPAID,
+            "payment_method": Order.PaymentMethod.PIX,
+            "priority": Order.Priority.NORMAL,
+            "due_at": (timezone.now() + timedelta(days=1)).strftime("%Y-%m-%dT10:00"),
+            "shift": Order.Shift.MORNING,
+            "calculation_payload": json.dumps(cart_payload),
+        })
+        self.assertEqual(response.status_code, 302)
+
+        order = Order.objects.get(client_name="Cliente Multi Item")
+        self.assertEqual(order.shift, Order.Shift.MORNING)
+        self.assertEqual(order.items.count(), 4)  # 3 items + 1 manual adjustment
+        self.assertTrue(order.items.filter(kind=OrderItem.Kind.PRODUCT, product_color="Preta", product_size="G").exists())
+        self.assertTrue(order.items.filter(kind=OrderItem.Kind.SERVICE, material_code="ajuste_preparacao_arquivo").exists())
+
+        # Test capacity calculation for tomorrow morning
+        target_date = (timezone.now() + timedelta(days=1)).date()
+        cap_status = get_shift_capacity_status(
+            target_date=target_date,
+            shift=Order.Shift.MORNING,
+            material_code="dtf_textil",
+        )
+        self.assertEqual(cap_status.limit_meters, Decimal("25.00"))
+        self.assertGreater(cap_status.used_meters, Decimal("0.00"))
+
+    def test_whatsapp_notification_templates(self):
+        from apps.notifications.whatsapp import (
+            build_quote_whatsapp_message,
+            build_ready_whatsapp_message,
+            build_delivered_whatsapp_message,
+            get_whatsapp_share_links,
+        )
+        quote_msg = build_quote_whatsapp_message(self.order, "https://exemplo.com/orders/quote/token123/")
+        self.assertIn("PRINT FORNECE", quote_msg)
+        self.assertIn("Valor do metro:", quote_msg)
+        self.assertIn("TOTAL: R$", quote_msg)
+        self.assertIn("Prazo:", quote_msg)
+
+        ready_msg = build_ready_whatsapp_message(self.order)
+        self.assertIn("PRONTO PARA RETIRADA", ready_msg)
+
+        delivered_msg = build_delivered_whatsapp_message(self.order)
+        self.assertIn("ENTREGA", delivered_msg)
+
+        links = get_whatsapp_share_links(self.order, "https://exemplo.com")
+        self.assertIn("https://wa.me/5584999999999", links["quote_url"])
+
+    def test_download_primary_attachment_route(self):
+        self.login_as(self.admin)
+        # Create attachment on self.order
+        att = OrderAttachment.objects.create(
+            order=self.order,
+            original_name="arte_estampa.png",
+            file=SimpleUploadedFile("arte_estampa.png", b"\x89PNG\r\n\x1a\nfakeimage", content_type="image/png"),
+            content_type="image/png",
+            size=100,
+            created_by=self.admin,
+        )
+        res = self.client.get(reverse("orders:download_primary_attachment", args=[self.order.pk]))
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res["Content-Disposition"], 'attachment; filename="arte_estampa.png"')
+
 

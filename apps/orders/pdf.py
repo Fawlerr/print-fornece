@@ -85,6 +85,12 @@ def _item_flowable(item, styles):
     artwork = ""
     if item.art_width_cm is not None and item.art_height_cm is not None and item.art_quantity is not None:
         artwork = f"<br/><font size=6.8>Arte {_number(item.art_width_cm)} x {_number(item.art_height_cm)} cm · qtd. {item.art_quantity}</font>"
+    elif item.product_color or item.product_size:
+        color_txt = escape(item.product_color) if item.product_color else ""
+        size_txt = f"Tam: {escape(item.product_size)}" if item.product_size else ""
+        attr_txt = " · ".join(filter(bool, [color_txt, size_txt]))
+        if attr_txt:
+            artwork = f"<br/><font size=6.8>{attr_txt}</font>"
     details = Paragraph(
         f"{calculation}{artwork}",
         styles["item_details"],

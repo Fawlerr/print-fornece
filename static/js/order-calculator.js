@@ -5,22 +5,39 @@
   if (!calculator) return;
 
   const endpoint = calculator.dataset.endpoint;
-  const widthInput = calculator.querySelector("[data-calculator-width]");
-  const heightInput = calculator.querySelector("[data-calculator-height]");
-  const quantityInput = calculator.querySelector("[data-calculator-quantity]");
-  const calculateButton = calculator.querySelector("[data-calculator-calculate]");
-  const useValueButton = calculator.querySelector("[data-use-calculated]");
   const status = calculator.querySelector("[data-calculator-status]");
-  const result = calculator.querySelector("[data-calculator-result]");
-  const total = calculator.querySelector("[data-calculator-total]");
-  const film = calculator.querySelector("[data-calculator-film]");
-  const rule = calculator.querySelector("[data-calculator-rule]");
-  const layout = calculator.querySelector("[data-calculator-layout]");
+  const cartTbody = calculator.querySelector("[data-cart-tbody]");
+  const cartCount = calculator.querySelector("[data-cart-count]");
+  const cartTotalBadge = calculator.querySelector("[data-cart-total-badge]");
   const calculationPayload = document.querySelector("#id_calculation_payload");
-  const totalAmount = document.querySelector("#id_total_amount");
-  let requestNumber = 0;
-  let debounceTimer = null;
-  let quote = null;
+  const totalAmountInput = document.querySelector("#id_total_amount");
+  const descriptionInput = document.querySelector("#id_description");
+
+  // Tab buttons and containers
+  const tabBtns = calculator.querySelectorAll(".catalog-tab-btn");
+  const tabContents = {
+    dtf: calculator.querySelector("#tab-dtf"),
+    shirts: calculator.querySelector("#tab-shirts"),
+    services: calculator.querySelector("#tab-services"),
+  };
+
+  // DTF inputs & add button
+  const dtfWidthInput = calculator.querySelector("[data-calculator-width]");
+  const dtfHeightInput = calculator.querySelector("[data-calculator-height]");
+  const dtfQuantityInput = calculator.querySelector("[data-calculator-quantity]");
+  const addDtfBtn = calculator.querySelector("[data-add-dtf-btn]");
+
+  // Shirt inputs & add button
+  const shirtColorSelect = calculator.querySelector("[data-shirt-color]");
+  const shirtSizeSelect = calculator.querySelector("[data-shirt-size]");
+  const shirtQuantityInput = calculator.querySelector("[data-shirt-quantity]");
+  const addShirtBtn = calculator.querySelector("[data-add-shirt-btn]");
+
+  // Extra service inputs & add button
+  const serviceQuantityInput = calculator.querySelector("[data-service-quantity]");
+  const addServiceBtn = calculator.querySelector("[data-add-service-btn]");
+
+  let cartItems = [];
 
   const money = (value) => Number(value || 0).toLocaleString("pt-BR", {
     style: "currency",
@@ -29,64 +46,41 @@
     maximumFractionDigits: 2,
   });
 
-  const number = (value, minimumFractionDigits = 0, maximumFractionDigits = 2) => Number(value || 0).toLocaleString("pt-BR", {
-    minimumFractionDigits,
-    maximumFractionDigits,
+  const number = (value, minDec = 0, maxDec = 2) => Number(value || 0).toLocaleString("pt-BR", {
+    minimumFractionDigits: minDec,
+    maximumFractionDigits: maxDec,
   });
 
   const csrfToken = () => document.querySelector("input[name='csrfmiddlewaretoken']")?.value || "";
 
-  const selectedMaterial = () => calculator.querySelector("input[name='calculator_material']:checked")?.value || "";
-
-  const hasValues = () => Boolean(selectedMaterial() && widthInput.value.trim() && heightInput.value.trim() && quantityInput.value.trim());
-
-  const setStatus = (message, error = false) => {
+  const setStatus = (message, isError = false) => {
+    if (!status) return;
     status.textContent = message;
-    status.classList.toggle("is-error", error);
+    status.classList.toggle("is-error", isError);
   };
 
-  const invalidateQuote = () => {
-    quote = null;
-    if (calculationPayload) calculationPayload.value = "";
-    if (useValueButton) useValueButton.disabled = true;
-  };
+  // Tab switching
+  tabBtns.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      tabBtns.forEach((b) => {
+        b.classList.remove("active", "btn-primary");
+        b.classList.add("btn-secondary");
+      });
+      btn.classList.add("active", "btn-primary");
+      btn.classList.remove("btn-secondary");
 
-  const renderQuote = (nextQuote) => {
-    quote = nextQuote;
-    const payload = {
-      material_code: quote.material_code,
-      width_cm: widthInput.value,
-      height_cm: heightInput.value,
-      quantity: quantityInput.value,
-    };
-    if (calculationPayload) calculationPayload.value = JSON.stringify(payload);
+      const tabKey = btn.dataset.tab;
+      Object.entries(tabContents).forEach(([key, contentEl]) => {
+        if (contentEl) {
+          contentEl.style.display = key === tabKey ? "block" : "none";
+        }
+      });
+    });
+  });
 
-    total.textContent = money(quote.total);
-    film.textContent = `${number(quote.film_used_cm)} cm (${number(quote.film_used_m, 2, 2)} m)`;
-    rule.textContent = quote.pricing_type === "per_meter"
-      ? `${quote.pricing_rule} · ${money(quote.unit_price)}/m`
-      : `${quote.pricing_rule} · valor fixo ${money(quote.unit_price)}`;
-    layout.textContent = `${quote.pieces_per_row} por fileira · ${quote.rows} fileira${quote.rows === 1 ? "" : "s"}${quote.used_orientation === "rotacionada" ? " · arte girada" : ""}`;
-    result.hidden = false;
-    useValueButton.disabled = false;
-    setStatus("Orçamento atualizado.");
-  };
-
-  const requestCalculation = async () => {
-    if (!hasValues()) {
-      invalidateQuote();
-      result.hidden = true;
-      setStatus("Preencha as medidas para calcular.");
-      return;
-    }
-    if (!endpoint) {
-      setStatus("Não foi possível iniciar o orçamento.", true);
-      return;
-    }
-
-    const currentRequest = ++requestNumber;
-    invalidateQuote();
-    setStatus("Calculando…");
+  // Calculate and add item helper
+  const calculateItem = async (payload) => {
+    setStatus("Calculando item…");
     try {
       const response = await fetch(endpoint, {
         method: "POST",
@@ -96,48 +90,215 @@
           "Content-Type": "application/json",
           "X-CSRFToken": csrfToken(),
         },
-        body: JSON.stringify({
-          material_code: selectedMaterial(),
-          width_cm: widthInput.value,
-          height_cm: heightInput.value,
-          quantity: quantityInput.value,
-        }),
+        body: JSON.stringify(payload),
       });
       const data = await response.json().catch(() => ({}));
-      if (currentRequest !== requestNumber) return;
       if (!response.ok || !data.quote) {
-        invalidateQuote();
-        result.hidden = true;
-        setStatus(data.message || "Não foi possível calcular o orçamento.", true);
-        return;
+        setStatus(data.message || "Erro ao calcular item.", true);
+        return null;
       }
-      renderQuote(data.quote);
-    } catch (_error) {
-      if (currentRequest !== requestNumber) return;
-      invalidateQuote();
-      result.hidden = true;
-      setStatus("Não foi possível calcular agora. Tente novamente.", true);
+      return data.quote;
+    } catch (_err) {
+      setStatus("Falha de conexão com a calculadora.", true);
+      return null;
     }
   };
 
-  const scheduleCalculation = () => {
-    window.clearTimeout(debounceTimer);
-    debounceTimer = window.setTimeout(requestCalculation, 260);
+  const renderCart = () => {
+    if (!cartTbody) return;
+    cartTbody.innerHTML = "";
+
+    if (cartItems.length === 0) {
+      cartTbody.innerHTML = `
+        <tr class="empty-cart-row">
+          <td colspan="5" style="text-align: center; color: var(--muted, #9ca3af); padding: 16px;">
+            Nenhum item adicionado ainda. Escolha no catálogo acima e clique para inserir.
+          </td>
+        </tr>
+      `;
+      if (cartCount) cartCount.textContent = "0";
+      if (cartTotalBadge) cartTotalBadge.textContent = "R$ 0,00";
+      if (calculationPayload) calculationPayload.value = "";
+      return;
+    }
+
+    let totalSum = 0;
+    cartItems.forEach((item, index) => {
+      const itemTotal = parseFloat(item.total || 0);
+      totalSum += itemTotal;
+
+      let specText = item.material_name;
+      let measureText = `${item.quantity || 1} un`;
+
+      if (item.kind === "material") {
+        measureText = `${item.art_width_cm}x${item.art_height_cm} cm (${item.quantity} un · ${number(item.film_used_m, 2, 2)}m)`;
+      } else if (item.kind === "produto") {
+        specText = `${item.material_name} (${item.product_color || ""}, Tam: ${item.product_size || ""})`;
+        measureText = `${item.quantity} un`;
+      } else if (item.kind === "servico") {
+        measureText = `${item.quantity} un`;
+      }
+
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>
+          <strong>${specText}</strong>
+          ${item.pricing_rule ? `<br><small class="text-muted" style="font-size: 0.78rem;">${item.pricing_rule}</small>` : ""}
+        </td>
+        <td>${measureText}</td>
+        <td>${money(item.unit_price)}</td>
+        <td><strong style="color: #10b981;">${money(item.total)}</strong></td>
+        <td style="text-align: center;">
+          <button type="button" class="btn btn-danger btn-small" data-remove-item="${index}" title="Remover item" style="padding: 4px 8px; font-size: 0.8rem;">
+            <i class="fa-solid fa-trash"></i>
+          </button>
+        </td>
+      `;
+      cartTbody.appendChild(tr);
+    });
+
+    if (cartCount) cartCount.textContent = String(cartItems.length);
+    if (cartTotalBadge) cartTotalBadge.textContent = money(totalSum);
+
+    // Sync hidden payload
+    if (calculationPayload) {
+      calculationPayload.value = JSON.stringify({ items: cartItems });
+    }
+
+    // Sync total amount field
+    if (totalAmountInput) {
+      totalAmountInput.value = number(totalSum, 2, 2);
+      totalAmountInput.dispatchEvent(new Event("input", { bubbles: true }));
+      totalAmountInput.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+
+    // Auto-generate / update description with item list if empty or user wants
+    if (descriptionInput && (!descriptionInput.value.trim() || descriptionInput.dataset.autoGenerated === "true")) {
+      const lines = cartItems.map((it) => {
+        if (it.kind === "material") {
+          return `${it.material_name}: ${it.art_width_cm}x${it.art_height_cm} cm - ${it.quantity} un (${it.film_used_m}m)`;
+        }
+        if (it.kind === "produto") {
+          return `${it.material_name} (${it.product_color}, Tam: ${it.product_size}) - ${it.quantity} un`;
+        }
+        return `${it.material_name} - ${it.quantity} un`;
+      });
+      descriptionInput.value = lines.join("\n");
+      descriptionInput.dataset.autoGenerated = "true";
+    }
+
+    // Attach remove handlers
+    cartTbody.querySelectorAll("[data-remove-item]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const idx = parseInt(btn.dataset.removeItem, 10);
+        cartItems.splice(idx, 1);
+        renderCart();
+        setStatus("Item removido do pedido.");
+      });
+    });
   };
 
-  [widthInput, heightInput, quantityInput].forEach((input) => {
-    input.addEventListener("input", scheduleCalculation);
-    input.addEventListener("change", scheduleCalculation);
-  });
-  calculator.querySelectorAll("input[name='calculator_material']").forEach((input) => input.addEventListener("change", scheduleCalculation));
-  calculateButton.addEventListener("click", requestCalculation);
+  // 1. Add DTF
+  if (addDtfBtn) {
+    addDtfBtn.addEventListener("click", async () => {
+      const selectedMat = calculator.querySelector("input[name='calculator_material']:checked")?.value || "dtf_textil";
+      const width = dtfWidthInput.value.trim();
+      const height = dtfHeightInput.value.trim();
+      const qty = dtfQuantityInput.value.trim() || "1";
 
-  useValueButton.addEventListener("click", () => {
-    if (!quote || !totalAmount) return;
-    totalAmount.value = number(quote.total, 2, 2);
-    totalAmount.dispatchEvent(new Event("input", { bubbles: true }));
-    totalAmount.dispatchEvent(new Event("change", { bubbles: true }));
-    setStatus("Valor calculado aplicado. Você ainda pode ajustá-lo antes de salvar.");
-    totalAmount.focus();
-  });
+      if (!width || !height || !qty) {
+        setStatus("Preencha largura, altura e quantidade da arte DTF.", true);
+        return;
+      }
+
+      addDtfBtn.disabled = true;
+      const quote = await calculateItem({
+        kind: "material",
+        material_code: selectedMat,
+        width_cm: width,
+        height_cm: height,
+        quantity: qty,
+      });
+      addDtfBtn.disabled = false;
+
+      if (quote) {
+        cartItems.push(quote);
+        renderCart();
+        setStatus(`Item ${quote.material_name} adicionado ao pedido!`);
+      }
+    });
+  }
+
+  // 2. Add Shirt
+  if (addShirtBtn) {
+    addShirtBtn.addEventListener("click", async () => {
+      const shirtModel = calculator.querySelector("input[name='shirt_model']:checked")?.value || "camisa_algodao_menegotti";
+      const color = shirtColorSelect?.value || "Preta";
+      const size = shirtSizeSelect?.value || "M";
+      const qty = shirtQuantityInput?.value.trim() || "1";
+
+      if (!qty || parseInt(qty, 10) < 1) {
+        setStatus("Informe uma quantidade válida de camisas.", true);
+        return;
+      }
+
+      addShirtBtn.disabled = true;
+      const quote = await calculateItem({
+        kind: "produto",
+        shirt_code: shirtModel,
+        color,
+        size,
+        quantity: qty,
+      });
+      addShirtBtn.disabled = false;
+
+      if (quote) {
+        cartItems.push(quote);
+        renderCart();
+        setStatus(`Camisa ${quote.material_name} (${color}, ${size}) adicionada!`);
+      }
+    });
+  }
+
+  // 3. Add Service
+  if (addServiceBtn) {
+    addServiceBtn.addEventListener("click", async () => {
+      const serviceModel = calculator.querySelector("input[name='extra_service_model']:checked")?.value || "ajuste_preparacao_arquivo";
+      const qty = serviceQuantityInput?.value.trim() || "1";
+
+      if (!qty || parseInt(qty, 10) < 1) {
+        setStatus("Informe uma quantidade válida para o serviço.", true);
+        return;
+      }
+
+      addServiceBtn.disabled = true;
+      const quote = await calculateItem({
+        kind: "servico",
+        service_code: serviceModel,
+        quantity: qty,
+      });
+      addServiceBtn.disabled = false;
+
+      if (quote) {
+        cartItems.push(quote);
+        renderCart();
+        setStatus(`${quote.material_name} adicionado!`);
+      }
+    });
+  }
+
+  // Initialize existing items on edit
+  const existingEl = document.getElementById("existing-order-items");
+  if (existingEl) {
+    try {
+      const initialItems = JSON.parse(existingEl.textContent || "[]");
+      if (Array.isArray(initialItems) && initialItems.length > 0) {
+        cartItems = initialItems;
+        renderCart();
+      }
+    } catch (_e) {
+      // ignore JSON parse error on empty
+    }
+  }
 })();
+

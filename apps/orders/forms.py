@@ -40,12 +40,12 @@ class OrderForm(forms.ModelForm):
         model = Order
         fields = [
             "client_name", "client_whatsapp", "description", "total_amount", "payment_status", "paid_amount",
-            "payment_method", "due_at", "priority", "responsible", "internal_notes",
+            "payment_method", "due_at", "shift", "priority", "responsible", "internal_notes",
         ]
         labels = {
             "client_name": "Nome do cliente", "client_whatsapp": "WhatsApp do cliente", "description": "Descrição detalhada",
             "payment_status": "Situação do pagamento", "payment_method": "Forma de pagamento", "due_at": "Data prevista para entrega",
-            "priority": "Prioridade", "responsible": "Responsável", "internal_notes": "Observações internas",
+            "shift": "Turno de produção", "priority": "Prioridade", "responsible": "Responsável", "internal_notes": "Observações internas",
         }
         widgets = {
             "description": forms.Textarea(attrs={"maxlength": 5000}),
@@ -65,6 +65,7 @@ class OrderForm(forms.ModelForm):
             # mutate money or assignment; values are enforced in clean().
             for name in ("total_amount", "payment_status", "paid_amount", "payment_method", "responsible"):
                 self.fields[name].disabled = True
+        self.fields["shift"].required = False
         for name in ("total_amount", "paid_amount"):
             value = self.initial.get(name)
             if value is not None and not isinstance(value, str):
@@ -80,8 +81,14 @@ class OrderForm(forms.ModelForm):
         due_at = self.cleaned_data.get("due_at")
         return due_at
 
+    def clean_shift(self):
+        shift = self.cleaned_data.get("shift")
+        return shift or Order.Shift.MORNING
+
     def clean(self):
         cleaned = super().clean()
+        if not cleaned.get("shift"):
+            cleaned["shift"] = Order.Shift.MORNING
         total = cleaned.get("total_amount")
         paid = cleaned.get("paid_amount") or Decimal("0")
         status = cleaned.get("payment_status")

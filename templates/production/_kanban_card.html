@@ -16,12 +16,21 @@
 
   <div class="order-meta">
     <span class="badge badge-{{ order.payment_status }}">{{ order.get_payment_status_display }}</span>
+    <span class="order-details-item" title="Turno de Produção: {{ order.get_shift_display }}">
+      <i class="fa-regular fa-clock" aria-hidden="true"></i> {{ order.get_shift_display }}
+    </span>
     <span class="order-details-item" title="Responsável: {{ order.responsible.name|default:'Não definido' }}">
       <i class="fa-regular fa-user" aria-hidden="true"></i> {{ order.responsible.name|default:"Não definido" }}
     </span>
-    <span class="order-details-item" title="{{ order.attachment_count }} arquivo(s) anexado(s)">
-      <i class="fa-solid fa-paperclip" aria-hidden="true"></i> {{ order.attachment_count }}
-    </span>
+    {% if order.attachment_count > 0 %}
+      <a class="kanban-quick-download" href="{% url 'orders:download_primary_attachment' pk=order.pk %}" target="_blank" title="Baixar arte original" onclick="event.stopPropagation();">
+        <i class="fa-solid fa-file-arrow-down" aria-hidden="true"></i> Baixar Arte
+      </a>
+    {% else %}
+      <span class="order-details-item text-muted" title="Nenhum arquivo anexado">
+        <i class="fa-solid fa-paperclip" aria-hidden="true"></i> 0
+      </span>
+    {% endif %}
   </div>
 
   {% if order.is_late %}

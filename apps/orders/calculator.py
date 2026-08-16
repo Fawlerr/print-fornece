@@ -1,8 +1,7 @@
 """Pricing rules shared by the native Print Fornece calculator.
 
-The original calculator is a small static application.  Keeping its catalogue
-and formula here makes the server the source of truth, while the browser only
-renders the result returned by the authenticated calculation endpoint.
+The calculator module is the server-authoritative source of truth for pricing
+rules across DTF printing, garment products (shirts), and extra pre-press services.
 """
 from __future__ import annotations
 
@@ -16,7 +15,7 @@ MONEY_CENT = Decimal("0.01")
 
 
 class CalculatorValidationError(ValueError):
-    """Raised when the calculator receives an invalid material or measure."""
+    """Raised when the calculator receives an invalid material, measure, or product."""
 
 
 @dataclass(frozen=True)
@@ -40,6 +39,50 @@ class CalculatorMaterial:
         }
 
 
+@dataclass(frozen=True)
+class CalculatorShirt:
+    code: str
+    name: str
+    category: str = "Camisas"
+    unit: str = "Unidade"
+    price_single: Decimal = Decimal("28.00")
+    price_tiered: Decimal = Decimal("25.00")
+    tier_threshold: int = 5
+    available_colors: tuple[str, ...] = ("Preta", "Branca")
+    available_sizes: tuple[str, ...] = ("P", "M", "G", "GG")
+
+    def catalogue_data(self) -> dict:
+        return {
+            "code": self.code,
+            "name": self.name,
+            "category": self.category,
+            "unit": self.unit,
+            "price_single": decimal_string(self.price_single),
+            "price_tiered": decimal_string(self.price_tiered),
+            "tier_threshold": self.tier_threshold,
+            "colors": list(self.available_colors),
+            "sizes": list(self.available_sizes),
+        }
+
+
+@dataclass(frozen=True)
+class CalculatorService:
+    code: str
+    name: str
+    category: str = "Serviços"
+    unit: str = "Serviço"
+    unit_price: Decimal = Decimal("20.00")
+
+    def catalogue_data(self) -> dict:
+        return {
+            "code": self.code,
+            "name": self.name,
+            "category": self.category,
+            "unit": self.unit,
+            "unit_price": decimal_string(self.unit_price),
+        }
+
+
 MATERIALS: dict[str, CalculatorMaterial] = {
     "dtf_textil": CalculatorMaterial(
         code="dtf_textil",
@@ -54,6 +97,44 @@ MATERIALS: dict[str, CalculatorMaterial] = {
         category="UV Rígidos",
         film_width_cm=Decimal("29"),
         maximum_art_width_cm=Decimal("28"),
+    ),
+}
+
+SHIRTS: dict[str, CalculatorShirt] = {
+    "camisa_algodao_menegotti": CalculatorShirt(
+        code="camisa_algodao_menegotti",
+        name="100% Algodão (Menegotti)",
+        category="Camisas",
+        price_single=Decimal("28.00"),
+        price_tiered=Decimal("25.00"),
+        tier_threshold=5,
+        available_colors=("Preta", "Branca"),
+        available_sizes=("P", "M", "G", "GG"),
+    ),
+    "camisa_dry_fit_grao_arroz": CalculatorShirt(
+        code="camisa_dry_fit_grao_arroz",
+        name="Dry Fit (Grão de Arroz)",
+        category="Camisas",
+        price_single=Decimal("23.00"),
+        price_tiered=Decimal("20.00"),
+        tier_threshold=5,
+        available_colors=("Preta", "Branca"),
+        available_sizes=("P", "M", "G", "GG"),
+    ),
+}
+
+SERVICES: dict[str, CalculatorService] = {
+    "ajuste_preparacao_arquivo": CalculatorService(
+        code="ajuste_preparacao_arquivo",
+        name="Serviço de ajustes e preparação de arquivo",
+        category="Serviços",
+        unit_price=Decimal("20.00"),
+    ),
+    "formato_halftone": CalculatorService(
+        code="formato_halftone",
+        name="Serviço para formato de Halftone",
+        category="Serviços",
+        unit_price=Decimal("10.00"),
     ),
 }
 
@@ -79,6 +160,7 @@ class Quote:
     def payload(self) -> dict[str, str | int]:
         """JSON-safe response used by the calculation endpoint and form JS."""
         return {
+            "kind": "material",
             "material_code": self.material.code,
             "material_name": self.material.name,
             "category": self.material.category,
@@ -104,6 +186,62 @@ class Quote:
         return self.payload() | {"margin_cm": decimal_string(MARGIN_CM)}
 
 
+@dataclass(frozen=True)
+class ShirtQuote:
+    shirt: CalculatorShirt
+    color: str
+    size: str
+    quantity: int
+    unit_price: Decimal
+    total: Decimal
+    pricing_rule: str
+
+    def payload(self) -> dict[str, str | int]:
+        return {
+            "kind": "produto",
+            "material_code": self.shirt.code,
+            "material_name": f"Camisa {self.shirt.name}",
+            "category": self.shirt.category,
+            "product_color": self.color,
+            "product_size": self.size,
+            "quantity": self.quantity,
+            "unit": self.shirt.unit,
+            "unit_price": decimal_string(self.unit_price),
+            "total": decimal_string(self.total),
+            "pricing_rule": self.pricing_rule,
+            "calculation_detail": f"{self.quantity} un ({self.color}, {self.size}) × R$ {self.unit_price:.2f}".replace(".", ","),
+        }
+
+    def persisted_snapshot(self) -> dict[str, str | int]:
+        return self.payload()
+
+
+@dataclass(frozen=True)
+class ServiceQuote:
+    service: CalculatorService
+    quantity: int
+    unit_price: Decimal
+    total: Decimal
+    pricing_rule: str
+
+    def payload(self) -> dict[str, str | int]:
+        return {
+            "kind": "servico",
+            "material_code": self.service.code,
+            "material_name": self.service.name,
+            "category": self.service.category,
+            "quantity": self.quantity,
+            "unit": self.service.unit,
+            "unit_price": decimal_string(self.unit_price),
+            "total": decimal_string(self.total),
+            "pricing_rule": self.pricing_rule,
+            "calculation_detail": f"{self.quantity} un × R$ {self.unit_price:.2f}".replace(".", ","),
+        }
+
+    def persisted_snapshot(self) -> dict[str, str | int]:
+        return self.payload()
+
+
 def decimal_string(value: Decimal) -> str:
     """Use non-exponential strings so JSON snapshots remain stable and readable."""
     return format(value, "f")
@@ -115,6 +253,14 @@ def available_materials() -> tuple[CalculatorMaterial, ...]:
 
 def material_catalogue() -> list[dict[str, str]]:
     return [material.catalogue_data() for material in available_materials()]
+
+
+def full_catalogue() -> dict:
+    return {
+        "materials": material_catalogue(),
+        "shirts": [s.catalogue_data() for s in SHIRTS.values()],
+        "services": [s.catalogue_data() for s in SERVICES.values()],
+    }
 
 
 def _as_decimal(value, field_name: str) -> Decimal:
@@ -130,12 +276,10 @@ def _as_decimal(value, field_name: str) -> Decimal:
 
 
 def _as_quantity(value) -> int:
-    # The legacy page uses JavaScript parseInt(), so a valid decimal quantity
-    # is intentionally truncated before the positive-value validation.
     parsed = _as_decimal(value, "quantidade")
     quantity = int(parsed)
     if quantity < 1:
-        raise CalculatorValidationError("Preencha largura, altura e quantidade.")
+        raise CalculatorValidationError("A quantidade deve ser de no mínimo 1.")
     return quantity
 
 
@@ -191,12 +335,6 @@ def _price_uv(film_cm: Decimal, film_m: Decimal) -> tuple[str, str, Decimal, Dec
 
 
 def calculate_quote(*, material_code: str, width_cm, height_cm, quantity) -> Quote:
-    """Reproduce the original Print Fornece calculator exactly.
-
-    Both artwork orientations are considered.  The orientation that consumes
-    the least film length wins; a tie deliberately keeps the original
-    (non-rotated) orientation, matching the static calculator.
-    """
     material = MATERIALS.get(material_code)
     if material is None:
         raise CalculatorValidationError("Selecione um material válido.")
@@ -223,7 +361,6 @@ def calculate_quote(*, material_code: str, width_cm, height_cm, quantity) -> Quo
         maximum = decimal_string(material.maximum_art_width_cm)
         raise CalculatorValidationError(f"A largura máxima para {material.name} é {maximum} cm.")
 
-    # min() is stable, so equal lengths retain the normal orientation appended first.
     length_cm, layout_width, layout_height, pieces_per_row, rows, orientation = min(candidates, key=lambda item: item[0])
     used_cm = _ceil_centimeter(length_cm)
     used_m = (used_cm / CENTIMETERS_PER_METER).quantize(Decimal("0.01"))
@@ -250,3 +387,51 @@ def calculate_quote(*, material_code: str, width_cm, height_cm, quantity) -> Quo
         unit_price=unit_price,
         total=total,
     )
+
+
+def calculate_shirt_quote(*, shirt_code: str, color: str, size: str, quantity: int | str) -> ShirtQuote:
+    shirt = SHIRTS.get(shirt_code)
+    if not shirt:
+        raise CalculatorValidationError("Selecione um modelo de camisa válido.")
+    qty = _as_quantity(quantity)
+    color = str(color).strip()
+    size = str(size).strip().upper()
+    if color not in shirt.available_colors:
+        raise CalculatorValidationError(f"Cor inválida ({color}). Escolha entre: {', '.join(shirt.available_colors)}.")
+    if size not in shirt.available_sizes:
+        raise CalculatorValidationError(f"Tamanho inválido ({size}). Escolha entre: {', '.join(shirt.available_sizes)}.")
+
+    if qty >= shirt.tier_threshold:
+        unit_price = shirt.price_tiered
+        rule = f"Preço atacado (a partir de {shirt.tier_threshold} un: R$ {shirt.price_tiered:.2f}/un)".replace(".", ",")
+    else:
+        unit_price = shirt.price_single
+        rule = f"Preço unitário padrão (1 a {shirt.tier_threshold - 1} un: R$ {shirt.price_single:.2f}/un)".replace(".", ",")
+
+    total = (Decimal(qty) * unit_price).quantize(MONEY_CENT, rounding=ROUND_HALF_UP)
+    return ShirtQuote(
+        shirt=shirt,
+        color=color,
+        size=size,
+        quantity=qty,
+        unit_price=unit_price,
+        total=total,
+        pricing_rule=rule,
+    )
+
+
+def calculate_service_quote(*, service_code: str, quantity: int | str = 1) -> ServiceQuote:
+    service = SERVICES.get(service_code)
+    if not service:
+        raise CalculatorValidationError("Selecione um serviço válido.")
+    qty = _as_quantity(quantity)
+    unit_price = service.unit_price
+    total = (Decimal(qty) * unit_price).quantize(MONEY_CENT, rounding=ROUND_HALF_UP)
+    return ServiceQuote(
+        service=service,
+        quantity=qty,
+        unit_price=unit_price,
+        total=total,
+        pricing_rule=f"Valor fixo de R$ {unit_price:.2f}/un".replace(".", ","),
+    )
+

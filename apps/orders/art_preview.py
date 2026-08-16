@@ -87,12 +87,12 @@ def generate_art_preview_image(order, attachment_id: int | str | None = None) ->
         # 1. Card Drop Shadow
         shadow_offset = 12
         shadow_box = [pos_x + shadow_offset, pos_y + shadow_offset, pos_x + new_w + shadow_offset, pos_y + new_h + shadow_offset]
-        draw.rectangle(shadow_box, fill=(180, 190, 202, 255))
+        draw.rectangle(shadow_box, fill=(148, 163, 184, 255))
 
-        # 2. White mat card
-        frame_pad = 8
+        # 2. High-contrast Gray mat card (Slate 800) so white prints and transparent PNGs stand out
+        frame_pad = 12
         frame_box = [pos_x - frame_pad, pos_y - frame_pad, pos_x + new_w + frame_pad, pos_y + new_h + frame_pad]
-        draw.rectangle(frame_box, fill=(255, 255, 255, 255), outline=(203, 213, 225, 255), width=2)
+        draw.rectangle(frame_box, fill=(51, 65, 85, 255), outline=(71, 85, 105, 255), width=2)
 
         # 3. Paste Artwork
         canvas.paste(art_img, (pos_x, pos_y), mask=art_img)

@@ -5,11 +5,11 @@
 {% block page_heading %}{% if object %}Editar pedido{% else %}Novo pedido{% endif %}{% endblock %}
 
 {% block content %}
-<div class="form-container" style="max-width: 920px; margin: 0 auto;">
+<div class="form-container" style="max-width: 960px; margin: 0 auto;">
   <div class="section-heading">
     <div>
       <h2>{% if object %}Atualizar pedido {{ object.number }}{% else %}Registrar pedido{% endif %}</h2>
-      <p>Preencha os campos abaixo para registrar o pedido no sistema.</p>
+      <p>Monte os itens do pedido, preencha os dados do cliente e defina o turno de produção.</p>
     </div>
   </div>
 
@@ -28,57 +28,172 @@
       {% include "includes/form_field.html" with field=form.client_whatsapp %}
     </div>
 
-    {% if calculator_materials %}
-      <section class="calculator-panel" data-order-calculator data-endpoint="{{ calculator_endpoint }}" aria-labelledby="calculator-title">
-        <div class="calculator-heading">
-          <div>
-            <p class="eyebrow">Cálculo de Preço</p>
-            <h2 id="calculator-title">Calculadora de Orçamento</h2>
-            <p>Selecione o material, informe a medida da arte e a quantidade para calcular o valor automaticamente conforme a tabela atual.</p>
-          </div>
-          <span class="calculator-status" data-calculator-status aria-live="polite">Preencha as medidas para calcular.</span>
+    <!-- Seção de Catálogo e Carrinho de Múltiplos Produtos / Serviços -->
+    <section class="calculator-panel" data-order-calculator data-endpoint="{{ calculator_endpoint }}" aria-labelledby="calculator-title">
+      <div class="calculator-heading">
+        <div>
+          <p class="eyebrow"><i class="fa-solid fa-layer-group"></i> Catálogo e Orçamento</p>
+          <h2 id="calculator-title">Adicionar Produtos e Serviços ao Pedido</h2>
+          <p>Adicione múltiplos itens (impressões DTF, camisas ou serviços extras) no mesmo pedido conforme a tabela de preços.</p>
+        </div>
+        <span class="calculator-status" data-calculator-status aria-live="polite">Selecione uma categoria abaixo para adicionar itens.</span>
+      </div>
+
+      <!-- Abas de Categoria -->
+      <div class="catalog-tabs" style="display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;">
+        <button type="button" class="btn btn-secondary catalog-tab-btn active" data-tab="dtf" style="flex: 1; min-width: 140px; font-weight: 600;">
+          <i class="fa-solid fa-print"></i> 1. Impressão DTF
+        </button>
+        <button type="button" class="btn btn-secondary catalog-tab-btn" data-tab="shirts" style="flex: 1; min-width: 140px; font-weight: 600;">
+          <i class="fa-solid fa-shirt"></i> 2. Camisas
+        </button>
+        <button type="button" class="btn btn-secondary catalog-tab-btn" data-tab="services" style="flex: 1; min-width: 140px; font-weight: 600;">
+          <i class="fa-solid fa-wand-magic-sparkles"></i> 3. Serviços Extras
+        </button>
+      </div>
+
+      <!-- 1. Aba Impressão DTF -->
+      <div class="catalog-tab-content" id="tab-dtf">
+        <div class="calculator-materials" role="radiogroup" aria-label="Material DTF">
+          <label class="calculator-material-option">
+            <input type="radio" name="calculator_material" value="dtf_textil" checked>
+            <span>
+              <strong>DTF Têxtil</strong>
+              <small>Filme 59 cm · útil até 58 cm · tabela progressiva</small>
+            </span>
+          </label>
+          <label class="calculator-material-option">
+            <input type="radio" name="calculator_material" value="dtf_uv">
+            <span>
+              <strong>DTF UV Rígidos</strong>
+              <small>Filme 29 cm · útil até 28 cm · tabela progressiva</small>
+            </span>
+          </label>
         </div>
 
-        <div class="calculator-materials" role="radiogroup" aria-label="Material">
-          {% for material in calculator_materials %}
-            <label class="calculator-material-option">
-              <input type="radio" name="calculator_material" value="{{ material.code }}"{% if forloop.first %} checked{% endif %}>
-              <span>
-                <strong>{{ material.name }}</strong>
-                <small>Filme {{ material.film_width_cm }} cm · útil até {{ material.maximum_art_width_cm }} cm</small>
-              </span>
-            </label>
-          {% endfor %}
-        </div>
-
-        <div class="calculator-inputs">
-          <label for="calculator-width">Largura da arte (cm)
+        <div class="calculator-inputs" style="margin-top: 12px; display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; align-items: flex-end;">
+          <label for="calculator-width">Largura arte (cm)
             <input id="calculator-width" type="number" inputmode="decimal" min="0.01" step="0.1" name="calculator_width" data-calculator-width placeholder="Ex.: 30">
           </label>
-          <label for="calculator-height">Altura da arte (cm)
+          <label for="calculator-height">Altura arte (cm)
             <input id="calculator-height" type="number" inputmode="decimal" min="0.01" step="0.1" name="calculator_height" data-calculator-height placeholder="Ex.: 40">
           </label>
           <label for="calculator-quantity">Quantidade
-            <input id="calculator-quantity" type="number" inputmode="numeric" min="1" step="1" name="calculator_quantity" data-calculator-quantity placeholder="Ex.: 1">
+            <input id="calculator-quantity" type="number" inputmode="numeric" min="1" step="1" name="calculator_quantity" data-calculator-quantity placeholder="Ex.: 10">
           </label>
-          <button class="btn btn-secondary" type="button" data-calculator-calculate><i class="fa-solid fa-calculator" aria-hidden="true"></i> Atualizar cálculo</button>
+          <button class="btn btn-primary" type="button" data-add-dtf-btn style="height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
+            <i class="fa-solid fa-plus"></i> Inserir DTF
+          </button>
+        </div>
+      </div>
+
+      <!-- 2. Aba Camisas -->
+      <div class="catalog-tab-content" id="tab-shirts" style="display: none;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-bottom: 12px;">
+          <label class="calculator-material-option">
+            <input type="radio" name="shirt_model" value="camisa_algodao_menegotti" checked>
+            <span>
+              <strong>100% Algodão (Menegotti)</strong>
+              <small>1 un: R$ 28,00 · &ge; 5 un: R$ 25,00 cada</small>
+            </span>
+          </label>
+          <label class="calculator-material-option">
+            <input type="radio" name="shirt_model" value="camisa_dry_fit_grao_arroz">
+            <span>
+              <strong>Dry Fit (Grão de Arroz)</strong>
+              <small>1 un: R$ 23,00 · &ge; 5 un: R$ 20,00 cada</small>
+            </span>
+          </label>
         </div>
 
-        <div class="calculator-result" data-calculator-result hidden>
-          <div class="calculator-total">
-            <span>Valor calculado</span>
-            <strong data-calculator-total>R$ 0,00</strong>
-          </div>
-          <dl class="calculator-breakdown">
-            <div><dt>Filme usado</dt><dd data-calculator-film>—</dd></div>
-            <div><dt>Regra aplicada</dt><dd data-calculator-rule>—</dd></div>
-            <div><dt>Disposição</dt><dd data-calculator-layout>—</dd></div>
-          </dl>
-          <button class="btn btn-primary" type="button" data-use-calculated disabled><i class="fa-solid fa-arrow-down" aria-hidden="true"></i> Usar valor calculado no pedido</button>
+        <div class="calculator-inputs" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; align-items: flex-end;">
+          <label for="shirt-color">Cor da Camisa
+            <select id="shirt-color" name="shirt_color" data-shirt-color>
+              <option value="Preta">Preta</option>
+              <option value="Branca">Branca</option>
+            </select>
+          </label>
+          <label for="shirt-size">Tamanho
+            <select id="shirt-size" name="shirt_size" data-shirt-size>
+              <option value="P">P</option>
+              <option value="M" selected>M</option>
+              <option value="G">G</option>
+              <option value="GG">GG</option>
+            </select>
+          </label>
+          <label for="shirt-quantity">Quantidade
+            <input id="shirt-quantity" type="number" inputmode="numeric" min="1" step="1" name="shirt_quantity" data-shirt-quantity value="1" placeholder="Ex.: 5">
+          </label>
+          <button class="btn btn-primary" type="button" data-add-shirt-btn style="height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
+            <i class="fa-solid fa-plus"></i> Inserir Camisa
+          </button>
         </div>
-        <p class="calculator-note"><i class="fa-solid fa-circle-info" aria-hidden="true"></i> Espaçamento de 1 cm entre as artes. O valor final do pedido continua editável.</p>
-      </section>
-    {% endif %}
+      </div>
+
+      <!-- 3. Aba Serviços Extras -->
+      <div class="catalog-tab-content" id="tab-services" style="display: none;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-bottom: 12px;">
+          <label class="calculator-material-option">
+            <input type="radio" name="extra_service_model" value="ajuste_preparacao_arquivo" checked>
+            <span>
+              <strong>Ajustes e preparação de arquivo</strong>
+              <small>R$ 20,00 por serviço</small>
+            </span>
+          </label>
+          <label class="calculator-material-option">
+            <input type="radio" name="extra_service_model" value="formato_halftone">
+            <span>
+              <strong>Formato de Halftone</strong>
+              <small>R$ 10,00 por serviço</small>
+            </span>
+          </label>
+        </div>
+
+        <div class="calculator-inputs" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; align-items: flex-end;">
+          <label for="service-quantity">Quantidade do Serviço
+            <input id="service-quantity" type="number" inputmode="numeric" min="1" step="1" name="service_quantity" data-service-quantity value="1" placeholder="Ex.: 1">
+          </label>
+          <button class="btn btn-primary" type="button" data-add-service-btn style="height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
+            <i class="fa-solid fa-plus"></i> Inserir Serviço
+          </button>
+        </div>
+      </div>
+
+      <!-- Carrinho Multi-Itens -->
+      <div class="cart-items-container" style="margin-top: 20px; background: rgba(0,0,0,0.25); border-radius: 8px; padding: 14px; border: 1px solid var(--border-color, rgba(255,255,255,0.08));">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+          <h4 style="margin: 0; font-size: 0.95rem; display: flex; align-items: center; gap: 8px;">
+            <i class="fa-solid fa-cart-shopping" style="color: #10b981;"></i> Itens do Pedido (<span data-cart-count>0</span>)
+          </h4>
+          <span style="font-weight: 700; color: #10b981; font-size: 1.1rem;" data-cart-total-badge>R$ 0,00</span>
+        </div>
+
+        <div class="table-wrap">
+          <table class="data-table cart-table" style="width: 100%; font-size: 0.88rem;">
+            <thead>
+              <tr>
+                <th>Item / Especificação</th>
+                <th>Qtd / Medida</th>
+                <th>Preço Unit.</th>
+                <th>Subtotal</th>
+                <th style="width: 44px; text-align: center;">Ação</th>
+              </tr>
+            </thead>
+            <tbody data-cart-tbody>
+              <tr class="empty-cart-row">
+                <td colspan="5" style="text-align: center; color: var(--muted, #9ca3af); padding: 16px;">
+                  Nenhum item adicionado ainda. Escolha no catálogo acima e clique para inserir.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <p class="calculator-note" style="margin-top: 12px;">
+        <i class="fa-solid fa-circle-info" aria-hidden="true"></i> Os itens no carrinho compõem o valor total e a descrição do pedido automaticamente. O valor final continua editável antes de salvar.
+      </p>
+    </section>
 
     <div class="form-grid order-details-fields">
       {% include "includes/form_field.html" with field=form.description full=True %}
@@ -87,15 +202,18 @@
       {% include "includes/form_field.html" with field=form.paid_amount %}
       {% include "includes/form_field.html" with field=form.payment_method %}
       {% include "includes/form_field.html" with field=form.due_at %}
+      {% include "includes/form_field.html" with field=form.shift %}
       {% include "includes/form_field.html" with field=form.priority %}
       {% include "includes/form_field.html" with field=form.responsible %}
       {% include "includes/form_field.html" with field=form.internal_notes full=True %}
     </div>
+
     <label class="full" for="id_attachments" style="margin-top: 16px;">
       <span>{% if object %}Adicionar novos arquivos / comprovantes{% else %}Arquivos da arte e comprovantes{% endif %}</span>
       <input id="id_attachments" type="file" name="attachments" multiple accept=".pdf,.png,.jpg,.jpeg,.webp,.svg,.cdr,.ai,.eps,.psd,.tiff,.zip">
       <span class="help">PDF, imagens (PNG, JPG, WEBP), SVG, CDR, AI, EPS, PSD, TIFF ou ZIP. Máximo de 25 MB por arquivo.</span>
     </label>
+
     <div class="form-actions">
       {% if object %}
         <a class="btn btn-secondary" href="{% url 'production:detail' pk=object.pk %}">Cancelar</a>
@@ -106,8 +224,13 @@
     </div>
   </form>
 </div>
+
+{% if existing_items %}
+  {{ existing_items|json_script:"existing-order-items" }}
+{% endif %}
 {% endblock %}
 
 {% block extra_scripts %}
-  {% if calculator_materials %}<script src="{% static 'js/order-calculator.js' %}" defer></script>{% endif %}
+  <script src="{% static 'js/order-calculator.js' %}" defer></script>
 {% endblock %}
+

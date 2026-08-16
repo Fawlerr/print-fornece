@@ -40,15 +40,38 @@
         <p>{{ order.internal_notes|linebreaksbr }}</p>
       {% endif %}
       {% if order.items.all %}
-        <div class="section-heading"><h2>Itens do orçamento</h2></div>
+        <div class="section-heading"><h2>Itens do Pedido</h2></div>
         <div class="order-item-list">
           {% for item in order.items.all %}
-            <div class="order-item-row">
+            <div class="order-item-row" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border-color, rgba(255,255,255,0.06));">
               <div>
-                <strong>{{ item.material_name }}</strong>
-                <small>{{ item.billing_quantity|floatformat:2 }} {{ item.billing_unit }} · {{ item.pricing_rule }}</small>
+                <strong>
+                  {% if item.kind == "produto" %}
+                    <i class="fa-solid fa-shirt" style="color: #38bdf8; margin-right: 4px;"></i>
+                  {% elif item.kind == "servico" %}
+                    <i class="fa-solid fa-wand-magic-sparkles" style="color: #fbbf24; margin-right: 4px;"></i>
+                  {% elif item.kind == "ajuste" %}
+                    <i class="fa-solid fa-sliders" style="color: #9ca3af; margin-right: 4px;"></i>
+                  {% else %}
+                    <i class="fa-solid fa-print" style="color: #34d399; margin-right: 4px;"></i>
+                  {% endif %}
+                  {{ item.material_name }}
+                </strong>
+                <small style="display: block; color: var(--muted, #9ca3af); font-size: 0.8rem; margin-top: 2px;">
+                  {% if item.kind == "produto" %}
+                    {{ item.billing_quantity|floatformat:0 }} un · Cor: <b>{{ item.product_color|default:"Padrão" }}</b> · Tam: <b>{{ item.product_size|default:"M" }}</b> · {{ item.pricing_rule }}
+                  {% elif item.kind == "material" %}
+                    {% if item.art_width_cm and item.art_height_cm %}
+                      {{ item.art_width_cm|floatformat:1 }}x{{ item.art_height_cm|floatformat:1 }} cm ({{ item.art_quantity }} un) · {{ item.billing_quantity|floatformat:2 }}m · {{ item.pricing_rule }}
+                    {% else %}
+                      {{ item.billing_quantity|floatformat:2 }} {{ item.billing_unit }} · {{ item.pricing_rule }}
+                    {% endif %}
+                  {% else %}
+                    {{ item.calculation_detail|default:item.pricing_rule }}
+                  {% endif %}
+                </small>
               </div>
-              <strong>R$ {{ item.line_total|floatformat:2 }}</strong>
+              <strong style="white-space: nowrap; color: #10b981;">R$ {{ item.line_total|floatformat:2 }}</strong>
             </div>
           {% endfor %}
         </div>
@@ -104,24 +127,49 @@
         {% endif %}
       </div>
 
-      <!-- Envio de Orçamento WhatsApp -->
+      <!-- Disparos de WhatsApp (3 Estágios do Funil) -->
       <div style="border-top: 1px solid var(--line, rgba(255,255,255,0.1)); padding-top: 16px;">
         <div class="section-heading" style="margin-bottom: 8px;">
           <h3 style="font-size: 1rem; margin: 0; display: flex; align-items: center; gap: 8px;">
-            <i class="fa-brands fa-whatsapp" style="color: #25D366; font-size: 1.15rem;"></i> Envio de Orçamento (WhatsApp)
+            <i class="fa-brands fa-whatsapp" style="color: #25D366; font-size: 1.15rem;"></i> Notificações WhatsApp
           </h3>
         </div>
-        <p class="text-muted" style="font-size: 0.85rem; line-height: 1.4; margin-bottom: 12px;">Envie o link de aprovação e visualização do pedido diretamente para o WhatsApp do cliente.</p>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;">
-          <a href="{{ whatsapp_share_url }}" target="_blank" class="btn btn-primary" style="background-color: #25D366; border-color: #25D366; color: #fff; height: 42px; display: inline-flex; align-items: center; justify-content: center; gap: 8px;">
-            <i class="fa-brands fa-whatsapp"></i> Enviar pelo WhatsApp
-          </a>
-          <a href="{% url 'orders:art_preview' pk=order.pk %}" target="_blank" class="btn btn-secondary" style="height: 42px; display: inline-flex; align-items: center; justify-content: center; gap: 8px;">
-            <i class="fa-solid fa-image"></i> Visualizar Arte
-          </a>
+        <p class="text-muted" style="font-size: 0.85rem; line-height: 1.4; margin-bottom: 12px;">Dispare as mensagens prontas para cada etapa do funil do cliente:</p>
+
+        <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px;">
+          <!-- 1. Orçamento Completo -->
+          <div style="display: flex; gap: 6px; align-items: center;">
+            <a href="{{ whatsapp_links.quote_url }}" target="_blank" class="btn btn-primary" style="flex: 1; background-color: #25D366; border-color: #25D366; color: #fff; height: 38px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-size: 0.88rem;">
+              <i class="fa-brands fa-whatsapp"></i> 1. Enviar Orçamento Completo
+            </a>
+            <button type="button" class="btn btn-secondary btn-small" onclick="copyToClipboard('{{ whatsapp_links.quote_message|escapejs }}', this)" title="Copiar texto do orçamento" style="height: 38px;">
+              <i class="fa-solid fa-copy"></i>
+            </button>
+          </div>
+
+          <!-- 2. Pronto para Retirada -->
+          <div style="display: flex; gap: 6px; align-items: center;">
+            <a href="{{ whatsapp_links.ready_url }}" target="_blank" class="btn btn-secondary" style="flex: 1; height: 38px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-size: 0.88rem; border-color: #38bdf8; color: #38bdf8;">
+              <i class="fa-brands fa-whatsapp"></i> 2. Avisar: Pronto para Retirada
+            </a>
+            <button type="button" class="btn btn-secondary btn-small" onclick="copyToClipboard('{{ whatsapp_links.ready_message|escapejs }}', this)" title="Copiar texto de retirada" style="height: 38px;">
+              <i class="fa-solid fa-copy"></i>
+            </button>
+          </div>
+
+          <!-- 3. Material Entregue -->
+          <div style="display: flex; gap: 6px; align-items: center;">
+            <a href="{{ whatsapp_links.delivered_url }}" target="_blank" class="btn btn-secondary" style="flex: 1; height: 38px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-size: 0.88rem; border-color: #10b981; color: #10b981;">
+              <i class="fa-brands fa-whatsapp"></i> 3. Avisar: Material Entregue
+            </a>
+            <button type="button" class="btn btn-secondary btn-small" onclick="copyToClipboard('{{ whatsapp_links.delivered_message|escapejs }}', this)" title="Copiar texto de entrega" style="height: 38px;">
+              <i class="fa-solid fa-copy"></i>
+            </button>
+          </div>
         </div>
+
         <div style="padding: 8px 12px; background: rgba(255,255,255,0.03); border-radius: 6px; font-size: 0.8rem; word-break: break-all; color: var(--muted, #9ca3af);">
-          Link do cliente: <a href="{{ public_quote_url }}" target="_blank" style="color: #86efac; text-decoration: underline;">{{ public_quote_url }}</a>
+          Link público do orçamento: <a href="{{ public_quote_url }}" target="_blank" style="color: #86efac; text-decoration: underline;">{{ public_quote_url }}</a>
         </div>
       </div>
 
@@ -135,8 +183,8 @@
         <h2 style="margin: 0;">Visualização da Arte</h2>
         <span class="text-muted" style="font-size: 0.85rem;"><i class="fa-solid fa-shield-halved"></i> Marca d'água</span>
       </div>
-      <div style="background-color: #e2e8f0; border-radius: 8px; padding: 14px; text-align: center; position: relative; min-height: 280px; display: flex; align-items: center; justify-content: center;">
-        <img id="detail-art-preview-img" src="{% url 'orders:art_preview' pk=order.pk %}" alt="Visualização da Arte" style="max-width: 100%; max-height: 420px; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); transition: opacity 0.2s;" />
+      <div style="background-color: #1e293b; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 14px; text-align: center; position: relative; min-height: 280px; display: flex; align-items: center; justify-content: center;">
+        <img id="detail-art-preview-img" src="{% url 'orders:art_preview' pk=order.pk %}" alt="Visualização da Arte" style="max-width: 100%; max-height: 420px; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); transition: opacity 0.2s;" />
       </div>
 
       {% if order.attachments.all|length > 1 %}
@@ -240,6 +288,24 @@
 
 {% block extra_scripts %}
 <script>
+  function copyToClipboard(text, btn) {
+    if (!navigator.clipboard) {
+      const textarea = document.createElement("textarea");
+      textarea.value = text;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textarea);
+    } else {
+      navigator.clipboard.writeText(text);
+    }
+    if (btn) {
+      const originalHtml = btn.innerHTML;
+      btn.innerHTML = '<i class="fa-solid fa-check" style="color: #10b981;"></i>';
+      setTimeout(() => { btn.innerHTML = originalHtml; }, 2000);
+    }
+  }
+
   function switchDetailPreview(url, btn) {
     const img = document.getElementById('detail-art-preview-img');
     const link = document.getElementById('detail-art-fullscreen-link');

@@ -19,6 +19,8 @@ from apps.orders.models import Order, OrderAttachment, OrderHistory, OrderItem, 
 from apps.orders.services import add_note as create_note
 from apps.orders.services import remove_attachment as soft_remove_attachment
 from apps.orders.services import require_order_access
+from apps.notifications.whatsapp import get_whatsapp_share_links
+from .capacity import get_daily_capacity_overview, evaluate_order_capacity
 
 from .services import cancel_order, finish_order, move_order_stage, restore_order
 
@@ -37,7 +39,10 @@ class KanbanView(LoginRequiredMixin, TemplateView):
             Order.Stage.PRODUCTION,
             Order.Stage.READY,
         ]
-        orders = Order.objects.filter(stage__in=active_stages_list).select_related("responsible").annotate(
+        orders = Order.objects.filter(stage__in=active_stages_list).select_related("responsible").prefetch_related(
+            Prefetch("attachments", queryset=OrderAttachment.objects.filter(removed_at__isnull=True)),
+            Prefetch("items", queryset=OrderItem.objects.all()),
+        ).annotate(
             attachment_count=Count("attachments", filter=Q(attachments__removed_at__isnull=True))
         )
         if form.is_valid():
@@ -80,6 +85,7 @@ class KanbanView(LoginRequiredMixin, TemplateView):
             "kanban_columns": kanban_columns,
             "stage_choices": Order.Stage.choices,
             "active_users": User.objects.filter(is_active=True).only("id", "name").order_by("name"),
+            "daily_capacity": get_daily_capacity_overview(),
         })
         return context
 
@@ -102,7 +108,6 @@ class OrderDetailView(LoginRequiredMixin, DetailView):
         return order
 
     def get_context_data(self, **kwargs):
-        import urllib.parse
         context = super().get_context_data(**kwargs)
         context["note_form"] = OrderNoteForm()
         context["active_stages"] = [
@@ -116,12 +121,12 @@ class OrderDetailView(LoginRequiredMixin, DetailView):
         order = self.object
         host = self.request.build_absolute_uri('/')[:-1]
         quote_url = f"{host}{reverse('orders:public_quote', kwargs={'token': order.quote_token})}"
-        clean_phone = "".join(filter(str.isdigit, order.client_whatsapp or ""))
-        if clean_phone and not clean_phone.startswith("55") and len(clean_phone) in (10, 11):
-            clean_phone = f"55{clean_phone}"
-        message = f"Olá {order.client_name}! Segue seu orçamento para o pedido #{order.number}:\n\nValor: R$ {order.total_amount:.2f}\n\nAcesse o link abaixo para visualizar a arte e aprovar seu orçamento:\n{quote_url}"
-        context["whatsapp_share_url"] = f"https://wa.me/{clean_phone}?text={urllib.parse.quote(message)}" if clean_phone else "#"
+        
+        wa_links = get_whatsapp_share_links(order, host=host)
+        context["whatsapp_links"] = wa_links
+        context["whatsapp_share_url"] = wa_links["quote_url"]
         context["public_quote_url"] = quote_url
+        context["capacity_warnings"] = evaluate_order_capacity(order=order)
         return context
 
 

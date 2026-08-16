@@ -16,6 +16,10 @@ def attachment_upload_path(instance: "OrderAttachment", filename: str) -> str:
 
 
 class Order(models.Model):
+    class Shift(models.TextChoices):
+        MORNING = "manha", "Manhã"
+        AFTERNOON = "tarde", "Tarde"
+
     class PaymentStatus(models.TextChoices):
         UNPAID = "nao_pago", "Não pago"
         PARTIAL = "parcial", "Parcialmente pago"
@@ -68,6 +72,7 @@ class Order(models.Model):
     receipt_payment_method = models.CharField("forma de pagamento no comprovante", max_length=20, blank=True)
     receipt_generated_at = models.DateTimeField("comprovante gerado em", null=True, blank=True)
     due_at = models.DateTimeField("entrega prevista", null=True, blank=True)
+    shift = models.CharField("turno de produção", max_length=10, choices=Shift.choices, default=Shift.MORNING, blank=True)
     priority = models.CharField(max_length=10, choices=Priority.choices, default=Priority.NORMAL)
     internal_notes = models.TextField("observações internas", blank=True)
     stage = models.CharField(max_length=30, choices=Stage.choices, default=Stage.NEW)
@@ -89,6 +94,7 @@ class Order(models.Model):
             models.Index(fields=["created_at"], name="pf_order_created"),
             models.Index(fields=["responsible"], name="pf_order_responsible"),
             models.Index(fields=["due_at"], name="pf_order_due"),
+            models.Index(fields=["shift"], name="pf_order_shift"),
             models.Index(fields=["stage", "due_at"], name="pf_order_stage_due"),
             models.Index(fields=["stage", "stage_updated_at"], name="pf_order_stage_move"),
         ]
@@ -114,6 +120,14 @@ class Order(models.Model):
     @property
     def is_late(self) -> bool:
         return bool(self.due_at and self.due_at < timezone.now() and self.is_active_stage)
+
+    @property
+    def primary_attachment(self) -> OrderAttachment | None:
+        attachments = getattr(self, "_prefetched_objects_cache", {}).get("attachments")
+        if attachments is not None:
+            active = [a for a in attachments if getattr(a, "removed_at", None) is None]
+            return active[0] if active else None
+        return self.attachments.filter(removed_at__isnull=True).order_by("pk").first()
 
 
 class OrderAttachment(models.Model):
@@ -141,15 +155,12 @@ class OrderAttachment(models.Model):
 
 
 class OrderItem(models.Model):
-    """Historical item rows used by the calculator and the sales receipt.
-
-    The table shape intentionally matches the pre-existing calculator snapshot
-    table found in deployed databases.  This lets the new implementation reuse
-    those records instead of replacing or losing them.
-    """
+    """Historical item rows used by the calculator and the sales receipt."""
 
     class Kind(models.TextChoices):
-        MATERIAL = "material", "Material"
+        MATERIAL = "material", "Material / DTF"
+        PRODUCT = "produto", "Produto / Camisa"
+        SERVICE = "servico", "Serviço Extra"
         ADJUSTMENT = "ajuste", "Ajuste"
 
     order = models.ForeignKey(Order, on_delete=models.PROTECT, related_name="items")
@@ -158,6 +169,8 @@ class OrderItem(models.Model):
     material_code = models.CharField(max_length=60)
     material_name = models.CharField(max_length=160)
     category = models.CharField(max_length=100)
+    product_color = models.CharField("cor do produto", max_length=40, blank=True)
+    product_size = models.CharField("tamanho do produto", max_length=10, blank=True)
     film_width_cm = models.PositiveSmallIntegerField(null=True, blank=True)
     art_width_cm = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
     art_height_cm = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)

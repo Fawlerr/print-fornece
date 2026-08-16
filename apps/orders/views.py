@@ -15,9 +15,16 @@ from apps.notifications.services import notify_role
 from apps.audit.services import record_audit
 
 from .art_preview import generate_art_preview_image
-from .calculator import CalculatorValidationError, calculate_quote, material_catalogue
+from .calculator import (
+    CalculatorValidationError,
+    calculate_quote,
+    calculate_shirt_quote,
+    calculate_service_quote,
+    material_catalogue,
+    full_catalogue,
+)
 from .forms import OrderForm
-from .models import Order, OrderAttachment, OrderHistory, OrderStageHistory
+from .models import Order, OrderAttachment, OrderHistory, OrderItem, OrderStageHistory
 from .pdf import generate_order_receipt_pdf
 from .services import create_order, require_order_access, update_order
 
@@ -34,6 +41,7 @@ class OrderCreateView(LoginRequiredMixin, CreateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["calculator_materials"] = material_catalogue()
+        context["catalogue"] = full_catalogue()
         context["calculator_endpoint"] = reverse("orders:calculate_quote")
         return context
 
@@ -56,13 +64,11 @@ class OrderUpdateView(LoginRequiredMixin, UpdateView):
     model = Order
 
     def get_queryset(self):
-        return Order.objects.select_related("responsible", "created_by")
+        return Order.objects.select_related("responsible", "created_by").prefetch_related("items")
 
     def get_object(self, queryset=None):
         order = super().get_object(queryset)
         require_order_access(self.request.user, order)
-        # ModelForm validation writes cleaned values onto this instance before
-        # form_valid() runs, so retain the persisted state for payment history.
         self._previous_order_state = {
             "payment_status": order.payment_status,
             "paid_amount": str(order.paid_amount),
@@ -74,6 +80,29 @@ class OrderUpdateView(LoginRequiredMixin, UpdateView):
         kwargs = super().get_form_kwargs()
         kwargs["user"] = self.request.user
         return kwargs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["calculator_materials"] = material_catalogue()
+        context["catalogue"] = full_catalogue()
+        context["calculator_endpoint"] = reverse("orders:calculate_quote")
+        if self.object and self.object.pk:
+            context["existing_items"] = [
+                item.calculation_snapshot or {
+                    "kind": item.kind,
+                    "material_code": item.material_code,
+                    "material_name": item.material_name,
+                    "product_color": item.product_color,
+                    "product_size": item.product_size,
+                    "art_width_cm": str(item.art_width_cm or ""),
+                    "art_height_cm": str(item.art_height_cm or ""),
+                    "quantity": item.art_quantity or int(item.billing_quantity),
+                    "unit_price": str(item.unit_price),
+                    "total": str(item.line_total),
+                }
+                for item in self.object.items.filter(kind__in=[OrderItem.Kind.MATERIAL, OrderItem.Kind.PRODUCT, OrderItem.Kind.SERVICE])
+            ]
+        return context
 
     def form_valid(self, form):
         try:
@@ -104,6 +133,21 @@ def download_attachment(request, order_pk: int, pk: int):
     return response
 
 
+def download_primary_attachment(request, pk: int):
+    """Direct fast download of an order's artwork attachment for Kanban and tables."""
+    if not request.user.is_authenticated:
+        return redirect(f"{reverse('accounts:login')}?next={request.get_full_path()}")
+    order = get_object_or_404(Order, pk=pk)
+    require_order_access(request.user, order)
+    attachment = order.attachments.filter(removed_at__isnull=True).order_by("pk").first()
+    if not attachment or not attachment.file:
+        messages.error(request, f"O pedido #{order.number} não possui arquivo de arte anexado.")
+        return redirect("production:detail", pk=pk)
+    response = FileResponse(attachment.file.open("rb"), as_attachment=True, filename=attachment.original_name)
+    response["X-Content-Type-Options"] = "nosniff"
+    return response
+
+
 def download_receipt_pdf(request, pk: int):
     """Generate an order receipt/voucher PDF."""
     order = get_object_or_404(
@@ -126,7 +170,7 @@ def download_receipt_pdf(request, pk: int):
 
 
 def calculate_order_quote(request):
-    """Return an authenticated, server-authoritative calculator result."""
+    """Return an authenticated, server-authoritative calculator result for DTF, shirts, or services."""
     if not request.user.is_authenticated:
         return JsonResponse({"message": "Autenticação necessária."}, status=403)
     if request.method != "POST":
@@ -137,15 +181,35 @@ def calculate_order_quote(request):
         return JsonResponse({"message": "Dados do orçamento inválidos."}, status=400)
     if not isinstance(payload, dict):
         return JsonResponse({"message": "Dados do orçamento inválidos."}, status=400)
+
+    kind = payload.get("kind") or payload.get("type")
+    mat_code = str(payload.get("material_code") or payload.get("code") or "")
+
     try:
-        quote = calculate_quote(
-            material_code=str(payload.get("material_code", "")),
-            width_cm=payload.get("width_cm"),
-            height_cm=payload.get("height_cm"),
-            quantity=payload.get("quantity"),
-        )
+        if kind == "produto" or mat_code.startswith("camisa_"):
+            shirt_code = str(payload.get("shirt_code") or mat_code)
+            quote = calculate_shirt_quote(
+                shirt_code=shirt_code,
+                color=str(payload.get("color") or payload.get("product_color", "Preta")),
+                size=str(payload.get("size") or payload.get("product_size", "M")),
+                quantity=payload.get("quantity", 1),
+            )
+        elif kind == "servico" or mat_code in ("ajuste_preparacao_arquivo", "formato_halftone"):
+            service_code = str(payload.get("service_code") or mat_code)
+            quote = calculate_service_quote(
+                service_code=service_code,
+                quantity=payload.get("quantity", 1),
+            )
+        else:
+            quote = calculate_quote(
+                material_code=mat_code or "dtf_textil",
+                width_cm=payload.get("width_cm"),
+                height_cm=payload.get("height_cm"),
+                quantity=payload.get("quantity"),
+            )
     except CalculatorValidationError as exc:
         return JsonResponse({"message": str(exc)}, status=422)
+
     return JsonResponse({"ok": True, "quote": quote.payload()})
 
 
