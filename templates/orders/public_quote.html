@@ -34,9 +34,9 @@
       {% if order.items.all %}
         <div style="margin-top: 16px;">
           <h4 style="font-size: 0.95rem; margin-bottom: 8px; color: var(--muted, #9ca3af);">Itens do Pedido:</h4>
-          <div style="background: var(--bg-surface-elevated, #f8f9fa); border-radius: 8px; padding: 12px;">
+          <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 16px;">
             {% for item in order.items.all %}
-              <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid rgba(0,0,0,0.06); font-size: 0.9rem;">
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.08); font-size: 0.92rem; color: #e2e8f0;">
                 <div>
                   <strong>
                     {% if item.kind == "produto" %}👕
@@ -46,7 +46,7 @@
                     {% endif %}
                     {{ item.material_name }}
                   </strong>
-                  <small style="display: block; color: var(--muted, #64748b); font-size: 0.78rem;">
+                  <small style="display: block; color: #94a3b8; font-size: 0.82rem; margin-top: 2px;">
                     {% if item.kind == "produto" %}
                       {{ item.billing_quantity|floatformat:0 }} un · Cor: {{ item.product_color|default:"Padrão" }} · Tam: {{ item.product_size|default:"M" }}
                     {% elif item.kind == "material" and item.art_width_cm %}
@@ -56,14 +56,14 @@
                     {% endif %}
                   </small>
                 </div>
-                <strong style="color: var(--color-success, #10b981);">R$ {{ item.line_total|floatformat:2 }}</strong>
+                <strong style="color: #10b981; font-size: 1rem; white-space: nowrap; margin-left: 12px;">R$ {{ item.line_total|floatformat:2 }}</strong>
               </div>
             {% endfor %}
           </div>
         </div>
       {% endif %}
 
-      <div style="margin-top: 16px; background: var(--bg-surface-elevated, #f8f9fa); padding: 16px; border-radius: 8px;">
+      <div style="margin-top: 16px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); padding: 18px; border-radius: 10px; color: #e2e8f0;">
         <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
           <span>Valor Total:</span>
           <strong style="font-size: 1.25rem; color: var(--color-success, #10b981);">R$ {{ order.total_amount|floatformat:2 }}</strong>
