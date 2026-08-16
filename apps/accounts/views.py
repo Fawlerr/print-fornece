@@ -59,7 +59,7 @@ class LoginView(FormView):
             return self.form_invalid(form)
         response = super().post(request, *args, **kwargs)
         if response.status_code == 200:
-            cache.set(key, attempts + 1, settings.LOGIN_RATE_LIMIT_SECONDS)
+            cache.set(key, attempts + 1, getattr(settings, "LOGIN_RATE_LIMIT_WINDOW_SECONDS", getattr(settings, "LOGIN_RATE_LIMIT_SECONDS", 300)))
         return response
 
     def form_valid(self, form):
