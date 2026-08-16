@@ -18,6 +18,7 @@ urlpatterns = [
     path("reports/", include("apps.reports.urls")),
     path("notifications/", include("apps.notifications.urls")),
     path("payments/", include("apps.payments.urls")),
+    path("bug-reports/", include("apps.bug_reports.urls")),
 ]
 
 handler400 = "config.views.error_400"

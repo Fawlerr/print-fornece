@@ -287,18 +287,63 @@
     });
   }
 
-  // Initialize existing items on edit
+  // Initialize existing items from JSON script or hidden payload
+  let loadedItems = [];
   const existingEl = document.getElementById("existing-order-items");
   if (existingEl) {
     try {
-      const initialItems = JSON.parse(existingEl.textContent || "[]");
-      if (Array.isArray(initialItems) && initialItems.length > 0) {
-        cartItems = initialItems;
-        renderCart();
+      const parsed = JSON.parse(existingEl.textContent || "[]");
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        loadedItems = parsed;
       }
-    } catch (_e) {
-      // ignore JSON parse error on empty
-    }
+    } catch (_e) {}
+  }
+  if (loadedItems.length === 0 && calculationPayload && calculationPayload.value) {
+    try {
+      const parsedPayload = JSON.parse(calculationPayload.value);
+      if (Array.isArray(parsedPayload)) {
+        loadedItems = parsedPayload;
+      } else if (parsedPayload && Array.isArray(parsedPayload.items)) {
+        loadedItems = parsedPayload.items;
+      }
+    } catch (_e) {}
+  }
+  if (loadedItems.length > 0) {
+    cartItems = loadedItems;
+    renderCart();
+  }
+
+  // Intercept form submit to auto-add filled DTF inputs if cart was empty
+  const orderForm = calculator.closest("form");
+  if (orderForm) {
+    orderForm.addEventListener("submit", async (e) => {
+      if (cartItems.length === 0 && dtfWidthInput && dtfHeightInput) {
+        const width = dtfWidthInput.value.trim();
+        const height = dtfHeightInput.value.trim();
+        const qty = (dtfQuantityInput && dtfQuantityInput.value.trim()) || "1";
+        if (width && height && parseFloat(width) > 0 && parseFloat(height) > 0) {
+          e.preventDefault();
+          const selectedMat = calculator.querySelector("input[name='calculator_material']:checked")?.value || "dtf_textil";
+          setStatus("Calculando item DTF antes de salvar…");
+          const quote = await calculateItem({
+            kind: "material",
+            material_code: selectedMat,
+            width_cm: width,
+            height_cm: height,
+            quantity: qty,
+          });
+          if (quote) {
+            cartItems.push(quote);
+            renderCart();
+          }
+          orderForm.submit();
+          return;
+        }
+      }
+      if (calculationPayload && cartItems.length > 0) {
+        calculationPayload.value = JSON.stringify({ items: cartItems });
+      }
+    });
   }
 })();
 

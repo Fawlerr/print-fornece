@@ -50,7 +50,7 @@ class Order(models.Model):
     quote_token = models.CharField("token do orçamento", max_length=64, default=uuid.uuid4, db_index=True, editable=False)
     client_name = models.CharField("nome do cliente", max_length=150)
     client_whatsapp = models.CharField("WhatsApp do cliente", max_length=25)
-    description = models.TextField("descrição")
+    description = models.TextField("descrição", blank=True, default="")
     total_amount = models.DecimalField("valor total", max_digits=12, decimal_places=2)
     payment_status = models.CharField(max_length=15, choices=PaymentStatus.choices, default=PaymentStatus.UNPAID)
     paid_amount = models.DecimalField("valor pago", max_digits=12, decimal_places=2, default=0)

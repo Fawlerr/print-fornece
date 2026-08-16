@@ -43,6 +43,17 @@ class OrderCreateView(LoginRequiredMixin, CreateView):
         context["calculator_materials"] = material_catalogue()
         context["catalogue"] = full_catalogue()
         context["calculator_endpoint"] = reverse("orders:calculate_quote")
+        existing_items = []
+        if self.request.POST.get("calculation_payload"):
+            try:
+                posted_data = json.loads(self.request.POST.get("calculation_payload"))
+                if isinstance(posted_data, dict) and "items" in posted_data:
+                    existing_items = posted_data["items"]
+                elif isinstance(posted_data, list):
+                    existing_items = posted_data
+            except Exception:
+                pass
+        context["existing_items"] = existing_items
         return context
 
     def form_valid(self, form):
@@ -86,8 +97,18 @@ class OrderUpdateView(LoginRequiredMixin, UpdateView):
         context["calculator_materials"] = material_catalogue()
         context["catalogue"] = full_catalogue()
         context["calculator_endpoint"] = reverse("orders:calculate_quote")
-        if self.object and self.object.pk:
-            context["existing_items"] = [
+        existing_items = []
+        if self.request.POST.get("calculation_payload"):
+            try:
+                posted_data = json.loads(self.request.POST.get("calculation_payload"))
+                if isinstance(posted_data, dict) and "items" in posted_data:
+                    existing_items = posted_data["items"]
+                elif isinstance(posted_data, list):
+                    existing_items = posted_data
+            except Exception:
+                pass
+        if not existing_items and self.object and self.object.pk:
+            existing_items = [
                 item.calculation_snapshot or {
                     "kind": item.kind,
                     "material_code": item.material_code,
@@ -102,6 +123,7 @@ class OrderUpdateView(LoginRequiredMixin, UpdateView):
                 }
                 for item in self.object.items.filter(kind__in=[OrderItem.Kind.MATERIAL, OrderItem.Kind.PRODUCT, OrderItem.Kind.SERVICE])
             ]
+        context["existing_items"] = existing_items
         return context
 
     def form_valid(self, form):

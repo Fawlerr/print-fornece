@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}Editar Relato #{{ object.pk }}{% endblock %}
+{% block page_heading %}Editar Relato de Bug #{{ object.pk }}{% endblock %}
+
+{% block content %}
+<div class="page-container" style="max-width: 600px; margin: 0 auto; padding: 20px 16px;">
+  <div class="card" style="background: var(--surface, #1e293b); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 24px;">
+    <h2 style="margin: 0 0 16px 0; font-size: 1.2rem; color: #f8fafc; font-weight: 600;">
+      <i class="fa-solid fa-pen-to-square" style="color: #38bdf8; margin-right: 6px;"></i> Editar Relato #{{ object.pk }}
+    </h2>
+
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      
+      <div style="margin-bottom: 14px;">
+        <label style="display: block; font-size: 0.8rem; color: #94a3b8; margin-bottom: 4px;">Tela / Rota onde ocorreu:</label>
+        {{ form.current_url }}
+      </div>
+
+      <div style="margin-bottom: 14px;">
+        <label style="display: block; font-size: 0.84rem; color: #f8fafc; margin-bottom: 6px; font-weight: 500;">Relato detalhado do problema:</label>
+        {{ form.description }}
+        {% if form.description.errors %}
+          <div style="color: #f87171; font-size: 0.8rem; margin-top: 4px;">{{ form.description.errors }}</div>
+        {% endif %}
+      </div>
+
+      <div style="margin-bottom: 20px;">
+        <label style="display: block; font-size: 0.84rem; color: #f8fafc; margin-bottom: 6px; font-weight: 500;">Substituir Print / Captura de tela:</label>
+        {{ form.screenshot }}
+        {% if object.screenshot %}
+          <small style="display: block; color: #94a3b8; margin-top: 4px;">Print atual: <a href="{{ object.screenshot.url }}" target="_blank" style="color: #38bdf8;">Visualizar</a></small>
+        {% endif %}
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 16px;">
+        <a href="{% url 'bug_reports:detail' pk=object.pk %}" class="btn btn-secondary">Cancelar</a>
+        <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

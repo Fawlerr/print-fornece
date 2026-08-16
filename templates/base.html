@@ -43,7 +43,12 @@
             <p>{% if user.is_authenticated %}{{ user.name|default:user.email }} · {% if user.is_dev %}Desenvolvedor{% elif user.is_administrator %}Administrador{% else %}Funcionário{% endif %}{% else %}Acesso Público{% endif %}</p>
           </div>
           
-          <div class="topbar-actions">
+            <!-- Botão de Reportar Bug -->
+            <button class="topbar-bug-btn" type="button" data-open-bug-report title="Reportar um bug ou problema" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 8px; background: rgba(239, 68, 68, 0.12); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); font-size: 0.82rem; font-weight: 600; cursor: pointer; transition: all 0.2s ease;">
+              <i class="fa-solid fa-bug" aria-hidden="true"></i>
+              <span class="desktop-only">Reportar Bug</span>
+            </button>
+
             <!-- Botão de Instalação do WebApp PWA -->
             <button class="pwa-install-btn" id="pwa-install-btn" type="button" style="display: none;" title="Instalar aplicativo Print Fornece no dispositivo">
               <i class="fa-solid fa-mobile-screen-button" aria-hidden="true"></i>
@@ -164,6 +169,9 @@
         </div>
       </div>
     </div>
+    {% if user.is_authenticated %}
+      {% include "bug_reports/_modal.html" %}
+    {% endif %}
   {% endblock %}
 
   <script src="{% static 'js/app.js' %}" defer></script>

@@ -1,0 +1,152 @@
+<div class="modal-backdrop" id="bugReportModal" style="display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.75); z-index: 9999; backdrop-filter: blur(4px); align-items: center; justify-content: center; padding: 16px;">
+  <div class="modal-box" style="background: var(--surface, #1e293b); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 12px; max-width: 540px; width: 100%; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5); overflow: hidden; animation: modalFadeIn 0.2s ease-out;">
+    <div style="padding: 16px 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); display: flex; align-items: center; justify-content: space-between; background: rgba(15, 23, 42, 0.6);">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 8px; background: rgba(239, 68, 68, 0.15); color: #f87171; font-size: 1rem;">
+          <i class="fa-solid fa-bug"></i>
+        </span>
+        <h3 style="margin: 0; font-size: 1.1rem; color: #f8fafc; font-weight: 600;">Reportar Bug / Problema</h3>
+      </div>
+      <button type="button" id="closeBugReportModalBtn" style="background: transparent; border: none; color: #94a3b8; font-size: 1.2rem; cursor: pointer; padding: 4px;" aria-label="Fechar">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <form id="bugReportForm" action="{% url 'bug_reports:submit' %}" method="post" enctype="multipart/form-data" style="padding: 20px;">
+      {% csrf_token %}
+      <input type="hidden" name="return_url" id="bugReportReturnUrl" value="">
+
+      <!-- Tela / Rota capturada automaticamente -->
+      <div style="margin-bottom: 14px;">
+        <label for="bugCurrentUrl" style="display: block; font-size: 0.8rem; color: #94a3b8; margin-bottom: 4px; font-weight: 500;">
+          <i class="fa-solid fa-link" style="margin-right: 4px;"></i> Tela / Rota onde ocorreu:
+        </label>
+        <input type="text" id="bugCurrentUrl" name="current_url" readonly style="width: 100%; background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 6px; padding: 8px 12px; color: #cbd5e1; font-size: 0.84rem; font-family: monospace;" value="">
+      </div>
+
+      <!-- Relato do problema -->
+      <div style="margin-bottom: 14px;">
+        <label for="bugDescription" style="display: block; font-size: 0.84rem; color: #f8fafc; margin-bottom: 6px; font-weight: 500;">
+          Relato do problema <span style="color: #ef4444;">*</span>
+        </label>
+        <textarea id="bugDescription" name="description" rows="4" required placeholder="Descreva o que aconteceu, o que você estava fazendo e o que deu errado…" style="width: 100%; background: rgba(15, 23, 42, 0.9); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 6px; padding: 10px 12px; color: #f8fafc; font-size: 0.88rem; resize: vertical; box-sizing: border-box;"></textarea>
+      </div>
+
+      <!-- Upload de print/screenshot -->
+      <div style="margin-bottom: 20px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+          <label for="bugScreenshot" style="font-size: 0.84rem; color: #f8fafc; font-weight: 500; margin: 0;">
+            <i class="fa-regular fa-image" style="margin-right: 4px;"></i> Print / Captura de tela:
+          </label>
+          <span style="font-size: 0.72rem; padding: 2px 6px; border-radius: 4px; background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); font-weight: 600;">
+            <i class="fa-solid fa-star" style="font-size: 0.65rem;"></i> Recomendado
+          </span>
+        </div>
+        <input type="file" id="bugScreenshot" name="screenshot" accept="image/*" style="width: 100%; font-size: 0.84rem; color: #cbd5e1; background: rgba(15, 23, 42, 0.5); border: 1px dashed rgba(255, 255, 255, 0.15); border-radius: 6px; padding: 8px;">
+        <small style="display: block; color: #64748b; font-size: 0.76rem; margin-top: 4px;">Anexe um print do erro ou da tela para ajudar o Dev a identificar o problema com mais rapidez.</small>
+      </div>
+
+      <div id="bugReportFeedback" style="display: none; margin-bottom: 14px; padding: 10px 12px; border-radius: 6px; font-size: 0.84rem;"></div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 16px;">
+        <button type="button" id="cancelBugReportBtn" class="btn btn-secondary" style="font-size: 0.88rem; padding: 8px 16px;">
+          Cancelar
+        </button>
+        <button type="submit" id="submitBugReportBtn" class="btn btn-primary" style="font-size: 0.88rem; padding: 8px 20px; background: #ef4444; border-color: #dc2626; display: inline-flex; align-items: center; gap: 6px;">
+          <i class="fa-solid fa-paper-plane"></i> Enviar Report
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+(function() {
+  const modal = document.getElementById("bugReportModal");
+  const openBtns = document.querySelectorAll("[data-open-bug-report]");
+  const closeBtn = document.getElementById("closeBugReportModalBtn");
+  const cancelBtn = document.getElementById("cancelBugReportBtn");
+  const form = document.getElementById("bugReportForm");
+  const urlInput = document.getElementById("bugCurrentUrl");
+  const returnUrlInput = document.getElementById("bugReportReturnUrl");
+  const feedbackEl = document.getElementById("bugReportFeedback");
+  const submitBtn = document.getElementById("submitBugReportBtn");
+
+  function openModal() {
+    if (!modal) return;
+    const currentLoc = window.location.pathname + window.location.search;
+    if (urlInput) urlInput.value = currentLoc;
+    if (returnUrlInput) returnUrlInput.value = window.location.href;
+    if (feedbackEl) {
+      feedbackEl.style.display = "none";
+      feedbackEl.textContent = "";
+    }
+    modal.style.display = "flex";
+    const descInput = document.getElementById("bugDescription");
+    if (descInput) descInput.focus();
+  }
+
+  function closeModal() {
+    if (!modal) return;
+    modal.style.display = "none";
+  }
+
+  openBtns.forEach(btn => btn.addEventListener("click", openModal));
+  if (closeBtn) closeBtn.addEventListener("click", closeModal);
+  if (cancelBtn) cancelBtn.addEventListener("click", closeModal);
+
+  if (modal) {
+    modal.addEventListener("click", function(e) {
+      if (e.target === modal) closeModal();
+    });
+  }
+
+  if (form) {
+    form.addEventListener("submit", async function(e) {
+      e.preventDefault();
+      if (!submitBtn) return;
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Enviando…';
+
+      const formData = new FormData(form);
+      try {
+        const response = await fetch(form.action, {
+          method: "POST",
+          body: formData,
+          headers: {
+            "X-Requested-With": "XMLHttpRequest"
+          }
+        });
+        const result = await response.json();
+        if (response.ok && result.success) {
+          if (feedbackEl) {
+            feedbackEl.style.display = "block";
+            feedbackEl.style.background = "rgba(16, 185, 129, 0.15)";
+            feedbackEl.style.color = "#34d399";
+            feedbackEl.style.border = "1px solid rgba(16, 185, 129, 0.3)";
+            feedbackEl.textContent = result.message || "Relato enviado com sucesso!";
+          }
+          form.reset();
+          setTimeout(() => {
+            closeModal();
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Enviar Report';
+          }, 1500);
+        } else {
+          throw new Error(result.message || "Erro ao enviar o relato.");
+        }
+      } catch (err) {
+        if (feedbackEl) {
+          feedbackEl.style.display = "block";
+          feedbackEl.style.background = "rgba(239, 68, 68, 0.15)";
+          feedbackEl.style.color = "#f87171";
+          feedbackEl.style.border = "1px solid rgba(239, 68, 68, 0.3)";
+          feedbackEl.textContent = err.message || "Erro na comunicação com o servidor.";
+        }
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Enviar Report';
+      }
+    });
+  }
+})();
+</script>

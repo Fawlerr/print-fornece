@@ -58,6 +58,9 @@ class PrintForneceTestCase(TestCase):
         self.employee = User.objects.create_user(
             email="employee@example.com", name="Funcionária", password="strong-password", role=User.Role.EMPLOYEE,
         )
+        self.dev = User.objects.create_user(
+            email="dev@example.com", name="Desenvolvedor", password="strong-password", role=User.Role.DEV,
+        )
         self.order = Order.objects.create(
             number="PF-TEST-0001", client_name="Cliente", client_whatsapp="84999999999", description="Pedido de teste",
             total_amount=Decimal("100.00"), paid_amount=Decimal("0"), created_by=self.admin,
@@ -578,7 +581,6 @@ class PrintForneceTestCase(TestCase):
 
     def test_download_primary_attachment_route(self):
         self.login_as(self.admin)
-        # Create attachment on self.order
         att = OrderAttachment.objects.create(
             order=self.order,
             original_name="arte_estampa.png",
@@ -590,5 +592,104 @@ class PrintForneceTestCase(TestCase):
         res = self.client.get(reverse("orders:download_primary_attachment", args=[self.order.pk]))
         self.assertEqual(res.status_code, 200)
         self.assertEqual(res["Content-Disposition"], 'attachment; filename="arte_estampa.png"')
+
+    def test_four_digit_order_number_and_optional_description(self):
+        from apps.orders.services import generate_order_number
+        num = generate_order_number()
+        self.assertEqual(len(num), 4)
+        self.assertTrue(num.isdigit())
+
+        # Test creating an order with blank description
+        self.login_as(self.admin)
+        response = self.client.post(reverse("orders:create"), {
+            "client_name": "Cliente Sem Descricao",
+            "client_whatsapp": "84999998888",
+            "description": "",  # Optional!
+            "total_amount": "50,00",
+            "payment_status": Order.PaymentStatus.UNPAID,
+            "paid_amount": "0,00",
+            "priority": Order.Priority.NORMAL,
+        })
+        self.assertEqual(response.status_code, 302)
+        new_order = Order.objects.get(client_name="Cliente Sem Descricao")
+        self.assertEqual(new_order.description, "")
+        self.assertEqual(len(new_order.number), 4)
+
+    def test_stone_pagar_me_models(self):
+        from apps.payments.models import Cliente, Pagamento, MetodoPagamento
+        cli = Cliente.objects.create(
+            nome="Empresa Teste Stone",
+            cpf_cnpj="12.345.678/0001-90",
+            email="contato@empresa.com",
+            telefone="84988887777",
+            stone_customer_id="cus_stone_12345",
+        )
+        self.assertEqual(str(cli), "Empresa Teste Stone")
+
+        metodo = MetodoPagamento.objects.create(
+            cliente=cli,
+            stone_token_id="tok_stone_999",
+            bandeira="Mastercard",
+            ultimos_4="1234",
+            validade="12/28",
+            ativo=True,
+        )
+        self.assertIn("1234", str(metodo))
+
+        pag = Pagamento.objects.create(
+            cliente=cli,
+            stone_payment_id="pay_stone_888",
+            valor=Decimal("250.00"),
+            metodo=Pagamento.Metodo.CARD,
+            status=Pagamento.Status.PAID,
+            parcelas=2,
+            pedido_referencia=self.order,
+        )
+        self.assertEqual(pag.valor, Decimal("250.00"))
+        self.assertEqual(pag.pedido_referencia, self.order)
+        self.assertEqual(cli.pagamentos.count(), 1)
+
+    def test_bug_report_workflow_and_permissions(self):
+        from apps.bug_reports.models import BugReport
+        # Regular employee submits a bug report
+        self.login_as(self.employee)
+        response = self.client.post(
+            reverse("bug_reports:submit"),
+            {
+                "description": "Botão de impressão desalinhado no Safari",
+                "current_url": "/orders/new/",
+            },
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+        self.assertEqual(response.status_code, 200)
+        report = BugReport.objects.get(description="Botão de impressão desalinhado no Safari")
+        self.assertEqual(report.user, self.employee)
+        self.assertEqual(report.status, BugReport.Status.PENDING)
+        self.assertEqual(report.current_url, "/orders/new/")
+
+        # Regular employee views list
+        res_list = self.client.get(reverse("bug_reports:list"))
+        self.assertEqual(res_list.status_code, 200)
+        self.assertContains(res_list, "Botão de impressão desalinhado")
+
+        # Dev user logs in and updates status
+        self.login_as(self.dev)
+        res_dev_list = self.client.get(reverse("bug_reports:list"))
+        self.assertEqual(res_dev_list.status_code, 200)
+        self.assertContains(res_dev_list, "Painel do Desenvolvedor")
+
+        res_update = self.client.post(
+            reverse("bug_reports:update_status", args=[report.pk]),
+            {
+                "status": BugReport.Status.FIXED,
+                "dev_notes": "Corrigido CSS flexbox no commit abc1234",
+            },
+        )
+        self.assertEqual(res_update.status_code, 302)
+        report.refresh_from_db()
+        self.assertEqual(report.status, BugReport.Status.FIXED)
+        self.assertIsNotNone(report.resolved_at)
+        self.assertEqual(report.dev_notes, "Corrigido CSS flexbox no commit abc1234")
+
 
 

@@ -54,7 +54,24 @@ def require_order_access(user, order: Order) -> None:
 
 
 def generate_order_number() -> str:
-    return f"PF-{timezone.localtime():%Y%m%d-%H%M%S}-{secrets.randbelow(9000) + 1000}"
+    """Generate a 4-digit sequential order number (e.g., '0001', '0042')."""
+    import re
+    orders_with_numbers = Order.objects.values_list("number", flat=True)
+    highest_num = 0
+    for num_str in orders_with_numbers:
+        if num_str:
+            clean_str = re.sub(r"[^\d]", "", num_str)
+            if clean_str.isdigit():
+                val = int(clean_str)
+                # Ignore timestamp-like legacy numbers (e.g. 20260816...)
+                if val < 1000000 and val > highest_num:
+                    highest_num = val
+
+    next_num = highest_num + 1
+    while Order.objects.filter(number=f"{next_num:04d}").exists():
+        next_num += 1
+
+    return f"{next_num:04d}"
 
 
 def _parse_items_from_payload(payload) -> list[Quote | ShirtQuote | ServiceQuote]:

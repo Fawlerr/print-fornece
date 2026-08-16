@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+
+{% block title %}Bug #{{ report.pk }} | Detalhes do Relato{% endblock %}
+{% block page_heading %}Relato de Bug #{{ report.pk }}{% endblock %}
+
+{% block content %}
+<div class="page-container" style="max-width: 900px; margin: 0 auto; padding: 20px 16px;">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    <a href="{% url 'bug_reports:list' %}" class="btn btn-secondary" style="display: inline-flex; align-items: center; gap: 6px;">
+      <i class="fa-solid fa-arrow-left"></i> Voltar para a lista
+    </a>
+    {% if report.user == user and report.status == "pendente" %}
+      <a href="{% url 'bug_reports:edit' pk=report.pk %}" class="btn btn-secondary" style="display: inline-flex; align-items: center; gap: 6px;">
+        <i class="fa-solid fa-pen-to-square"></i> Editar meu relato
+      </a>
+    {% endif %}
+  </div>
+
+  <div class="card" style="background: var(--surface, #1e293b); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 24px; margin-bottom: 24px;">
+    <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 16px; margin-bottom: 20px;">
+      <div>
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
+          <span style="font-size: 1.3rem; font-weight: 700; color: #f8fafc;">Bug #{{ report.pk }}</span>
+          {% if report.status == "pendente" %}
+            <span class="badge" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); font-size: 0.84rem; padding: 4px 10px;">
+              <i class="fa-solid fa-hourglass-half"></i> Pendente de análise pelo Dev
+            </span>
+          {% elif report.status == "verificado" %}
+            <span class="badge" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); font-size: 0.84rem; padding: 4px 10px;">
+              <i class="fa-solid fa-magnifying-glass"></i> Verificado
+            </span>
+          {% elif report.status == "corrigido" %}
+            <span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); font-size: 0.84rem; padding: 4px 10px;">
+              <i class="fa-solid fa-circle-check"></i> Corrigido
+            </span>
+          {% endif %}
+        </div>
+        <p style="margin: 0; color: var(--muted, #94a3b8); font-size: 0.86rem;">
+          Enviado por <strong style="color: #f8fafc;">{{ report.user.name|default:report.user.email }}</strong> em {{ report.created_at|date:"d/m/Y \à\s H:i" }}
+        </p>
+      </div>
+
+      {% if report.current_url %}
+        <div>
+          <a href="{{ report.current_url }}" target="_blank" class="btn btn-secondary" style="font-size: 0.82rem; padding: 6px 12px; display: inline-flex; align-items: center; gap: 6px;">
+            <i class="fa-solid fa-arrow-up-right-from-square"></i> Abrir tela do bug
+          </a>
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Tela / Rota -->
+    <div style="margin-bottom: 20px;">
+      <label style="display: block; font-size: 0.78rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; font-weight: 600;">
+        Tela / Rota capturada:
+      </label>
+      <code style="display: block; padding: 10px 14px; background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 6px; color: #cbd5e1; font-size: 0.88rem;">
+        {{ report.current_url|default:"Não identificada" }}
+      </code>
+    </div>
+
+    <!-- Descrição -->
+    <div style="margin-bottom: 24px;">
+      <label style="display: block; font-size: 0.78rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; font-weight: 600;">
+        Relato do Problema:
+      </label>
+      <div style="padding: 16px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; color: #f8fafc; font-size: 0.94rem; line-height: 1.6; white-space: pre-wrap;">
+        {{ report.description }}
+      </div>
+    </div>
+
+    <!-- Screenshot -->
+    {% if report.screenshot %}
+      <div style="margin-bottom: 24px;">
+        <label style="display: block; font-size: 0.78rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; font-weight: 600;">
+          Print / Captura de Tela anexada:
+        </label>
+        <div style="background: rgba(15, 23, 42, 0.9); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; padding: 12px; text-align: center;">
+          <a href="{{ report.screenshot.url }}" target="_blank" title="Clique para abrir imagem original">
+            <img src="{{ report.screenshot.url }}" alt="Screenshot do bug #{{ report.pk }}" style="max-width: 100%; max-height: 480px; border-radius: 6px; object-fit: contain; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);">
+          </a>
+          <small style="display: block; margin-top: 8px; color: #94a3b8; font-size: 0.8rem;">
+            <i class="fa-solid fa-magnifying-glass-plus"></i> Clique na imagem para ampliar em nova aba
+          </small>
+        </div>
+      </div>
+    {% endif %}
+
+    <!-- Anotações do Dev (visível para todos quando preenchido) -->
+    {% if report.dev_notes %}
+      <div style="margin-bottom: 20px; padding: 16px; border-radius: 8px; background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.25);">
+        <label style="display: block; font-size: 0.82rem; color: #38bdf8; font-weight: 600; margin-bottom: 6px;">
+          <i class="fa-solid fa-code"></i> Resposta / Notas do Desenvolvedor:
+        </label>
+        <div style="color: #cbd5e1; font-size: 0.9rem; line-height: 1.5; white-space: pre-wrap;">
+          {{ report.dev_notes }}
+        </div>
+        {% if report.resolved_at %}
+          <small style="display: block; margin-top: 8px; color: #34d399; font-size: 0.78rem;">
+            <i class="fa-solid fa-circle-check"></i> Marcado como corrigido em {{ report.resolved_at|date:"d/m/Y \à\s H:i" }}
+          </small>
+        {% endif %}
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Painel de Ação Exclusivo do DEV -->
+  {% if user.is_dev %}
+    <div class="card" style="background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 12px; padding: 24px;">
+      <h3 style="margin: 0 0 16px 0; font-size: 1.1rem; color: #38bdf8; font-weight: 600; display: flex; align-items: center; gap: 8px;">
+        <i class="fa-solid fa-screwdriver-wrench"></i> Painel do Desenvolvedor: Atualizar Situação
+      </h3>
+
+      <form action="{% url 'bug_reports:update_status' pk=report.pk %}" method="post">
+        {% csrf_token %}
+        <div style="margin-bottom: 16px;">
+          <label for="id_status" style="display: block; font-size: 0.84rem; color: #f8fafc; margin-bottom: 6px; font-weight: 500;">
+            Nova Situação:
+          </label>
+          <select id="id_status" name="status" style="width: 100%; max-width: 320px; background: rgba(30, 41, 59, 0.9); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 6px; padding: 8px 12px; color: #f8fafc; font-size: 0.9rem;">
+            <option value="pendente" {% if report.status == "pendente" %}selected{% endif %}>⏳ Pendente de análise pelo Dev</option>
+            <option value="verificado" {% if report.status == "verificado" %}selected{% endif %}>🔍 Verificado</option>
+            <option value="corrigido" {% if report.status == "corrigido" %}selected{% endif %}>✅ Corrigido</option>
+          </select>
+        </div>
+
+        <div style="margin-bottom: 16px;">
+          <label for="id_dev_notes" style="display: block; font-size: 0.84rem; color: #f8fafc; margin-bottom: 6px; font-weight: 500;">
+            Anotações Técnicas / Resolução:
+          </label>
+          <textarea id="id_dev_notes" name="dev_notes" rows="3" placeholder="Insira detalhes sobre a causa raiz, commit ou orientações para a equipe…" style="width: 100%; background: rgba(30, 41, 59, 0.9); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 6px; padding: 10px 12px; color: #f8fafc; font-size: 0.88rem; box-sizing: border-box;">{{ report.dev_notes }}</textarea>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 6px;">
+          <i class="fa-solid fa-floppy-disk"></i> Salvar Atualização do Dev
+        </button>
+      </form>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}
