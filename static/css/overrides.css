@@ -211,6 +211,38 @@ canvas#finance-chart, canvas#stage-chart {
   vertical-align: middle;
 }
 
+/* Estilo do Botão Global de Reportar Bug */
+.topbar-bug-btn {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: rgba(239, 68, 68, 0.15) !important;
+  color: #f87171 !important;
+  border: 1px solid rgba(239, 68, 68, 0.35) !important;
+  font-size: 0.82rem !important;
+  font-weight: 600 !important;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.topbar-bug-btn:hover {
+  background: rgba(239, 68, 68, 0.25) !important;
+  border-color: rgba(239, 68, 68, 0.6) !important;
+  color: #fca5a5 !important;
+  transform: translateY(-1px);
+}
+
+@media (max-width: 768px) {
+  .topbar-bug-btn span {
+    display: none !important;
+  }
+  .topbar-bug-btn {
+    padding: 8px 10px !important;
+  }
+}
+
 @media (max-width: 760px) {
   /* Extra bottom padding on mobile so fixed bottom bar never hides page content */
   .page-body {
