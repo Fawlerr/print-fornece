@@ -124,9 +124,9 @@ def _parse_items_from_payload(payload) -> list[Quote | ShirtQuote | ServiceQuote
                 calculated_items.append(
                     calculate_quote(
                         material_code=mat_code or "dtf_textil",
-                        width_cm=item.get("width_cm"),
-                        height_cm=item.get("height_cm"),
-                        quantity=item.get("quantity"),
+                        width_cm=item.get("width_cm") or item.get("art_width_cm"),
+                        height_cm=item.get("height_cm") or item.get("art_height_cm"),
+                        quantity=item.get("quantity") or item.get("art_quantity"),
                     )
                 )
     except CalculatorValidationError as exc:
