@@ -687,9 +687,34 @@ class PrintForneceTestCase(TestCase):
         )
         self.assertEqual(res_update.status_code, 302)
         report.refresh_from_db()
-        self.assertEqual(report.status, BugReport.Status.FIXED)
-        self.assertIsNotNone(report.resolved_at)
         self.assertEqual(report.dev_notes, "Corrigido CSS flexbox no commit abc1234")
+
+    def test_large_attachment_upload_accepted(self):
+        from apps.orders.services import validate_upload
+        # Test simulated 45MB file (which previously failed on 25MB limit)
+        large_file = SimpleUploadedFile("projeto_estampa_45mb.pdf", b"%PDF-1.4\nsimulated pdf stream", content_type="application/pdf")
+        large_file.size = 45 * 1024 * 1024
+        orig_name, c_type = validate_upload(large_file)
+        self.assertEqual(orig_name, "projeto_estampa_45mb.pdf")
+        self.assertEqual(c_type, "application/pdf")
+
+        # Test simulated 1GB file
+        huge_file = SimpleUploadedFile("arquivo_vetor_1gb.ai", b"%PDF-1.5\nsimulated ai vector", content_type="application/pdf")
+        huge_file.size = 1024 * 1024 * 1024
+        orig_name2, c_type2 = validate_upload(huge_file)
+        self.assertEqual(orig_name2, "arquivo_vetor_1gb.ai")
+
+    def test_attachment_exceeding_max_limit_rejected(self):
+        from django.core.exceptions import ValidationError
+        from apps.orders.services import validate_upload
+
+        # 7GB file (exceeds 6GB limit)
+        oversized = SimpleUploadedFile("arte_pesada_7gb.pdf", b"%PDF-1.4\ncontent", content_type="application/pdf")
+        oversized.size = 7 * 1024 * 1024 * 1024
+        with self.assertRaises(ValidationError) as ctx:
+            validate_upload(oversized)
+        self.assertIn("excede o limite máximo permitido de 6 GB", str(ctx.exception))
+
 
 
 

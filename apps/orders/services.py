@@ -392,13 +392,29 @@ ALLOWED_UPLOADS = {
 }
 
 
+def _format_bytes(size: int) -> str:
+    if size >= 1024 * 1024 * 1024:
+        gb = size / (1024 * 1024 * 1024)
+        return f"{gb:.1f} GB".replace(".0 GB", " GB")
+    if size >= 1024 * 1024:
+        mb = size / (1024 * 1024)
+        return f"{mb:.1f} MB".replace(".0 MB", " MB")
+    if size >= 1024:
+        kb = size / 1024
+        return f"{kb:.1f} KB".replace(".0 KB", " KB")
+    return f"{size} B"
+
+
 def validate_upload(upload) -> tuple[str, str]:
     original_name = Path(upload.name or "").name
     extension = Path(original_name).suffix.lower().lstrip(".")
     if not original_name or extension not in ALLOWED_UPLOADS:
         raise ValidationError("Tipo de arquivo não permitido.")
-    if upload.size < 1 or upload.size > settings.MAX_UPLOAD_BYTES:
-        raise ValidationError("Arquivo inválido ou maior que o limite permitido.")
+    if upload.size < 1:
+        raise ValidationError("Arquivo vazio ou inválido.")
+    if upload.size > settings.MAX_UPLOAD_BYTES:
+        max_str = _format_bytes(settings.MAX_UPLOAD_BYTES)
+        raise ValidationError(f"O arquivo '{original_name}' excede o limite máximo permitido de {max_str}.")
     content_type = _detect_upload_type(upload)
     if content_type not in ALLOWED_UPLOADS[extension]:
         raise ValidationError("O conteúdo do arquivo não corresponde à extensão permitida.")

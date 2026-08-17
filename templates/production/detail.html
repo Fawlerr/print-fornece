@@ -243,7 +243,8 @@
       <form method="post" action="{% url 'production:add_attachment' pk=order.pk %}" enctype="multipart/form-data" class="no-print" style="margin-top: 16px; border-top: 1px solid var(--border-color); padding-top: 14px;">
         {% csrf_token %}
         <label for="id_detail_attachments" style="display: block; font-size: 0.9rem; margin-bottom: 8px;"><strong>Anexar novo arquivo ou comprovante:</strong></label>
-        <input id="id_detail_attachments" type="file" name="attachments" multiple accept=".pdf,.png,.jpg,.jpeg,.webp,.svg,.cdr,.ai,.eps,.psd,.tiff,.zip" style="width: 100%; margin-bottom: 8px;">
+        <input id="id_detail_attachments" type="file" name="attachments" multiple accept=".pdf,.png,.jpg,.jpeg,.webp,.svg,.cdr,.ai,.eps,.psd,.tiff,.zip" style="width: 100%; margin-bottom: 6px;">
+        <span class="help" style="display: block; margin-bottom: 12px;">PDF, imagens (PNG, JPG, WEBP), SVG, CDR, AI, EPS, PSD, TIFF ou ZIP. Máximo de 6 GB por arquivo.</span>
         <button class="btn btn-secondary btn-small" type="submit"><i class="fa-solid fa-paperclip"></i> Adicionar anexo</button>
       </form>
     </section>
