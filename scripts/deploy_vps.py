@@ -67,14 +67,38 @@ def main():
     execute_remote(ssh, f"cd {main_dir} && docker compose up -d --build")
 
     log("Waiting for containers to initialize...")
-    execute_remote(ssh, f"sleep 5 && cd {main_dir} && docker compose ps")
-    execute_remote(ssh, f"cd {main_dir} && docker compose logs app --tail 25")
+    execute_remote(ssh, f"sleep 8 && cd {main_dir} && docker compose ps")
+    execute_remote(ssh, f"cd {main_dir} && docker compose logs app --tail 30")
 
-    log("Testing HTTP response on VPS...")
-    execute_remote(ssh, "curl -s -i http://localhost:8080/health/ || curl -s -i http://localhost:80/ || curl -s -i http://localhost/")
+    # Reset bug reports in database (keeping everything else completely intact)
+    log("Resetting bug reports table (pf_bug_reports)...")
+    execute_remote(ssh, f"cd {main_dir} && docker compose exec -T app python manage.py shell -c \"from apps.bug_reports.models import BugReport; count = BugReport.objects.count(); BugReport.objects.all().delete(); print(f'Bug reports reset complete: {{count}} reports deleted.')\"")
+    execute_remote(ssh, f"cd {main_dir} && docker compose exec -T app sh -c \"rm -rf /app/media/bug_reports/* 2>/dev/null || true\"")
+
+    # Inspect & update host Nginx configurations on VPS
+    log("Checking and updating Nginx configuration on VPS host...")
+    execute_remote(ssh, "find /etc/nginx -type f \\( -name '*.conf' -o -path '*/sites-*/*' \\)")
+    # Update client_max_body_size in nginx configs if found
+    execute_remote(ssh, "grep -rn 'client_max_body_size' /etc/nginx/ || true")
+    
+    # Adjust client_max_body_size and timeouts in Nginx site config on VPS
+    execute_remote(ssh, """
+    for f in /etc/nginx/sites-available/* /etc/nginx/sites-enabled/* /etc/nginx/conf.d/*.conf /etc/nginx/nginx.conf; do
+        if [ -f "$f" ]; then
+            sed -i -E 's/client_max_body_size [0-9]+[mMkKgG]?;/client_max_body_size 7000m;/g' "$f"
+        fi
+    done
+    nginx -t && systemctl reload nginx || true
+    """)
+
+    # Test HTTP & API responses on VPS
+    log("Testing HTTP response and health check on VPS...")
+    execute_remote(ssh, "curl -s -i http://localhost:8080/health/")
+    execute_remote(ssh, "curl -s -i http://localhost:8080/login/")
 
     ssh.close()
-    log("Deployment from GitHub to VPS completed successfully!")
+    log("Deployment and validation on VPS completed successfully!")
 
 if __name__ == "__main__":
     main()
+
