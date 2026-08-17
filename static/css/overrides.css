@@ -297,3 +297,67 @@ canvas#finance-chart, canvas#stage-chart {
     align-items: center !important;
   }
 }
+
+/* Regras de impressão de alto contraste / preto puro para relatórios e páginas */
+@media print {
+  *, *::before, *::after {
+    color: #000000 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  html, body, .app-shell, .main-content, .page-body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .sidebar, .topbar, .mobile-bottom-nav, .menu-overlay, .no-print, .btn, .filters, .notification-bell, .topbar-bug-btn {
+    display: none !important;
+  }
+
+  .card, .stat-card, .form-card {
+    background: #ffffff !important;
+    border: 1px solid #000000 !important;
+    color: #000000 !important;
+    box-shadow: none !important;
+    break-inside: avoid;
+  }
+
+  .stat-card strong, .stat-card small {
+    color: #000000 !important;
+  }
+
+  .data-table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    font-size: 11px !important;
+  }
+
+  .data-table th, .data-table td {
+    color: #000000 !important;
+    border: 1px solid #333333 !important;
+    padding: 6px 8px !important;
+  }
+
+  .data-table th {
+    background: #f0f0f0 !important;
+    font-weight: 700 !important;
+  }
+
+  .text-muted, .text-green, .text-danger, small, p, span, h1, h2, h3, strong, b {
+    color: #000000 !important;
+  }
+
+  .badge {
+    border: 1px solid #000000 !important;
+    color: #000000 !important;
+    background: #ffffff !important;
+    font-weight: 700 !important;
+  }
+}
+

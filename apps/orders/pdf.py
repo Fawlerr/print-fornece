@@ -78,26 +78,26 @@ def _logo_flowable(styles):
 
 
 def _item_flowable(item, styles):
-    title = Paragraph(escape(item.material_name), styles["item_name"])
+    title = Paragraph(f"<b>{escape(item.material_name)}</b>", styles["item_name"])
     calculation = escape(item.calculation_detail or "")
     if not calculation:
-        calculation = f"{_number(item.billing_quantity)} ({escape(item.billing_unit)}) X {_money(item.unit_price)}"
+        calculation = f"<b>{_number(item.billing_quantity)} ({escape(item.billing_unit)})</b> X {_money(item.unit_price)}"
     artwork = ""
     if item.art_width_cm is not None and item.art_height_cm is not None and item.art_quantity is not None:
-        artwork = f"<br/><font size=6.8>Arte {_number(item.art_width_cm)} x {_number(item.art_height_cm)} cm · qtd. {item.art_quantity}</font>"
+        artwork = f"<br/><font size=7.8><b>Arte {_number(item.art_width_cm)} x {_number(item.art_height_cm)} cm · qtd. {item.art_quantity}</b></font>"
     elif item.product_color or item.product_size:
         color_txt = escape(item.product_color) if item.product_color else ""
         size_txt = f"Tam: {escape(item.product_size)}" if item.product_size else ""
         attr_txt = " · ".join(filter(bool, [color_txt, size_txt]))
         if attr_txt:
-            artwork = f"<br/><font size=6.8>{attr_txt}</font>"
+            artwork = f"<br/><font size=7.8><b>{attr_txt}</b></font>"
     details = Paragraph(
         f"{calculation}{artwork}",
         styles["item_details"],
     )
     row = Table(
         [[details, Paragraph(f"<b>{_money(item.line_total)}</b>", styles["item_total"])]],
-        colWidths=[50 * mm, 22 * mm],
+        colWidths=[48 * mm, 24 * mm],
         hAlign="LEFT",
     )
     row.setStyle(TableStyle([
@@ -113,7 +113,7 @@ def _item_flowable(item, styles):
         Spacer(1, 1.2 * mm),
         row,
         Spacer(1, 2.2 * mm),
-        HRFlowable(width="100%", thickness=0.35, color=colors.HexColor("#B9B9B9"), spaceBefore=0, spaceAfter=2.2 * mm),
+        HRFlowable(width="100%", thickness=0.6, color=colors.black, spaceBefore=0, spaceAfter=2.2 * mm),
     ])
 
 
@@ -121,7 +121,7 @@ def _legacy_item_flowable(order, total, styles):
     description = escape((order.description or "Pedido sem descrição").strip()).replace("\n", "<br/>")
     row = Table(
         [[Paragraph("<b>Pedido</b><br/>" + description, styles["item_details"]), Paragraph(f"<b>{_money(total)}</b>", styles["item_total"])]],
-        colWidths=[50 * mm, 22 * mm],
+        colWidths=[48 * mm, 24 * mm],
         hAlign="LEFT",
     )
     row.setStyle(TableStyle([
@@ -135,7 +135,7 @@ def _legacy_item_flowable(order, total, styles):
     return KeepTogether([
         row,
         Spacer(1, 2.2 * mm),
-        HRFlowable(width="100%", thickness=0.35, color=colors.HexColor("#B9B9B9"), spaceBefore=0, spaceAfter=2.2 * mm),
+        HRFlowable(width="100%", thickness=0.6, color=colors.black, spaceBefore=0, spaceAfter=2.2 * mm),
     ])
 
 
@@ -157,17 +157,17 @@ def generate_order_receipt_pdf(order) -> bytes:
 
     stylesheet = getSampleStyleSheet()
     styles = {
-        "brand": ParagraphStyle("ReceiptBrand", parent=stylesheet["Normal"], fontName="Helvetica-Bold", fontSize=11, leading=13),
-        "meta": ParagraphStyle("ReceiptMeta", parent=stylesheet["Normal"], fontName="Helvetica", fontSize=7.2, leading=9, alignment=2),
-        "body": ParagraphStyle("ReceiptBody", parent=stylesheet["Normal"], fontName="Helvetica", fontSize=8, leading=10.2),
-        "label": ParagraphStyle("ReceiptLabel", parent=stylesheet["Normal"], fontName="Helvetica-Bold", fontSize=7.2, leading=9, textColor=colors.HexColor("#333333")),
-        "item_name": ParagraphStyle("ReceiptItemName", parent=stylesheet["Normal"], fontName="Helvetica-Bold", fontSize=8.3, leading=10),
-        "item_details": ParagraphStyle("ReceiptItemDetails", parent=stylesheet["Normal"], fontName="Helvetica", fontSize=7.25, leading=9),
-        "item_total": ParagraphStyle("ReceiptItemTotal", parent=stylesheet["Normal"], fontName="Helvetica", fontSize=7.65, leading=9, alignment=2),
-        "total_label": ParagraphStyle("ReceiptTotalLabel", parent=stylesheet["Normal"], fontName="Helvetica-Bold", fontSize=10, leading=12),
-        "total_value": ParagraphStyle("ReceiptTotalValue", parent=stylesheet["Normal"], fontName="Helvetica-Bold", fontSize=10, leading=12, alignment=2),
-        "footer": ParagraphStyle("ReceiptFooter", parent=stylesheet["Normal"], fontName="Helvetica-Bold", fontSize=7.5, leading=9.5, alignment=1),
-        "footer_small": ParagraphStyle("ReceiptFooterSmall", parent=stylesheet["Normal"], fontName="Helvetica", fontSize=6.8, leading=8.5, alignment=1),
+        "brand": ParagraphStyle("ReceiptBrand", parent=stylesheet["Normal"], fontName="Helvetica-Bold", fontSize=12, leading=14, textColor=colors.black),
+        "meta": ParagraphStyle("ReceiptMeta", parent=stylesheet["Normal"], fontName="Helvetica-Bold", fontSize=7.8, leading=9.5, alignment=2, textColor=colors.black),
+        "body": ParagraphStyle("ReceiptBody", parent=stylesheet["Normal"], fontName="Helvetica", fontSize=8.5, leading=11, textColor=colors.black),
+        "label": ParagraphStyle("ReceiptLabel", parent=stylesheet["Normal"], fontName="Helvetica-Bold", fontSize=7.8, leading=9.5, textColor=colors.black),
+        "item_name": ParagraphStyle("ReceiptItemName", parent=stylesheet["Normal"], fontName="Helvetica-Bold", fontSize=8.8, leading=11, textColor=colors.black),
+        "item_details": ParagraphStyle("ReceiptItemDetails", parent=stylesheet["Normal"], fontName="Helvetica", fontSize=8.0, leading=10.5, textColor=colors.black),
+        "item_total": ParagraphStyle("ReceiptItemTotal", parent=stylesheet["Normal"], fontName="Helvetica-Bold", fontSize=8.5, leading=10.5, alignment=2, textColor=colors.black),
+        "total_label": ParagraphStyle("ReceiptTotalLabel", parent=stylesheet["Normal"], fontName="Helvetica-Bold", fontSize=10.5, leading=13, textColor=colors.black),
+        "total_value": ParagraphStyle("ReceiptTotalValue", parent=stylesheet["Normal"], fontName="Helvetica-Bold", fontSize=10.5, leading=13, alignment=2, textColor=colors.black),
+        "footer": ParagraphStyle("ReceiptFooter", parent=stylesheet["Normal"], fontName="Helvetica-Bold", fontSize=8.5, leading=11, alignment=1, textColor=colors.black),
+        "footer_small": ParagraphStyle("ReceiptFooterSmall", parent=stylesheet["Normal"], fontName="Helvetica-Bold", fontSize=7.5, leading=9.5, alignment=1, textColor=colors.black),
     }
 
     header = Table(
@@ -189,17 +189,17 @@ def generate_order_receipt_pdf(order) -> bytes:
     story = [
         header,
         Spacer(1, 2.5 * mm),
-        HRFlowable(width="100%", thickness=0.8, color=colors.black, spaceBefore=0, spaceAfter=2.5 * mm),
+        HRFlowable(width="100%", thickness=1.0, color=colors.black, spaceBefore=0, spaceAfter=2.5 * mm),
         Paragraph(f"<b>Cliente:</b> {escape(str(snapshot['client_name']))}", styles["body"]),
         Paragraph(f"<b>Vendedor:</b> {escape(str(snapshot['seller_name']))}", styles["body"]),
         Paragraph(f"<b>Venda (n: {escape(order.number)})</b>", styles["body"]),
         Spacer(1, 2.6 * mm),
-        HRFlowable(width="100%", thickness=0.5, color=colors.HexColor("#666666"), spaceBefore=0, spaceAfter=2.3 * mm),
+        HRFlowable(width="100%", thickness=0.8, color=colors.black, spaceBefore=0, spaceAfter=2.3 * mm),
     ]
 
     item_header = Table(
         [[Paragraph("DESCRIÇÃO / QUANTIDADE X UNITÁRIO", styles["label"]), Paragraph("TOTAL", styles["label"])]],
-        colWidths=[50 * mm, 22 * mm],
+        colWidths=[48 * mm, 24 * mm],
         hAlign="LEFT",
     )
     item_header.setStyle(TableStyle([
@@ -226,8 +226,8 @@ def generate_order_receipt_pdf(order) -> bytes:
         hAlign="LEFT",
     )
     total_table.setStyle(TableStyle([
-        ("LINEABOVE", (0, 0), (-1, 0), 1, colors.black),
-        ("LINEBELOW", (0, 0), (-1, 0), 0.5, colors.HexColor("#777777")),
+        ("LINEABOVE", (0, 0), (-1, 0), 1.2, colors.black),
+        ("LINEBELOW", (0, 0), (-1, 0), 0.8, colors.black),
         ("ALIGN", (1, 0), (1, -1), "RIGHT"),
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
         ("LEFTPADDING", (0, 0), (-1, -1), 0),
