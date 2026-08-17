@@ -70,10 +70,10 @@ def main():
     execute_remote(ssh, f"sleep 8 && cd {main_dir} && docker compose ps")
     execute_remote(ssh, f"cd {main_dir} && docker compose logs app --tail 30")
 
-    # Reset bug reports in database (keeping everything else completely intact)
-    log("Resetting bug reports table (pf_bug_reports)...")
-    execute_remote(ssh, f"cd {main_dir} && docker compose exec -T app python manage.py shell -c \"from apps.bug_reports.models import BugReport; count = BugReport.objects.count(); BugReport.objects.all().delete(); print(f'Bug reports reset complete: {{count}} reports deleted.')\"")
-    execute_remote(ssh, f"cd {main_dir} && docker compose exec -T app sh -c \"rm -rf /app/media/bug_reports/* 2>/dev/null || true\"")
+    # Optional reset bug reports in database
+    log("Checking bug reports count in pf_bug_reports...")
+    execute_remote(ssh, f"cd {main_dir} && docker compose exec -T app python manage.py shell -c \"from apps.bug_reports.models import BugReport; print(f'Active bug reports: {{BugReport.objects.count()}}')\"")
+
 
     # Inspect & update host Nginx configurations on VPS
     log("Checking and updating Nginx configuration on VPS host...")
