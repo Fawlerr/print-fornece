@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block title %}Excluir Cliente: {{ object.nome }} | Print Fornece{% endblock %}
+{% block page_heading %}Exclusão de Cliente{% endblock %}
+
+{% block content %}
+  <div class="form-container" style="max-width: 680px; margin: 0 auto;">
+    <div class="card card-pad" style="border: 2px solid #ef4444; background: radial-gradient(circle at 50% 0%, rgba(239, 68, 68, 0.12) 0%, var(--panel) 70%);">
+      <div style="text-align: center; margin-bottom: 24px;">
+        <div style="width: 64px; height: 64px; border-radius: 50%; background: rgba(239, 68, 68, 0.2); border: 2px solid #ef4444; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 12px;">
+          <i class="fa-solid fa-triangle-exclamation" style="font-size: 2rem; color: #ef4444;"></i>
+        </div>
+        <h2 style="color: #f87171; margin: 0 0 6px 0; font-size: 1.4rem;">Excluir Cliente Definitivamente?</h2>
+        <p style="color: var(--text-color, #e2e8f0); font-size: 1.05rem; font-weight: 700; margin: 0;">
+          {{ object.nome }}
+        </p>
+      </div>
+
+      <div style="background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 10px; padding: 18px; margin-bottom: 24px;">
+        <h4 style="color: #fca5a5; margin: 0 0 12px 0; font-size: 0.95rem; display: flex; align-items: center; gap: 8px;">
+          <i class="fa-solid fa-circle-exclamation"></i> O que acontecerá ao confirmar a exclusão:
+        </h4>
+        <ul style="margin: 0; padding-left: 20px; color: #cbd5e1; font-size: 0.9rem; line-height: 1.6;">
+          <li style="margin-bottom: 6px;">
+            <strong style="color: #f87171;">Ação 100% IRREVERSÍVEL:</strong> O cadastro de <strong>{{ object.nome }}</strong> será apagado do sistema permanentemente.
+          </li>
+          <li style="margin-bottom: 6px;">
+            <strong style="color: #fca5a5;">{{ arquivos_count }} arquivo(s) registrado(s):</strong> Todas as artes, logos e arquivos anexados ao cofre deste cliente serão <strong>excluídos definitivamente</strong>.
+          </li>
+          <li style="margin-bottom: 6px;">
+            <strong style="color: #fca5a5;">Saldo e Plano de Volume:</strong> O saldo de <strong>R$ {{ object.saldo_credito|floatformat:2 }}</strong> e a cota de <strong>{{ object.metros_saldo|floatformat:1 }} metros</strong> serão cancelados.
+          </li>
+          <li>
+            <strong style="color: #38bdf8;">Histórico de {{ pedidos_count }} Pedido(s):</strong> Os pedidos já emitidos <strong>não serão apagados</strong> (preservando o faturamento e histórico da empresa), mas perderão o vínculo com este cadastro de cliente.
+          </li>
+        </ul>
+      </div>
+
+      <form method="post">
+        {% csrf_token %}
+        <div style="display: flex; gap: 12px; justify-content: flex-end; flex-wrap: wrap;">
+          <a class="btn btn-secondary" href="{% url 'payments:customer_detail' pk=object.pk %}" style="padding: 10px 20px;">
+            <i class="fa-solid fa-xmark"></i> Cancelar e Voltar
+          </a>
+          <button class="btn btn-danger" type="submit" style="padding: 10px 24px; font-weight: 700;">
+            <i class="fa-solid fa-trash-can"></i> Sim, Excluir Cliente e Arquivos
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+{% endblock %}

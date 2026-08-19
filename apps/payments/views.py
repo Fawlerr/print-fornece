@@ -11,7 +11,7 @@ from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
-from django.views.generic import CreateView, DetailView, ListView, UpdateView
+from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
 
 from apps.audit.services import record_audit
 from apps.orders.models import Order
@@ -86,6 +86,35 @@ class ClienteDetailView(LoginRequiredMixin, DetailView):
         ).distinct().order_by("-created_at")[:20]
         
         return context
+
+
+class ClienteDeleteView(LoginRequiredMixin, DeleteView):
+    model = Cliente
+    template_name = "payments/customer_confirm_delete.html"
+    success_url = reverse_lazy("payments:customer_list")
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        cliente = self.object
+        context["arquivos_count"] = cliente.arquivos_registrados.count()
+        context["pedidos_count"] = cliente.pedidos_vinculados.count()
+        return context
+
+    def form_valid(self, form):
+        cliente = self.get_object()
+        nome = cliente.nome
+        arquivos_count = cliente.arquivos_registrados.count()
+        saldo = str(cliente.saldo_credito)
+        record_audit(
+            self.request.user,
+            "exclusao_cliente",
+            "cliente",
+            cliente.pk,
+            before={"nome": nome, "arquivos_deletados": arquivos_count, "saldo_perdido": saldo},
+            request=self.request,
+        )
+        messages.warning(self.request, f"Cliente {nome} e seus {arquivos_count} arquivo(s) foram excluídos permanentemente.")
+        return super().form_valid(form)
 
 
 @login_required

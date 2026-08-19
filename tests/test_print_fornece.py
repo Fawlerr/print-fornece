@@ -765,6 +765,16 @@ class PrintForneceTestCase(TestCase):
         self.assertEqual(len(data["results"]), 1)
         self.assertEqual(data["results"][0]["nome"], "Malharia Brasil")
 
+        # 4. Excluir cliente
+        delete_url = reverse("payments:customer_delete", args=[cliente.pk])
+        get_delete_resp = self.client.get(delete_url)
+        self.assertEqual(get_delete_resp.status_code, 200)
+        self.assertIn("Excluir Cliente Definitivamente", get_delete_resp.content.decode("utf-8"))
+
+        post_delete_resp = self.client.post(delete_url)
+        self.assertRedirects(post_delete_resp, reverse("payments:customer_list"))
+        self.assertFalse(Cliente.objects.filter(pk=cliente.pk).exists())
+
     def test_quick_payment_registration(self):
         self.login_as(self.admin)
         order = Order.objects.create(

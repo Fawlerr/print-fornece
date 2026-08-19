@@ -16,6 +16,9 @@
       <a class="btn btn-secondary" href="{% url 'payments:customer_edit' pk=cliente.pk %}">
         <i class="fa-solid fa-pen"></i> Editar Dados
       </a>
+      <a class="btn btn-danger" href="{% url 'payments:customer_delete' pk=cliente.pk %}" title="Excluir cliente e arquivos permanentemente">
+        <i class="fa-solid fa-trash-can"></i> Excluir Cliente
+      </a>
       <a class="btn btn-secondary" href="{% url 'payments:customer_list' %}">
         <i class="fa-solid fa-arrow-left"></i> Voltar à Lista
       </a>

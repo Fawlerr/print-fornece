@@ -81,6 +81,7 @@
               <td class="no-print" style="white-space: nowrap;">
                 <a class="btn btn-secondary btn-small" href="{% url 'payments:customer_detail' pk=c.pk %}" title="Ver arquivos e pedidos"><i class="fa-solid fa-eye"></i> Ver</a>
                 <a class="btn btn-secondary btn-small" href="{% url 'payments:customer_edit' pk=c.pk %}" title="Editar cadastro"><i class="fa-solid fa-pen"></i></a>
+                <a class="btn btn-danger btn-small" href="{% url 'payments:customer_delete' pk=c.pk %}" title="Excluir cliente"><i class="fa-solid fa-trash-can"></i></a>
               </td>
             </tr>
           {% empty %}
