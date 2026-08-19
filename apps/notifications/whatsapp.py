@@ -108,7 +108,7 @@ def build_quote_whatsapp_message(order: Order, public_quote_url: str = "") -> st
     return message
 
 
-def build_ready_whatsapp_message(order: Order) -> str:
+def build_ready_whatsapp_message(order: Order, public_quote_url: str = "") -> str:
     """Template 2: Pronto para Retirada."""
     items = list(order.items.all())
     if items:
@@ -118,6 +118,7 @@ def build_ready_whatsapp_message(order: Order) -> str:
         resumo_itens = f"\n• {order.description[:80]}"
 
     valor_total = format_money_br(order.total_amount)
+    link_part = f"\n🖼️ Visualize seu pedido e arte:\n{public_quote_url}\n" if public_quote_url else ""
 
     message = (
         f"🍀 PRINT FORNECE\n"
@@ -126,6 +127,7 @@ def build_ready_whatsapp_message(order: Order) -> str:
         f"━━━━━━━━━━━━━━━\n"
         f"📦 Itens:{resumo_itens}\n"
         f"🟢 TOTAL: R$ {valor_total}\n"
+        f"{link_part}"
         f"━━━━━━━━━━━━━━━\n"
         f"📍 Retirada: Loja Print Fornece\n"
         f"⏰ Horário: Segunda a Sexta, das 08h às 18h\n\n"
@@ -134,7 +136,7 @@ def build_ready_whatsapp_message(order: Order) -> str:
     return message
 
 
-def build_delivered_whatsapp_message(order: Order) -> str:
+def build_delivered_whatsapp_message(order: Order, public_quote_url: str = "") -> str:
     """Template 3: Material Entregue."""
     items = list(order.items.all())
     if items:
@@ -144,6 +146,7 @@ def build_delivered_whatsapp_message(order: Order) -> str:
         resumo_itens = f"\n• {order.description[:80]}"
 
     valor_total = format_money_br(order.total_amount)
+    link_part = f"\n🖼️ Comprovante e arte aprovada:\n{public_quote_url}\n" if public_quote_url else ""
 
     message = (
         f"🍀 PRINT FORNECE\n"
@@ -152,6 +155,7 @@ def build_delivered_whatsapp_message(order: Order) -> str:
         f"━━━━━━━━━━━━━━━\n"
         f"📦 Itens entregues:{resumo_itens}\n"
         f"🟢 Total: R$ {valor_total}\n"
+        f"{link_part}"
         f"━━━━━━━━━━━━━━━\n"
         f"Muito obrigado pela confiança e preferência!\n"
         f"Precisando de novos materiais ou produtos, é só nos chamar por aqui! 😊🍀"
@@ -168,8 +172,8 @@ def get_whatsapp_share_links(order: Order, host: str = "") -> dict[str, str]:
     public_quote_url = f"{host}/orders/quote/{order.quote_token}/" if host else ""
 
     quote_msg = build_quote_whatsapp_message(order, public_quote_url)
-    ready_msg = build_ready_whatsapp_message(order)
-    delivered_msg = build_delivered_whatsapp_message(order)
+    ready_msg = build_ready_whatsapp_message(order, public_quote_url)
+    delivered_msg = build_delivered_whatsapp_message(order, public_quote_url)
 
     return {
         "phone": phone,

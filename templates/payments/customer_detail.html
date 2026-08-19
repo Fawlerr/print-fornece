@@ -1,0 +1,232 @@
+{% extends "base.html" %}
+
+{% block title %}{{ cliente.nome }} | Clientes | Print Fornece{% endblock %}
+{% block page_heading %}{{ cliente.nome }}{% endblock %}
+
+{% block content %}
+  <div class="section-heading">
+    <div>
+      <h2>{{ cliente.nome }}</h2>
+      <p>Cadastrado em {{ cliente.created_at|date:"d/m/Y H:i" }}</p>
+    </div>
+    <div class="button-row no-print">
+      <a class="btn btn-primary" href="{% url 'orders:create' %}?client_id={{ cliente.pk }}&client_name={{ cliente.nome|urlencode }}&client_whatsapp={{ cliente.telefone|urlencode }}">
+        <i class="fa-solid fa-plus-circle"></i> Novo Pedido para {{ cliente.nome }}
+      </a>
+      <a class="btn btn-secondary" href="{% url 'payments:customer_edit' pk=cliente.pk %}">
+        <i class="fa-solid fa-pen"></i> Editar Dados
+      </a>
+      <a class="btn btn-secondary" href="{% url 'payments:customer_list' %}">
+        <i class="fa-solid fa-arrow-left"></i> Voltar à Lista
+      </a>
+    </div>
+  </div>
+
+  <div class="grid two-col" style="margin-bottom: 24px;">
+    <!-- Dados do Cliente & Preço -->
+    <section class="card card-pad">
+      <div class="section-heading" style="margin-top: 0;">
+        <h3><i class="fa-solid fa-id-card" style="color: #38bdf8;"></i> Informações de Cadastro</h3>
+      </div>
+      <div class="detail-grid" style="margin-bottom: 16px;">
+        <div>
+          <small>WhatsApp / Telefone</small>
+          <strong>
+            {% if cliente.telefone %}
+              <a href="https://wa.me/55{{ cliente.telefone|cut:' '|cut:'-'|cut:'('|cut:')' }}" target="_blank" style="color: #22c55e;">
+                <i class="fa-brands fa-whatsapp"></i> {{ cliente.telefone }}
+              </a>
+            {% else %}
+              <span class="text-muted">Não informado</span>
+            {% endif %}
+          </strong>
+        </div>
+        <div>
+          <small>CPF ou CNPJ</small>
+          <strong>{{ cliente.cpf_cnpj|default:"Não informado" }}</strong>
+        </div>
+        <div>
+          <small>E-mail</small>
+          <strong>{{ cliente.email|default:"Não informado" }}</strong>
+        </div>
+        <div>
+          <small>Preço Especial do Metro</small>
+          <strong style="color: {% if cliente.preco_especial_metro %}#22c55e{% else %}#9ca3af{% endif %};">
+            {% if cliente.preco_especial_metro %}R$ {{ cliente.preco_especial_metro|floatformat:2 }} / m{% else %}Tabela Padrão{% endif %}
+          </strong>
+        </div>
+        <div>
+          <small>Saldo em Créditos (R$)</small>
+          <strong style="color: {% if cliente.saldo_credito > 0 %}#22c55e{% else %}#9ca3af{% endif %}; font-size: 1.15rem;">
+            R$ {{ cliente.saldo_credito|floatformat:2 }}
+          </strong>
+        </div>
+        <div>
+          <small>Saldo em Metros (Plano)</small>
+          <strong style="color: #38bdf8; font-size: 1.15rem;">
+            {{ cliente.metros_saldo|floatformat:1 }} metros
+          </strong>
+        </div>
+      </div>
+
+      {% if cliente.observacoes %}
+        <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); padding: 12px; border-radius: 8px;">
+          <small style="color: var(--muted); font-weight: 700; display: block; margin-bottom: 4px;">Observações Internas:</small>
+          <p style="margin: 0; font-size: 0.9rem;">{{ cliente.observacoes|linebreaksbr }}</p>
+        </div>
+      {% endif %}
+    </section>
+
+    <!-- Plano de Volume & Recarga de Saldo -->
+    <section class="card card-pad" style="border: 1px solid rgba(34, 197, 94, 0.3); background: radial-gradient(circle at 90% 10%, rgba(34, 197, 94, 0.08) 0%, transparent 60%), var(--panel);">
+      <div class="section-heading" style="margin-top: 0;">
+        <h3 style="display: flex; align-items: center; gap: 8px;">
+          <i class="fa-solid fa-layer-group" style="color: #22c55e;"></i> Plano de Volume & Saldo de Crédito
+        </h3>
+      </div>
+      <p style="font-size: 0.86rem; color: var(--muted); line-height: 1.4; margin-bottom: 16px;">
+        Garante lote de produção antecipado (ex.: 50m a R$ 35,00/m = R$ 1.750,00). O valor fica como crédito na conta corrente do cliente e é descontado conforme os pedidos são impressos.
+      </p>
+
+      <form method="post" action="{% url 'payments:customer_add_credito' pk=cliente.pk %}" class="no-print">
+        {% csrf_token %}
+        <div style="display: grid; gap: 10px;">
+          <label style="font-size: 0.85rem;">
+            <span>Opção de Recarga do Pacote:</span>
+            {{ credito_form.tipo_pacote }}
+          </label>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <label style="font-size: 0.85rem;">
+              <span>Valor em R$ (Crédito):</span>
+              {{ credito_form.valor_credito }}
+            </label>
+            <label style="font-size: 0.85rem;">
+              <span>Metros correspondentes:</span>
+              {{ credito_form.metros_adicionar }}
+            </label>
+          </div>
+          <button class="btn btn-primary btn-small" type="submit" style="margin-top: 4px;">
+            <i class="fa-solid fa-plus-circle"></i> Aplicar Recarga ao Saldo do Cliente
+          </button>
+        </div>
+      </form>
+    </section>
+  </div>
+
+  <!-- Galeria de Arquivos Registrados do Cliente -->
+  <section class="card card-pad" style="margin-bottom: 24px;">
+    <div class="section-heading" style="margin-top: 0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+      <div>
+        <h3 style="margin: 0; display: flex; align-items: center; gap: 8px;">
+          <i class="fa-solid fa-folder-open" style="color: #f59e0b;"></i> Arquivos e Artes Registradas do Cliente
+        </h3>
+        <p style="margin: 4px 0 0; font-size: 0.84rem; color: var(--muted);">
+          Banco de arquivos permanentes (logos, moldes, artes recorrentes) vinculados a este cliente.
+        </p>
+      </div>
+      <button class="btn btn-secondary btn-small no-print" type="button" onclick="document.getElementById('upload-cliente-arquivo-box').style.display = document.getElementById('upload-cliente-arquivo-box').style.display === 'none' ? 'block' : 'none';">
+        <i class="fa-solid fa-cloud-arrow-up"></i> Registrar Novo Arquivo
+      </button>
+    </div>
+
+    <!-- Box de Upload de Arquivo do Cliente -->
+    <div id="upload-cliente-arquivo-box" style="display: none; background: rgba(255,255,255,0.03); border: 1px dashed rgba(255,255,255,0.15); border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+      <form method="post" action="{% url 'payments:customer_add_arquivo' pk=cliente.pk %}" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 12px; align-items: end;">
+          <label style="font-size: 0.85rem;">
+            <span>Identificação / Nome da Arte:</span>
+            <input type="text" name="nome" placeholder="Ex: Logo Peito 10x10, Arte Estampa Costas 2026...">
+          </label>
+          <label style="font-size: 0.85rem;">
+            <span>Selecionar Arquivo:</span>
+            <input type="file" name="arquivo" required accept=".pdf,.png,.jpg,.jpeg,.webp,.svg,.cdr,.ai,.eps,.psd,.tif,.tiff,.zip">
+          </label>
+          <button class="btn btn-primary btn-small" type="submit" style="height: 42px;">
+            <i class="fa-solid fa-floppy-disk"></i> Salvar Arquivo
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px;">
+      {% for arq in arquivos_registrados %}
+        <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 12px; display: flex; flex-direction: column; justify-content: space-between;">
+          <div style="display: flex; gap: 10px; align-items: flex-start; margin-bottom: 8px;">
+            <i class="fa-solid fa-file-lines" style="color: #38bdf8; font-size: 1.4rem; margin-top: 2px;"></i>
+            <div style="overflow: hidden;">
+              <strong style="font-size: 0.88rem; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ arq.nome }}">
+                {{ arq.nome }}
+              </strong>
+              <small class="text-muted" style="font-size: 0.76rem;">{{ arq.created_at|date:"d/m/Y H:i" }}</small>
+            </div>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 8px; margin-top: 4px;">
+            <span class="text-muted" style="font-size: 0.75rem;">{{ arq.tamanho|filesizeformat }}</span>
+            <a href="{{ arq.arquivo.url }}" download class="btn btn-secondary btn-small" style="font-size: 0.75rem; padding: 3px 8px;">
+              <i class="fa-solid fa-download"></i> Baixar
+            </a>
+          </div>
+        </div>
+      {% empty %}
+        <div style="grid-column: 1/-1; text-align: center; padding: 24px; color: var(--muted);">
+          <i class="fa-solid fa-folder" style="font-size: 2rem; color: #475569; display: block; margin-bottom: 8px;"></i>
+          Nenhum arquivo registrado ainda para este cliente. Toque em "Registrar Novo Arquivo" acima.
+        </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <!-- Histórico de Pedidos Recentes do Cliente -->
+  <section class="card card-pad">
+    <div class="section-heading" style="margin-top: 0;">
+      <h3><i class="fa-solid fa-receipt" style="color: #34d399;"></i> Histórico de Pedidos Recentes</h3>
+    </div>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Número</th>
+            <th>Data</th>
+            <th>Tipo / Material</th>
+            <th>Total</th>
+            <th>Status Pgto</th>
+            <th>Etapa Atual</th>
+            <th class="no-print">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for pedido in pedidos %}
+            <tr>
+              <td>
+                <a href="{% url 'production:detail' pk=pedido.pk %}" style="font-weight: 700; color: #38bdf8;">#{{ pedido.number }}</a>
+              </td>
+              <td>{{ pedido.created_at|date:"d/m/Y H:i" }}</td>
+              <td>
+                <span class="badge badge-novo">{{ pedido.primary_material_label }}</span>
+              </td>
+              <td><strong>R$ {{ pedido.total_amount|floatformat:2 }}</strong></td>
+              <td>
+                <span class="badge badge-{{ pedido.payment_status }}">{{ pedido.get_payment_status_display }}</span>
+              </td>
+              <td>
+                <span class="badge badge-{{ pedido.stage }}">{{ pedido.get_stage_display }}</span>
+              </td>
+              <td class="no-print">
+                <a class="btn btn-secondary btn-small" href="{% url 'production:detail' pk=pedido.pk %}">Detalhes</a>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="7">
+                <div class="empty-state">
+                  Nenhum pedido encontrado para este cliente.
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+{% endblock %}

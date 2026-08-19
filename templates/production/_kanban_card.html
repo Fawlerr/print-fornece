@@ -1,9 +1,12 @@
-<article class="order-card{% if order.is_late %} is-late{% endif %}" draggable="true" data-order-id="{{ order.pk }}" data-stage="{{ order.stage }}" data-kanban-endpoint="{% url 'production:move_stage' pk=order.pk %}">
+<article class="order-card{% if order.is_late %} is-late{% endif %}" draggable="true" data-order-id="{{ order.pk }}" data-stage="{{ order.stage }}" data-detail-url="{% url 'production:detail' pk=order.pk %}" data-kanban-endpoint="{% url 'production:move_stage' pk=order.pk %}">
   <div class="order-card-header" style="display: flex; justify-content: space-between; align-items: center; gap: 6px; margin-bottom: 6px;">
-    <div style="display: flex; align-items: center; gap: 6px;">
+    <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
       <span class="order-number" style="font-weight: 700; color: #f8fafc;">#{{ order.number }}</span>
+      <span class="badge-material-type" style="font-size: 0.70rem; font-weight: 700; padding: 2px 6px; border-radius: 4px; background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3);">
+        {{ order.primary_material_label }}
+      </span>
       {% if order.priority == "urgente" %}
-        <span class="priority" title="Pedido Urgente" style="font-size: 0.72rem; padding: 2px 6px; border-radius: 4px; background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3);">
+        <span class="priority" title="Pedido Urgente" style="font-size: 0.70rem; padding: 2px 6px; border-radius: 4px; background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3);">
           <i class="fa-solid fa-bolt" aria-hidden="true"></i> Urgente
         </span>
       {% endif %}
@@ -31,6 +34,9 @@
           {% elif item.kind == "servico" %}
             <i class="fa-solid fa-wand-magic-sparkles" style="color: #fbbf24; font-size: 0.72rem;"></i>
             <span>{{ item.material_name }}</span>
+          {% elif item.kind == "ajuste" %}
+            <i class="fa-solid fa-sliders" style="color: #94a3b8; font-size: 0.72rem;"></i>
+            <span>{{ item.material_name }}</span>
           {% endif %}
         </div>
       {% endfor %}
@@ -43,7 +49,13 @@
   {% endif %}
 
   <div class="order-meta" style="display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 8px;">
-    <span class="badge badge-{{ order.payment_status }}" style="font-size: 0.74rem;">{{ order.get_payment_status_display }}</span>
+    {% if order.payment_status == "pago" or order.stage == "pagamento_confirmado" %}
+      <span class="badge badge-pago" style="font-size: 0.74rem;">Pago</span>
+    {% elif order.payment_status == "parcial" %}
+      <span class="badge badge-parcial" style="font-size: 0.74rem;" title="R$ {{ order.paid_amount|floatformat:2 }} de R$ {{ order.total_amount|floatformat:2 }}">Parcial (R$ {{ order.paid_amount|floatformat:2 }})</span>
+    {% else %}
+      <span class="badge badge-nao_pago" style="font-size: 0.74rem;">Não pago</span>
+    {% endif %}
     
     <span class="order-details-item" title="Turno: {{ order.get_shift_display }}{% if order.due_at %} · Prazo: {{ order.due_at|date:'d/m H:i' }}{% endif %}" style="font-size: 0.76rem;">
       <i class="fa-regular fa-clock" aria-hidden="true"></i> {{ order.get_shift_display }}{% if order.due_at %} <small style="color: #cbd5e1;">· {{ order.due_at|date:"d/m H:i" }}</small>{% endif %}

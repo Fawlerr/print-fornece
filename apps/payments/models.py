@@ -3,11 +3,23 @@ from django.db import models
 from apps.orders.models import Order
 
 
+def cliente_upload_path(instance: "ClienteArquivo", filename: str) -> str:
+    from pathlib import Path
+    import uuid
+    extension = Path(filename).suffix.lower()
+    token = uuid.uuid4().hex
+    return f"cliente_arquivos/{instance.cliente_id or 'geral'}/{token}{extension}"
+
+
 class Cliente(models.Model):
     nome = models.CharField("nome", max_length=200)
     cpf_cnpj = models.CharField("CPF/CNPJ", max_length=20, null=True, blank=True, db_index=True)
     email = models.EmailField("e-mail", null=True, blank=True)
-    telefone = models.CharField("telefone", max_length=25, null=True, blank=True)
+    telefone = models.CharField("telefone / WhatsApp", max_length=25, null=True, blank=True)
+    preco_especial_metro = models.DecimalField("preço especial DTF/metro", max_digits=10, decimal_places=2, null=True, blank=True, help_text="Preço diferenciado do metro de DTF (ex: R$ 35,00)")
+    saldo_credito = models.DecimalField("saldo em créditos (R$)", max_digits=12, decimal_places=2, default=0, help_text="Saldo financeiro para abatimento em pedidos")
+    metros_saldo = models.DecimalField("saldo em metros do pacote", max_digits=10, decimal_places=2, default=0, help_text="Metros contratados no Plano de Volume")
+    observacoes = models.TextField("observações do cliente", blank=True, default="")
     stone_customer_id = models.CharField("ID do Cliente Stone", max_length=100, null=True, blank=True, db_index=True)
     created_at = models.DateTimeField("criado em", auto_now_add=True)
     updated_at = models.DateTimeField("atualizado em", auto_now=True)
@@ -20,6 +32,24 @@ class Cliente(models.Model):
 
     def __str__(self) -> str:
         return self.nome
+
+
+class ClienteArquivo(models.Model):
+    cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE, related_name="arquivos_registrados", verbose_name="cliente")
+    nome = models.CharField("nome do arquivo / descrição", max_length=255)
+    arquivo = models.FileField("arquivo", upload_to=cliente_upload_path)
+    content_type = models.CharField(max_length=100, blank=True, default="")
+    tamanho = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField("registrado em", auto_now_add=True)
+
+    class Meta:
+        db_table = "pf_cliente_arquivos"
+        ordering = ["-created_at", "-pk"]
+        verbose_name = "Arquivo Registrado do Cliente"
+        verbose_name_plural = "Arquivos Registrados dos Clientes"
+
+    def __str__(self) -> str:
+        return f"{self.cliente.nome} - {self.nome}"
 
 
 class Pagamento(models.Model):

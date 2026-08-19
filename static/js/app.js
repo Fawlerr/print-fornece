@@ -124,7 +124,8 @@
     pagamento_confirmado: { previous: "aguardando_pagamento", next: "pre_impressao" },
     pre_impressao: { previous: "pagamento_confirmado", next: "em_producao" },
     em_producao: { previous: "pre_impressao", next: "pronto_retirada" },
-    pronto_retirada: { previous: "em_producao", finalize: true },
+    pronto_retirada: { previous: "em_producao", next: "entregue", finalize: true },
+    entregue: { previous: "pronto_retirada" },
   };
 
   function stageButton(orderId, stage, direction) {
@@ -138,25 +139,37 @@
   function updateCardActionButtons(card, newStage) {
     const actionsDiv = card.querySelector(".order-stage-actions");
     if (!actionsDiv) return;
-    const orderId = card.dataset.orderId || card.dataset.orderMove;
-    const actions = STAGE_ACTION_CONFIG[newStage] || {};
-    const previous = actions.previous
-      ? stageButton(orderId, actions.previous, "previous")
-      : '<span class="kanban-stage-spacer" aria-hidden="true"></span>';
-    let next = "";
-    if (actions.next) {
-      next = stageButton(orderId, actions.next, "next");
-    } else if (actions.finalize) {
-      next = `<a class="kanban-stage-button kanban-stage-button-next" href="/production/${orderId}/" aria-label="Abrir pedido para finalizar" title="Abrir pedido para finalizar"><i class="fa-solid fa-check" aria-hidden="true"></i><span class="sr-only">Abrir pedido para finalizar</span></a>`;
-    }
-    // Retain the server-rendered client link as a DOM node.  Client names are
-    // user data and must never be interpolated back into HTML strings.
-    const heading = actionsDiv.querySelector("h3");
-    actionsDiv.innerHTML = previous;
-    if (heading) actionsDiv.appendChild(heading);
-    actionsDiv.insertAdjacentHTML("beforeend", next);
 
-    bindMoveButtons(actionsDiv);
+    // Atualiza badge de pagamento se estava como Não Pago
+    const badge = card.querySelector(".badge-nao_pago");
+    if (badge && (newStage === "pagamento_confirmado" || newStage === "pre_impressao" || newStage === "em_producao" || newStage === "pronto_retirada" || newStage === "entregue")) {
+      badge.className = "badge badge-pago";
+      badge.textContent = "Pago";
+    }
+
+    const orderId = card.dataset.orderId;
+    const config = STAGE_ACTION_CONFIG[newStage];
+    if (!config) {
+      actionsDiv.innerHTML = "";
+      return;
+    }
+
+    let html = "";
+    if (config.previous) {
+      html += stageButton(orderId, config.previous, "prev");
+    } else {
+      html += '<span class="kanban-stage-spacer" aria-hidden="true"></span>';
+    }
+
+    if (config.next) {
+      html += stageButton(orderId, config.next, "next");
+    } else if (config.finalize) {
+      html += `<a class="kanban-stage-button kanban-stage-button-next" href="/production/${orderId}/" aria-label="Abrir pedido para finalizar" title="Abrir pedido para finalizar"><span class="desktop-only">Finalizar </span><i class="fa-solid fa-check" aria-hidden="true"></i></a>`;
+    }
+
+    actionsDiv.innerHTML = html;
+    bindMoveButtons();
+    bindCardClickHandlers();
   }
 
   async function moveOrder(source, orderId, stage) {

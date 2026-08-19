@@ -82,6 +82,10 @@ class Order(models.Model):
     finished_at = models.DateTimeField(null=True, blank=True)
     cancelled_at = models.DateTimeField(null=True, blank=True)
     cancelled_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="cancelled_orders")
+    cliente = models.ForeignKey("payments.Cliente", on_delete=models.SET_NULL, null=True, blank=True, related_name="pedidos_vinculados", verbose_name="cliente cadastrado")
+    is_correction = models.BooleanField("pedido de correção / garantia", default=False)
+    correction_reason = models.CharField("motivo da correção / defeito", max_length=255, blank=True, default="")
+    discount_advance = models.DecimalField("abatimento / entrada já paga", max_digits=12, decimal_places=2, default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -104,7 +108,28 @@ class Order(models.Model):
 
     @property
     def remaining_amount(self):
-        return self.total_amount - self.paid_amount
+        return max(0, self.total_amount - self.paid_amount)
+
+    @property
+    def primary_material_label(self) -> str:
+        if self.is_correction:
+            return "Correção / Defeito"
+        items = list(self.items.all())
+        if not items:
+            desc = (self.description or "").lower()
+            if "uv" in desc:
+                return "DTF UV"
+            if "camisa" in desc or "camiseta" in desc:
+                return "Camiseta"
+            return "DTF Têxtil"
+        first = items[0]
+        if first.kind == OrderItem.Kind.PRODUCT or "camisa" in first.material_code.lower():
+            return "Camisetas"
+        if "uv" in first.material_code.lower() or "uv" in first.material_name.lower():
+            return "DTF UV"
+        if first.kind == OrderItem.Kind.SERVICE:
+            return "Serviço"
+        return "DTF Têxtil" if "dtf" in first.material_name.lower() else first.material_name
 
     @property
     def is_active_stage(self) -> bool:

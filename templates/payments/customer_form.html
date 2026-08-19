@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}{% if object %}Editar Cliente: {{ object.nome }}{% else %}Novo Cliente{% endif %} | Print Fornece{% endblock %}
+{% block page_heading %}{% if object %}Editar Cliente{% else %}Novo Cliente{% endif %}{% endblock %}
+
+{% block content %}
+  <div class="section-heading">
+    <div>
+      <h2>{% if object %}Editar dados de {{ object.nome }}{% else %}Cadastro de Cliente{% endif %}</h2>
+      <p>Configure contatos, tabela de preço especial e saldo do Plano de Volume.</p>
+    </div>
+  </div>
+
+  <div class="card form-card">
+    <form method="post">
+      {% csrf_token %}
+      <div class="form-grid">
+        <label class="full" for="{{ form.nome.id_for_label }}">
+          <span>{{ form.nome.label }} *</span>
+          {{ form.nome }}
+          {% if form.nome.errors %}<span class="form-error">{{ form.nome.errors.0 }}</span>{% endif %}
+        </label>
+
+        <label for="{{ form.telefone.id_for_label }}">
+          <span>{{ form.telefone.label }}</span>
+          {{ form.telefone }}
+          {% if form.telefone.errors %}<span class="form-error">{{ form.telefone.errors.0 }}</span>{% endif %}
+        </label>
+
+        <label for="{{ form.cpf_cnpj.id_for_label }}">
+          <span>{{ form.cpf_cnpj.label }}</span>
+          {{ form.cpf_cnpj }}
+          {% if form.cpf_cnpj.errors %}<span class="form-error">{{ form.cpf_cnpj.errors.0 }}</span>{% endif %}
+        </label>
+
+        <label for="{{ form.email.id_for_label }}">
+          <span>{{ form.email.label }}</span>
+          {{ form.email }}
+          {% if form.email.errors %}<span class="form-error">{{ form.email.errors.0 }}</span>{% endif %}
+        </label>
+
+        <label for="{{ form.preco_especial_metro.id_for_label }}">
+          <span>{{ form.preco_especial_metro.label }}</span>
+          {{ form.preco_especial_metro }}
+          <span class="help">{{ form.preco_especial_metro.help_text }}</span>
+          {% if form.preco_especial_metro.errors %}<span class="form-error">{{ form.preco_especial_metro.errors.0 }}</span>{% endif %}
+        </label>
+
+        <label for="{{ form.saldo_credito.id_for_label }}">
+          <span>{{ form.saldo_credito.label }}</span>
+          {{ form.saldo_credito }}
+          <span class="help">{{ form.saldo_credito.help_text }}</span>
+          {% if form.saldo_credito.errors %}<span class="form-error">{{ form.saldo_credito.errors.0 }}</span>{% endif %}
+        </label>
+
+        <label for="{{ form.metros_saldo.id_for_label }}">
+          <span>{{ form.metros_saldo.label }}</span>
+          {{ form.metros_saldo }}
+          <span class="help">{{ form.metros_saldo.help_text }}</span>
+          {% if form.metros_saldo.errors %}<span class="form-error">{{ form.metros_saldo.errors.0 }}</span>{% endif %}
+        </label>
+
+        <label class="full" for="{{ form.observacoes.id_for_label }}">
+          <span>{{ form.observacoes.label }}</span>
+          {{ form.observacoes }}
+          {% if form.observacoes.errors %}<span class="form-error">{{ form.observacoes.errors.0 }}</span>{% endif %}
+        </label>
+      </div>
+
+      <div class="form-actions">
+        <a class="btn btn-secondary" href="{% if object %}{% url 'payments:customer_detail' pk=object.pk %}{% else %}{% url 'payments:customer_list' %}{% endif %}">Cancelar</a>
+        <button class="btn btn-primary" type="submit"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Salvar Cliente</button>
+      </div>
+    </form>
+  </div>
+{% endblock %}

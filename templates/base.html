@@ -100,10 +100,12 @@
 
         <!-- Barra de Navegação Inferior para Dispositivos Móveis (Android / iOS / Chrome) -->
         <nav class="mobile-bottom-nav" aria-label="Navegação inferior mobile">
-          <a href="{% url 'dashboard:index' %}" class="mobile-nav-item{% if request.resolver_match.app_name == 'dashboard' %} active{% endif %}">
-            <i class="fa-solid fa-chart-pie"></i>
-            <span>Visão geral</span>
-          </a>
+          {% if user.is_administrator %}
+            <a href="{% url 'dashboard:index' %}" class="mobile-nav-item{% if request.resolver_match.app_name == 'dashboard' %} active{% endif %}">
+              <i class="fa-solid fa-chart-pie"></i>
+              <span>Visão geral</span>
+            </a>
+          {% endif %}
           <a href="{% url 'orders:create' %}" class="mobile-nav-item{% if request.resolver_match.url_name == 'create' %} active{% endif %}">
             <i class="fa-solid fa-circle-plus"></i>
             <span>Novo pedido</span>
@@ -112,10 +114,12 @@
             <i class="fa-solid fa-list-check"></i>
             <span>Produção</span>
           </a>
-          <a href="{% url 'expenses:list' %}" class="mobile-nav-item{% if request.resolver_match.app_name == 'expenses' %} active{% endif %}">
-            <i class="fa-solid fa-wallet"></i>
-            <span>Despesas</span>
-          </a>
+          {% if user.is_administrator %}
+            <a href="{% url 'expenses:list' %}" class="mobile-nav-item{% if request.resolver_match.app_name == 'expenses' %} active{% endif %}">
+              <i class="fa-solid fa-wallet"></i>
+              <span>Despesas</span>
+            </a>
+          {% endif %}
           <a href="{% url 'notifications:list' %}" class="mobile-nav-item{% if request.resolver_match.app_name == 'notifications' %} active{% endif %}">
             <i class="fa-solid fa-bell"></i>
             <span>Alertas</span>

@@ -715,6 +715,145 @@ class PrintForneceTestCase(TestCase):
             validate_upload(oversized)
         self.assertIn("excede o limite máximo permitido de 6 GB", str(ctx.exception))
 
+    def test_tiff_attachment_validation(self):
+        from apps.orders.services import validate_upload
+        # Test .tif and .tiff
+        tif_file = SimpleUploadedFile("estampa_alta_resolucao.tif", b"II*\x00simulated tiff data", content_type="image/tiff")
+        orig_name, c_type = validate_upload(tif_file)
+        self.assertEqual(orig_name, "estampa_alta_resolucao.tif")
+        self.assertEqual(c_type, "image/tiff")
+
+        tiff_file = SimpleUploadedFile("logo_empresa.tiff", b"MM\x00*simulated tiff data", content_type="image/tiff")
+        orig_name2, c_type2 = validate_upload(tiff_file)
+        self.assertEqual(orig_name2, "logo_empresa.tiff")
+        self.assertEqual(c_type2, "image/tiff")
+
+    def test_cliente_flow_and_volume_package(self):
+        from apps.payments.models import Cliente, ClienteArquivo
+        self.login_as(self.admin)
+
+        # 1. Create cliente
+        response = self.client.post(
+            reverse("payments:customer_create"),
+            {
+                "nome": "Malharia Brasil",
+                "telefone": "(11) 98888-7777",
+                "preco_especial_metro": "35,00",
+                "saldo_credito": "1750,00",
+                "metros_saldo": "50,00",
+                "observacoes": "Cliente VIP de alto volume.",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        cliente = Cliente.objects.get(nome="Malharia Brasil")
+        self.assertEqual(cliente.preco_especial_metro, Decimal("35.00"))
+        self.assertEqual(cliente.saldo_credito, Decimal("1750.00"))
+
+        # 2. Add file to cliente vault
+        sample_file = SimpleUploadedFile("logo_cliente.png", b"\x89PNG\r\n\x1a\nsample", content_type="image/png")
+        response = self.client.post(
+            reverse("payments:customer_add_arquivo", args=[cliente.pk]),
+            {"nome": "Logo Principal 2026", "arquivo": sample_file},
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(cliente.arquivos_registrados.count(), 1)
+
+        # 3. Autocomplete search
+        response = self.client.get(reverse("payments:api_customer_search"), {"q": "Malharia"})
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(len(data["results"]), 1)
+        self.assertEqual(data["results"][0]["nome"], "Malharia Brasil")
+
+    def test_quick_payment_registration(self):
+        self.login_as(self.admin)
+        order = Order.objects.create(
+            number="PED-TEST-PAY",
+            client_name="Cliente Pagador",
+            client_whatsapp="11999998888",
+            description="Impressão DTF",
+            total_amount=Decimal("100.00"),
+            paid_amount=Decimal("0.00"),
+            payment_status=Order.PaymentStatus.UNPAID,
+            stage=Order.Stage.AWAITING_PAYMENT,
+            created_by=self.admin,
+            responsible=self.employee,
+        )
+
+        # Register partial payment R$ 40
+        response = self.client.post(
+            reverse("orders:register_payment", args=[order.pk]),
+            {"paid_amount": "40,00", "payment_method": Order.PaymentMethod.PIX, "notes": "Entrada"},
+        )
+        self.assertRedirects(response, reverse("production:detail", args=[order.pk]))
+        order.refresh_from_db()
+        self.assertEqual(order.paid_amount, Decimal("40.00"))
+        self.assertEqual(order.payment_status, Order.PaymentStatus.PARTIAL)
+        self.assertEqual(order.remaining_amount, Decimal("60.00"))
+
+        # Complete payment R$ 60
+        response = self.client.post(
+            reverse("orders:register_payment", args=[order.pk]),
+            {"paid_amount": "60,00", "payment_method": Order.PaymentMethod.PIX, "notes": "Restante"},
+        )
+        self.assertRedirects(response, reverse("production:detail", args=[order.pk]))
+        order.refresh_from_db()
+        self.assertEqual(order.paid_amount, Decimal("100.00"))
+        self.assertEqual(order.payment_status, Order.PaymentStatus.PAID)
+        self.assertEqual(order.stage, Order.Stage.PAYMENT_CONFIRMED)
+
+    def test_whatsapp_messages_include_preview_links(self):
+        from apps.notifications.whatsapp import build_ready_whatsapp_message, build_delivered_whatsapp_message
+        preview_url = "https://printfornece.com/orders/quote/test-token-123/"
+        ready_msg = build_ready_whatsapp_message(self.order, public_quote_url=preview_url)
+        self.assertIn(preview_url, ready_msg)
+        self.assertIn("PRONTO PARA RETIRADA", ready_msg)
+
+        delivered_msg = build_delivered_whatsapp_message(self.order, public_quote_url=preview_url)
+        self.assertIn(preview_url, delivered_msg)
+        self.assertIn("ENTREGA", delivered_msg)
+
+    def test_sector_permission_rules(self):
+        from apps.production.services import move_order_stage
+        from django.core.exceptions import PermissionDenied
+        from apps.accounts.models import User
+
+        paula_user = User.objects.create_user(
+            email="paula@test.com",
+            name="Paula Produção",
+            password="testpassword",
+            role=User.Role.EMPLOYEE,
+            sector=User.Sector.PRODUCAO,
+        )
+        atendimento_user = User.objects.create_user(
+            email="atendimento@test.com",
+            name="Atendimento Vendas",
+            password="testpassword",
+            role=User.Role.EMPLOYEE,
+            sector=User.Sector.ATENDIMENTO,
+        )
+
+        test_order = Order.objects.create(
+            number="PED-SECTOR-01",
+            client_name="Cliente Setores",
+            client_whatsapp="11977776666",
+            total_amount=Decimal("50.00"),
+            stage=Order.Stage.NEW,
+            created_by=self.admin,
+            responsible=self.employee,
+        )
+
+        # Paula is production only: cannot move commercial initial stages (novo -> aguardando_pagamento)
+        with self.assertRaises(PermissionDenied):
+            move_order_stage(order_id=test_order.pk, new_stage=Order.Stage.AWAITING_PAYMENT, actor=paula_user)
+
+        # Atendimento cannot move to pre_impressao / em_producao
+        test_order.stage = Order.Stage.PAYMENT_CONFIRMED
+        test_order.save()
+        with self.assertRaises(PermissionDenied):
+            move_order_stage(order_id=test_order.pk, new_stage=Order.Stage.PRE_PRESS, actor=atendimento_user)
+
+
 
 
 

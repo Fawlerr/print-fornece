@@ -23,6 +23,38 @@
       {% if hidden_field.errors %}<div class="field-errors" role="alert">{{ hidden_field.errors }}</div>{% endif %}
     {% endfor %}
 
+    <!-- Seção de Seleção de Cliente / Autocomplete -->
+    <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 16px; margin-bottom: 16px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
+        <label for="customer_search_input" style="margin: 0; font-size: 0.92rem; font-weight: 700; color: #38bdf8; display: flex; align-items: center; gap: 6px;">
+          <i class="fa-solid fa-address-book"></i> Vincular Cliente Cadastrado (Opcional)
+        </label>
+        <a href="{% url 'payments:customer_create' %}" target="_blank" class="text-muted" style="font-size: 0.8rem; text-decoration: underline;">
+          <i class="fa-solid fa-plus"></i> Novo Cadastro de Cliente
+        </a>
+      </div>
+      <div style="position: relative;">
+        <input type="text" id="customer_search_input" placeholder="Buscar cliente por nome ou WhatsApp para preenchimento rápido..." autocomplete="off" style="width: 100%; border-radius: 8px; padding: 10px 14px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color, rgba(255,255,255,0.15)); color: #fff;">
+        <div id="customer_search_results" style="display: none; position: absolute; top: 100%; left: 0; right: 0; z-index: 50; background: #182230; border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; max-height: 200px; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.5); margin-top: 4px;"></div>
+      </div>
+      <div id="customer_selected_info" style="display: none; margin-top: 10px; padding: 10px 12px; background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3); border-radius: 6px; font-size: 0.84rem; color: #86efac;"></div>
+      <input type="hidden" name="cliente" id="id_cliente_hidden" value="{{ form.cliente.value|default:'' }}">
+    </div>
+
+    <!-- Toggle de Pedido de Correção / Defeito (Sem Valor) -->
+    <div style="background: rgba(239, 68, 68, 0.06); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 10px; padding: 14px 16px; margin-bottom: 16px;">
+      <label style="display: flex; align-items: center; gap: 10px; font-weight: 700; color: #f87171; cursor: pointer; margin: 0;">
+        <input type="checkbox" name="is_correction" id="id_is_correction" {% if form.is_correction.value %}checked{% endif %} style="width: 18px; height: 18px; accent-color: #ef4444;">
+        <span><i class="fa-solid fa-triangle-exclamation"></i> Pedido de Correção / Reposição por Defeito (R$ 0,00 sem cobrança)</span>
+      </label>
+      <div id="correction_reason_box" style="{% if not form.is_correction.value %}display: none;{% endif %} margin-top: 10px;">
+        <label for="{{ form.correction_reason.id_for_label }}" style="font-size: 0.85rem; color: #fca5a5;">
+          <span>Motivo / Justificativa da Correção:</span>
+          {{ form.correction_reason }}
+        </label>
+      </div>
+    </div>
+
     <div class="form-grid order-client-fields">
       {% include "includes/form_field.html" with field=form.client_name %}
       {% include "includes/form_field.html" with field=form.client_whatsapp %}
@@ -198,6 +230,7 @@
     <div class="form-grid order-details-fields">
       {% include "includes/form_field.html" with field=form.description full=True %}
       {% include "includes/form_field.html" with field=form.total_amount %}
+      {% include "includes/form_field.html" with field=form.discount_advance %}
       {% include "includes/form_field.html" with field=form.payment_status %}
       {% include "includes/form_field.html" with field=form.paid_amount %}
       {% include "includes/form_field.html" with field=form.payment_method %}
@@ -210,8 +243,8 @@
 
     <label class="full" for="id_attachments" style="margin-top: 16px;">
       <span>{% if object %}Adicionar novos arquivos / comprovantes{% else %}Arquivos da arte e comprovantes{% endif %}</span>
-      <input id="id_attachments" type="file" name="attachments" multiple accept=".pdf,.png,.jpg,.jpeg,.webp,.svg,.cdr,.ai,.eps,.psd,.tiff,.zip">
-      <span class="help">PDF, imagens (PNG, JPG, WEBP), SVG, CDR, AI, EPS, PSD, TIFF ou ZIP. Máximo de 6 GB por arquivo.</span>
+      <input id="id_attachments" type="file" name="attachments" multiple accept=".pdf,.png,.jpg,.jpeg,.webp,.svg,.cdr,.ai,.eps,.psd,.tif,.tiff,.zip">
+      <span class="help">PDF, imagens (PNG, JPG, WEBP), SVG, CDR, AI, EPS, PSD, TIF/TIFF ou ZIP. Máximo de 6 GB por arquivo.</span>
     </label>
 
     <div class="form-actions">
@@ -232,5 +265,103 @@
 
 {% block extra_scripts %}
   <script src="{% static 'js/order-calculator.js' %}" defer></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      // Toggle de Pedido de Correção
+      const isCorrectionCheckbox = document.getElementById("id_is_correction");
+      const correctionReasonBox = document.getElementById("correction_reason_box");
+      const totalAmountInput = document.getElementById("id_total_amount");
+      const paidAmountInput = document.getElementById("id_paid_amount");
+      const paymentStatusSelect = document.getElementById("id_payment_status");
+
+      if (isCorrectionCheckbox) {
+        isCorrectionCheckbox.addEventListener("change", () => {
+          if (isCorrectionCheckbox.checked) {
+            if (correctionReasonBox) correctionReasonBox.style.display = "block";
+            if (totalAmountInput) totalAmountInput.value = "0,00";
+            if (paidAmountInput) paidAmountInput.value = "0,00";
+            if (paymentStatusSelect) paymentStatusSelect.value = "pago";
+          } else {
+            if (correctionReasonBox) correctionReasonBox.style.display = "none";
+          }
+        });
+      }
+
+      // Autocomplete de Busca de Clientes
+      const searchInput = document.getElementById("customer_search_input");
+      const resultsBox = document.getElementById("customer_search_results");
+      const selectedInfoBox = document.getElementById("customer_selected_info");
+      const clienteHidden = document.getElementById("id_cliente_hidden");
+      const clientNameInput = document.getElementById("id_client_name");
+      const clientWhatsappInput = document.getElementById("id_client_whatsapp");
+      let searchTimeout = null;
+
+      if (searchInput && resultsBox) {
+        searchInput.addEventListener("input", () => {
+          clearTimeout(searchTimeout);
+          const term = searchInput.value.trim();
+          if (term.length < 2) {
+            resultsBox.style.display = "none";
+            resultsBox.innerHTML = "";
+            return;
+          }
+
+          searchTimeout = setTimeout(async () => {
+            try {
+              const res = await fetch(`/payments/clientes/api/search/?q=${encodeURIComponent(term)}`);
+              const data = await res.json();
+              if (data.results && data.results.length > 0) {
+                resultsBox.innerHTML = data.results.map(c => `
+                  <div class="customer-search-item" data-id="${c.id}" data-name="${encodeURIComponent(c.nome)}" data-phone="${encodeURIComponent(c.telefone)}" data-special="${c.preco_especial_metro}" data-saldo="${c.saldo_credito}" data-metros="${c.metros_saldo}" style="padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,0.06); cursor: pointer; transition: background 0.15s ease;">
+                    <strong style="color: #38bdf8; display: block;">${c.nome}</strong>
+                    <small style="color: #9ca3af;">${c.telefone || 'Sem WhatsApp'} ${c.preco_especial_metro ? `· <span style="color: #22c55e;">Preço Especial: R$ ${c.preco_especial_metro}/m</span>` : ''} ${parseFloat(c.saldo_credito) > 0 ? `· <span style="color: #f59e0b;">Saldo: R$ ${c.saldo_credito}</span>` : ''}</small>
+                  </div>
+                `).join("");
+                resultsBox.style.display = "block";
+
+                resultsBox.querySelectorAll(".customer-search-item").forEach(item => {
+                  item.addEventListener("click", () => {
+                    const id = item.dataset.id;
+                    const name = decodeURIComponent(item.dataset.name);
+                    const phone = decodeURIComponent(item.dataset.phone);
+                    const special = item.dataset.special;
+                    const saldo = item.dataset.saldo;
+                    const metros = item.dataset.metros;
+
+                    if (clienteHidden) clienteHidden.value = id;
+                    if (clientNameInput) clientNameInput.value = name;
+                    if (clientWhatsappInput && phone) clientWhatsappInput.value = phone;
+
+                    let infoHtml = `<strong><i class="fa-solid fa-circle-check"></i> Cliente Selecionado:</strong> ${name}`;
+                    if (special) infoHtml += ` · <b style="color: #fff;">Preço Especial DTF: R$ ${special}/m</b>`;
+                    if (parseFloat(saldo) > 0) infoHtml += ` · <b style="color: #fef08a;">Saldo em Conta: R$ ${saldo} (${metros}m)</b>`;
+
+                    if (selectedInfoBox) {
+                      selectedInfoBox.innerHTML = infoHtml;
+                      selectedInfoBox.style.display = "block";
+                    }
+
+                    searchInput.value = name;
+                    resultsBox.style.display = "none";
+                  });
+                });
+              } else {
+                resultsBox.innerHTML = '<div style="padding: 10px 14px; color: var(--muted); font-size: 0.85rem;">Nenhum cliente encontrado com este nome.</div>';
+                resultsBox.style.display = "block";
+              }
+            } catch (err) {
+              console.error(err);
+            }
+          }, 250);
+        });
+
+        document.addEventListener("click", (e) => {
+          if (!searchInput.contains(e.target) && !resultsBox.contains(e.target)) {
+            resultsBox.style.display = "none";
+          }
+        });
+      }
+    });
+  </script>
 {% endblock %}
 

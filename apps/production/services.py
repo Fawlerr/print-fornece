@@ -7,7 +7,7 @@ from django.utils import timezone
 from apps.audit.services import record_audit
 from apps.notifications.services import notify_role, notify_user
 from apps.orders.models import Order, OrderHistory, OrderStageHistory
-from apps.orders.services import ACTIVE_STAGES, require_order_access
+from apps.orders.services import ACTIVE_STAGES, _snapshot_receipt_on_payment, require_order_access
 
 
 def _stage_label(stage: str) -> str:
@@ -24,10 +24,38 @@ def move_order_stage(*, order_id: int, new_stage: str, actor, request=None) -> O
         raise ValidationError("Pedido indisponível para movimentação.")
     if order.stage == new_stage:
         return order
+
+    # Sector restrictions:
+    if getattr(actor, "is_attendance_sales_only", False) and new_stage in {Order.Stage.PRE_PRESS, Order.Stage.PRODUCTION}:
+        raise PermissionDenied("A etapa de produção é restrita à equipe técnica / pré-impressão.")
+    if getattr(actor, "is_prepress_production_only", False) and new_stage in {Order.Stage.NEW, Order.Stage.AWAITING_PAYMENT}:
+        raise PermissionDenied("A movimentação de etapas comerciais é restrita ao atendimento.")
+
     previous_stage = order.stage
     order.stage = new_stage
     order.stage_updated_at = timezone.now()
-    order.save(update_fields=["stage", "stage_updated_at", "updated_at"])
+    update_fields = ["stage", "stage_updated_at", "updated_at"]
+
+    # Sincronização automática do status de pagamento em etapas confirmadas
+    if new_stage in {Order.Stage.PAYMENT_CONFIRMED, Order.Stage.PRE_PRESS, Order.Stage.PRODUCTION, Order.Stage.READY, Order.Stage.DELIVERED}:
+        if order.payment_status == Order.PaymentStatus.UNPAID:
+            order.payment_status = Order.PaymentStatus.PAID
+            order.paid_amount = order.total_amount
+            order.payment_confirmed_at = timezone.now()
+            order.payment_confirmed_by = actor
+            _snapshot_receipt_on_payment(order, actor)
+            update_fields.extend([
+                "payment_status", "paid_amount", "payment_confirmed_at", "payment_confirmed_by",
+                "receipt_client_name", "receipt_seller_name", "receipt_total_amount",
+                "receipt_paid_amount", "receipt_payment_method", "receipt_generated_at"
+            ])
+
+    if new_stage == Order.Stage.DELIVERED:
+        if not order.finished_at:
+            order.finished_at = timezone.now()
+            update_fields.append("finished_at")
+
+    order.save(update_fields=list(set(update_fields)))
     message = f"Movido de {_stage_label(previous_stage)} para {_stage_label(new_stage)}"
     OrderStageHistory.objects.create(order=order, previous_stage=previous_stage, new_stage=new_stage, user=actor)
     OrderHistory.objects.create(order=order, user=actor, action="mudanca_etapa", description=message)

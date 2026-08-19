@@ -165,9 +165,20 @@
       calculationPayload.value = JSON.stringify({ items: cartItems });
     }
 
-    // Sync total amount field
+    // Sync total amount field (com dedução de abatimento e correção por defeito)
     if (totalAmountInput) {
-      totalAmountInput.value = number(totalSum, 2, 2);
+      const discountInput = document.querySelector("#id_discount_advance");
+      let discountVal = 0;
+      if (discountInput && discountInput.value) {
+        const parsed = parseFloat(discountInput.value.replace(/\./g, "").replace(",", "."));
+        if (!isNaN(parsed) && parsed > 0) discountVal = parsed;
+      }
+      const isCorrectionEl = document.querySelector("#id_is_correction");
+      const isCorrection = isCorrectionEl && isCorrectionEl.checked;
+
+      const finalSum = isCorrection ? 0 : Math.max(0, totalSum - discountVal);
+
+      totalAmountInput.value = number(finalSum, 2, 2);
       totalAmountInput.dispatchEvent(new Event("input", { bubbles: true }));
       totalAmountInput.dispatchEvent(new Event("change", { bubbles: true }));
     }

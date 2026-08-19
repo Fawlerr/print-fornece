@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block title %}Clientes | Print Fornece{% endblock %}
+{% block page_heading %}Clientes{% endblock %}
+
+{% block content %}
+  <div class="section-heading">
+    <div>
+      <h2>Gestão de Clientes</h2>
+      <p>Consulte arquivos registrados, histórico de pedidos, tabelas de preço especial e saldo do Plano de Volume.</p>
+    </div>
+    <a class="btn btn-primary no-print" href="{% url 'payments:customer_create' %}">
+      <i class="fa-solid fa-user-plus" aria-hidden="true"></i> Novo Cliente
+    </a>
+  </div>
+
+  <form class="card filters no-print" method="get" style="margin-bottom: 20px;">
+    <label style="flex: 2; min-width: 240px;">Buscar Cliente / WhatsApp / CPF
+      <input type="text" name="search" value="{{ search_term }}" placeholder="Digite o nome, telefone ou documento...">
+    </label>
+    <button class="btn btn-secondary btn-small" type="submit"><i class="fa-solid fa-magnifying-glass"></i> Buscar</button>
+    {% if search_term %}
+      <a class="btn btn-secondary btn-small" href="{% url 'payments:customer_list' %}">Limpar filtro</a>
+    {% endif %}
+  </form>
+
+  <section class="card card-pad">
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Nome / Empresa</th>
+            <th>WhatsApp</th>
+            <th>Preço Especial</th>
+            <th>Plano de Volume / Saldo</th>
+            <th>Arquivos Registrados</th>
+            <th>Pedidos</th>
+            <th class="no-print">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in clientes %}
+            <tr>
+              <td>
+                <a href="{% url 'payments:customer_detail' pk=c.pk %}" style="font-weight: 700; color: #38bdf8;">{{ c.nome }}</a>
+                {% if c.cpf_cnpj %}<br><small class="text-muted">{{ c.cpf_cnpj }}</small>{% endif %}
+              </td>
+              <td>
+                {% if c.telefone %}
+                  <a href="https://wa.me/55{{ c.telefone|cut:' '|cut:'-'|cut:'('|cut:')' }}" target="_blank" style="color: #22c55e;">
+                    <i class="fa-brands fa-whatsapp"></i> {{ c.telefone }}
+                  </a>
+                {% else %}
+                  <span class="text-muted">—</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if c.preco_especial_metro %}
+                  <span class="badge badge-pago">R$ {{ c.preco_especial_metro|floatformat:2 }}/m</span>
+                {% else %}
+                  <span class="text-muted">Tabela Padrão</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if c.saldo_credito > 0 or c.metros_saldo > 0 %}
+                  <span class="badge badge-pronto" title="Saldo em R$: {{ c.saldo_credito|floatformat:2 }}">
+                    R$ {{ c.saldo_credito|floatformat:2 }} ({{ c.metros_saldo|floatformat:1 }}m)
+                  </span>
+                {% else %}
+                  <span class="text-muted">R$ 0,00</span>
+                {% endif %}
+              </td>
+              <td>
+                <span class="badge badge-novo">
+                  <i class="fa-solid fa-folder-open" style="margin-right: 4px;"></i> {{ c.arquivos_count|default:0 }} arquivo(s)
+                </span>
+              </td>
+              <td>
+                <strong>{{ c.pedidos_count|default:0 }}</strong>
+              </td>
+              <td class="no-print" style="white-space: nowrap;">
+                <a class="btn btn-secondary btn-small" href="{% url 'payments:customer_detail' pk=c.pk %}" title="Ver arquivos e pedidos"><i class="fa-solid fa-eye"></i> Ver</a>
+                <a class="btn btn-secondary btn-small" href="{% url 'payments:customer_edit' pk=c.pk %}" title="Editar cadastro"><i class="fa-solid fa-pen"></i></a>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="7">
+                <div class="empty-state">
+                  <i class="fa-solid fa-users"></i>
+                  Nenhum cliente encontrado.
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+{% endblock %}

@@ -272,7 +272,18 @@ def create_order(*, form, actor, files, request=None) -> Order:
         if items:
             _sync_order_items(order, items)
 
-        OrderHistory.objects.create(order=order, user=actor, action="criacao", description="Pedido criado.")
+        # Abatimento de saldo do Plano de Volume / Crédito do cliente se aplicável
+        if order.cliente:
+            dtf_m = sum(i.film_used_m for i in items if isinstance(i, Quote))
+            if order.payment_method == "saldo_credito" or (order.cliente.saldo_credito and order.cliente.saldo_credito >= order.total_amount):
+                if order.total_amount > Decimal("0.00"):
+                    order.cliente.saldo_credito = max(Decimal("0.00"), order.cliente.saldo_credito - order.total_amount)
+                if dtf_m > 0 and order.cliente.metros_saldo:
+                    order.cliente.metros_saldo = max(Decimal("0.00"), order.cliente.metros_saldo - Decimal(str(dtf_m)))
+                order.cliente.save(update_fields=["saldo_credito", "metros_saldo", "updated_at"])
+
+        desc_criacao = f"Pedido criado.{' (Correção por Defeito)' if order.is_correction else ''}"
+        OrderHistory.objects.create(order=order, user=actor, action="criacao", description=desc_criacao)
         if order.payment_status == Order.PaymentStatus.PAID:
             OrderHistory.objects.create(
                 order=order,
@@ -357,7 +368,7 @@ def _detect_upload_type(upload) -> str:
         return "image/jpeg"
     if head.startswith(b"RIFF") and b"WEBP" in head[:16]:
         return "image/webp"
-    if head.startswith((b"II*\x00", b"MM\x00*")):
+    if head.startswith((b"II*\x00", b"MM\x00*", b"II+\x00", b"MM\x00+")):
         return "image/tiff"
     if head.startswith(b"PK\x03\x04"):
         return "application/zip"
@@ -381,7 +392,8 @@ ALLOWED_UPLOADS = {
     "jpeg": {"image/jpeg"},
     "webp": {"image/webp"},
     "svg": {"image/svg+xml"},
-    "tiff": {"image/tiff"},
+    "tif": {"image/tiff", "image/x-tiff", "application/octet-stream"},
+    "tiff": {"image/tiff", "image/x-tiff", "application/octet-stream"},
     "zip": {"application/zip"},
     # Desktop design formats do not always have a stable magic number; their
     # extensions are retained from the legacy system but all paths stay private.

@@ -38,9 +38,15 @@ class User(AbstractBaseUser, PermissionsMixin):
         EMPLOYEE = "funcionario", "Funcionário"
         DEV = "dev", "Desenvolvedor"
 
+    class Sector(models.TextChoices):
+        ADMIN = "administracao", "Administração / Geral"
+        ATENDIMENTO = "atendimento", "Atendimento / Vendas (Rats, Meno)"
+        PRODUCAO = "producao", "Pré-Impressão / Produção (Paula)"
+
     name = models.CharField("nome", max_length=120)
     email = models.EmailField("e-mail", max_length=190, unique=True)
     role = models.CharField("perfil", max_length=20, choices=Role.choices, default=Role.EMPLOYEE)
+    sector = models.CharField("setor", max_length=20, choices=Sector.choices, default=Sector.ADMIN)
     is_active = models.BooleanField("ativo", default=True)
     is_staff = models.BooleanField("acesso ao admin", default=False)
     force_password_change = models.BooleanField("forçar troca de senha", default=False)
@@ -67,6 +73,20 @@ class User(AbstractBaseUser, PermissionsMixin):
     @property
     def is_administrator(self) -> bool:
         return self.is_superuser or self.role in {self.Role.ADMINISTRATOR, self.Role.DEV}
+
+    @property
+    def is_prepress_production_only(self) -> bool:
+        if self.is_administrator or self.is_dev:
+            return False
+        name_lower = (self.name or "").lower()
+        return self.sector == self.Sector.PRODUCAO or "paula" in name_lower
+
+    @property
+    def is_attendance_sales_only(self) -> bool:
+        if self.is_administrator or self.is_dev:
+            return False
+        name_lower = (self.name or "").lower()
+        return self.sector == self.Sector.ATENDIMENTO or "rats" in name_lower or "meno" in name_lower
 
     def save(self, *args, **kwargs):
         if self.role in {self.Role.ADMINISTRATOR, self.Role.DEV}:

@@ -1,14 +1,17 @@
 from __future__ import annotations
 
 import json
+from decimal import Decimal
 
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.http import FileResponse, Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, render, redirect
 from django.urls import reverse
 from django.utils import timezone
+from django.views.decorators.http import require_POST
 from django.views.generic import CreateView, UpdateView
 
 from apps.notifications.services import notify_role
@@ -141,6 +144,50 @@ class OrderUpdateView(LoginRequiredMixin, UpdateView):
             return self.form_invalid(form)
         messages.success(self.request, "Pedido atualizado.")
         return redirect("production:detail", pk=self.object.pk)
+
+
+@login_required
+@require_POST
+def register_payment(request, pk: int):
+    """Quick partial or full payment registration for an order."""
+    order = get_object_or_404(Order, pk=pk)
+    require_order_access(request.user, order)
+    from .forms import QuickPaymentForm
+    from .services import _snapshot_receipt_on_payment
+    form = QuickPaymentForm(request.POST)
+    if form.is_valid():
+        payment_amount = form.cleaned_data["paid_amount"]
+        payment_method = form.cleaned_data["payment_method"]
+        notes = form.cleaned_data.get("notes") or ""
+
+        new_paid = (order.paid_amount or Decimal("0.00")) + payment_amount
+        if new_paid > order.total_amount:
+            new_paid = order.total_amount
+
+        order.paid_amount = new_paid
+        order.payment_method = payment_method
+
+        if order.paid_amount >= order.total_amount and order.total_amount > Decimal("0.00"):
+            order.payment_status = Order.PaymentStatus.PAID
+            order.payment_confirmed_at = timezone.now()
+            order.payment_confirmed_by = request.user
+            _snapshot_receipt_on_payment(order, request.user)
+            if order.stage in {Order.Stage.NEW, Order.Stage.AWAITING_PAYMENT}:
+                order.stage = Order.Stage.PAYMENT_CONFIRMED
+                order.stage_updated_at = timezone.now()
+                OrderStageHistory.objects.create(order=order, previous_stage=Order.Stage.AWAITING_PAYMENT, new_stage=Order.Stage.PAYMENT_CONFIRMED, user=request.user)
+        else:
+            order.payment_status = Order.PaymentStatus.PARTIAL
+
+        order.save()
+        desc = f"Pagamento registrado: R$ {payment_amount:.2f} via {order.get_payment_method_display()} (Total pago: R$ {order.paid_amount:.2f} de R$ {order.total_amount:.2f}). {notes}".strip()
+        OrderHistory.objects.create(order=order, user=request.user, action="pagamento_registrado", description=desc)
+        record_audit(request.user, "registro_pagamento", "pedido", order.pk, after={"valor_pago": str(payment_amount), "total_pago": str(order.paid_amount), "status": order.payment_status}, request=request)
+        messages.success(request, f"Pagamento de R$ {payment_amount:.2f} registrado com sucesso!")
+    else:
+        messages.error(request, "Erro ao registrar pagamento. Verifique o valor informado.")
+
+    return redirect("production:detail", pk=pk)
 
 
 def download_attachment(request, order_pk: int, pk: int):

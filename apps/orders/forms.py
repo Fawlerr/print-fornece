@@ -22,7 +22,7 @@ class OrderForm(forms.ModelForm):
         label="Valor total",
         max_digits=12,
         decimal_places=2,
-        min_value=Decimal("0.01"),
+        min_value=Decimal("0.00"),
         widget=forms.TextInput(attrs={"data-money": "", "inputmode": "decimal"}),
     )
     paid_amount = BrazilianMoneyField(
@@ -34,16 +34,27 @@ class OrderForm(forms.ModelForm):
         initial=Decimal("0"),
         widget=forms.TextInput(attrs={"data-money": "", "inputmode": "decimal"}),
     )
+    discount_advance = BrazilianMoneyField(
+        label="Abatimento / Entrada de Preparação (R$)",
+        max_digits=12,
+        decimal_places=2,
+        min_value=Decimal("0"),
+        required=False,
+        initial=Decimal("0"),
+        widget=forms.TextInput(attrs={"data-money": "", "inputmode": "decimal"}),
+        help_text="Informe o valor da montagem/preparação já pago antecipadamente para abater do total.",
+    )
     calculation_payload = forms.CharField(required=False, widget=forms.HiddenInput())
 
     class Meta:
         model = Order
         fields = [
-            "client_name", "client_whatsapp", "description", "total_amount", "payment_status", "paid_amount",
-            "payment_method", "due_at", "shift", "priority", "responsible", "internal_notes",
+            "cliente", "client_name", "client_whatsapp", "description", "total_amount", "payment_status", "paid_amount",
+            "discount_advance", "is_correction", "correction_reason", "payment_method", "due_at", "shift", "priority", "responsible", "internal_notes",
         ]
         labels = {
-            "client_name": "Nome do cliente", "client_whatsapp": "WhatsApp do cliente", "description": "Descrição detalhada",
+            "cliente": "Cliente Cadastrado", "client_name": "Nome do cliente", "client_whatsapp": "WhatsApp do cliente", "description": "Descrição detalhada",
+            "is_correction": "Pedido de Correção / Reposição por Defeito (R$ 0,00)", "correction_reason": "Motivo da Correção / Defeito",
             "payment_status": "Situação do pagamento", "payment_method": "Forma de pagamento", "due_at": "Data prevista para entrega",
             "shift": "Turno de produção", "priority": "Prioridade", "responsible": "Responsável", "internal_notes": "Observações internas",
         }
@@ -53,20 +64,25 @@ class OrderForm(forms.ModelForm):
             "client_whatsapp": forms.TextInput(attrs={"data-whatsapp": "", "inputmode": "numeric", "maxlength": 25}),
             "total_amount": forms.TextInput(attrs={"data-money": "", "inputmode": "decimal"}),
             "paid_amount": forms.TextInput(attrs={"data-money": "", "inputmode": "decimal"}),
+            "discount_advance": forms.TextInput(attrs={"data-money": "", "inputmode": "decimal"}),
             "due_at": forms.DateTimeInput(attrs={"type": "datetime-local"}, format="%Y-%m-%dT%H:%M"),
         }
 
     def __init__(self, *args, user=None, **kwargs):
         self.actor = user
         super().__init__(*args, **kwargs)
+        from apps.payments.models import Cliente
+        self.fields["cliente"].queryset = Cliente.objects.all().order_by("nome")
+        self.fields["cliente"].required = False
         self.fields["responsible"].queryset = self.fields["responsible"].queryset.filter(is_active=True).order_by("name")
         if user and not user.is_administrator and self.instance.pk:
             # Employees keep the historic ability to work orders, but cannot
             # mutate money or assignment; values are enforced in clean().
-            for name in ("total_amount", "payment_status", "paid_amount", "payment_method", "responsible"):
-                self.fields[name].disabled = True
+            for name in ("total_amount", "payment_status", "paid_amount", "discount_advance", "payment_method", "responsible"):
+                if name in self.fields:
+                    self.fields[name].disabled = True
         self.fields["shift"].required = False
-        for name in ("total_amount", "paid_amount"):
+        for name in ("total_amount", "paid_amount", "discount_advance"):
             value = self.initial.get(name)
             if value is not None and not isinstance(value, str):
                 self.initial[name] = f"{Decimal(value):.2f}".replace(".", ",")
@@ -89,6 +105,14 @@ class OrderForm(forms.ModelForm):
         cleaned = super().clean()
         if not cleaned.get("shift"):
             cleaned["shift"] = Order.Shift.MORNING
+
+        # Pedido de correção por defeito: valor total zerado
+        if cleaned.get("is_correction"):
+            cleaned["total_amount"] = Decimal("0.00")
+            cleaned["paid_amount"] = Decimal("0.00")
+            cleaned["payment_status"] = Order.PaymentStatus.PAID
+            return cleaned
+
         total = cleaned.get("total_amount")
         paid = cleaned.get("paid_amount") or Decimal("0")
         status = cleaned.get("payment_status")
@@ -103,6 +127,24 @@ class OrderForm(forms.ModelForm):
         elif paid > total:
             self.add_error("paid_amount", "O valor pago não pode superar o valor total.")
         return cleaned
+
+
+class QuickPaymentForm(forms.Form):
+    paid_amount = BrazilianMoneyField(
+        label="Valor do Pagamento (R$)",
+        min_value=Decimal("0.01"),
+        widget=forms.TextInput(attrs={"data-money": "", "inputmode": "decimal"}),
+    )
+    payment_method = forms.ChoiceField(
+        label="Forma de Pagamento",
+        choices=Order.PaymentMethod.choices,
+        initial=Order.PaymentMethod.PIX,
+    )
+    notes = forms.CharField(
+        label="Observação do Pagamento",
+        required=False,
+        widget=forms.TextInput(attrs={"placeholder": "Ex: Entrada de 50%, pago via PIX..."}),
+    )
 
 
 class OrderNoteForm(forms.Form):

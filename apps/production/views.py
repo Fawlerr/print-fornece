@@ -29,17 +29,39 @@ class KanbanView(LoginRequiredMixin, TemplateView):
     template_name = "production/kanban.html"
 
     def get_context_data(self, **kwargs):
+        from datetime import timedelta
+        from django.utils import timezone
+
         context = super().get_context_data(**kwargs)
+        user = self.request.user
         form = OrderFilterForm(self.request.GET or None)
-        active_stages_list = [
+        recent_delivered_cutoff = timezone.now() - timedelta(days=7)
+
+        full_stages_list = [
             Order.Stage.NEW,
             Order.Stage.AWAITING_PAYMENT,
             Order.Stage.PAYMENT_CONFIRMED,
             Order.Stage.PRE_PRESS,
             Order.Stage.PRODUCTION,
             Order.Stage.READY,
+            Order.Stage.DELIVERED,
         ]
-        orders = Order.objects.filter(stage__in=active_stages_list).select_related("responsible").prefetch_related(
+
+        if getattr(user, "is_prepress_production_only", False):
+            # Paula só vê a partir de Pré-Impressão
+            active_stages_list = [
+                Order.Stage.PRE_PRESS,
+                Order.Stage.PRODUCTION,
+                Order.Stage.READY,
+                Order.Stage.DELIVERED,
+            ]
+        else:
+            active_stages_list = full_stages_list
+
+        orders = Order.objects.filter(
+            Q(stage__in=active_stages_list) &
+            (~Q(stage=Order.Stage.DELIVERED) | Q(stage=Order.Stage.DELIVERED, stage_updated_at__gte=recent_delivered_cutoff) | Q(stage=Order.Stage.DELIVERED, finished_at__gte=recent_delivered_cutoff) | Q(stage=Order.Stage.DELIVERED, created_at__gte=recent_delivered_cutoff))
+        ).select_related("responsible").prefetch_related(
             Prefetch("attachments", queryset=OrderAttachment.objects.filter(removed_at__isnull=True)),
             Prefetch("items", queryset=OrderItem.objects.all()),
         ).annotate(
@@ -56,29 +78,42 @@ class KanbanView(LoginRequiredMixin, TemplateView):
             if data.get("responsible"):
                 orders = orders.filter(responsible_id=data["responsible"])
             orders = orders.order_by("-created_at" if data.get("order") == "newest" else "created_at")
+
         columns = {stage: [] for stage in active_stages_list}
         for order in orders:
             if order.stage in columns:
                 columns[order.stage].append(order)
+
         previous_next = {
             Order.Stage.NEW: (None, Order.Stage.AWAITING_PAYMENT),
             Order.Stage.AWAITING_PAYMENT: (Order.Stage.NEW, Order.Stage.PAYMENT_CONFIRMED),
             Order.Stage.PAYMENT_CONFIRMED: (Order.Stage.AWAITING_PAYMENT, Order.Stage.PRE_PRESS),
-            Order.Stage.PRE_PRESS: (Order.Stage.PAYMENT_CONFIRMED, Order.Stage.PRODUCTION),
+            Order.Stage.PRE_PRESS: (Order.Stage.PAYMENT_CONFIRMED if not getattr(user, "is_prepress_production_only", False) else None, Order.Stage.PRODUCTION),
             Order.Stage.PRODUCTION: (Order.Stage.PRE_PRESS, Order.Stage.READY),
-            Order.Stage.READY: (Order.Stage.PRODUCTION, None),
+            Order.Stage.READY: (Order.Stage.PRODUCTION, Order.Stage.DELIVERED),
+            Order.Stage.DELIVERED: (Order.Stage.READY, None),
         }
-        kanban_columns = [
-            {
+
+        kanban_columns = []
+        for stage in active_stages_list:
+            is_locked = False
+            if getattr(user, "is_attendance_sales_only", False) and stage in {Order.Stage.PRE_PRESS, Order.Stage.PRODUCTION}:
+                is_locked = True
+
+            label = Order.Stage(stage).label
+            if stage == Order.Stage.DELIVERED:
+                label = "Entregues (Últimos dias)"
+
+            kanban_columns.append({
                 "stage": stage,
-                "label": Order.Stage(stage).label,
+                "label": label,
                 "orders": columns[stage],
                 "previous_stage": previous_next[stage][0],
                 "next_stage": previous_next[stage][1],
                 "finalize": stage == Order.Stage.READY,
-            }
-            for stage in active_stages_list
-        ]
+                "is_locked": is_locked,
+            })
+
         context.update({
             "filter_form": form,
             "columns": columns,
@@ -109,7 +144,10 @@ class OrderDetailView(LoginRequiredMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        order = self.object
+        from apps.orders.forms import QuickPaymentForm
         context["note_form"] = OrderNoteForm()
+        context["payment_form"] = QuickPaymentForm(initial={"paid_amount": f"{order.remaining_amount:.2f}".replace(".", ",")})
         context["active_stages"] = [
             Order.Stage.NEW,
             Order.Stage.AWAITING_PAYMENT,
