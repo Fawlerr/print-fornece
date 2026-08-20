@@ -209,6 +209,13 @@
     });
   };
 
+  const getSelectedCustomerInfo = () => {
+    const clienteHidden = document.querySelector("#id_cliente_hidden") || document.querySelector("#id_cliente");
+    const customerId = clienteHidden ? clienteHidden.value : "";
+    const special = clienteHidden ? (clienteHidden.dataset.special || "") : "";
+    return { customerId, special };
+  };
+
   // 1. Add DTF
   if (addDtfBtn) {
     addDtfBtn.addEventListener("click", async () => {
@@ -223,12 +230,15 @@
       }
 
       addDtfBtn.disabled = true;
+      const { customerId, special } = getSelectedCustomerInfo();
       const quote = await calculateItem({
         kind: "material",
         material_code: selectedMat,
         width_cm: width,
         height_cm: height,
         quantity: qty,
+        cliente_id: customerId,
+        custom_price_per_meter: special,
       });
       addDtfBtn.disabled = false;
 
@@ -298,6 +308,36 @@
     });
   }
 
+  // Auto-recalculate DTF items when a customer with special price is selected
+  document.addEventListener("customer-selected", async (e) => {
+    const special = e.detail?.special;
+    const customerId = e.detail?.id;
+    if (special && cartItems.length > 0) {
+      let updated = false;
+      for (let i = 0; i < cartItems.length; i++) {
+        if (cartItems[i].kind === "material") {
+          const reQuote = await calculateItem({
+            kind: "material",
+            material_code: cartItems[i].material_code,
+            width_cm: cartItems[i].art_width_cm,
+            height_cm: cartItems[i].art_height_cm,
+            quantity: cartItems[i].quantity,
+            cliente_id: customerId,
+            custom_price_per_meter: special,
+          });
+          if (reQuote) {
+            cartItems[i] = reQuote;
+            updated = true;
+          }
+        }
+      }
+      if (updated) {
+        renderCart();
+        setStatus(`Preço especial de R$ ${special}/m aplicado automaticamente!`);
+      }
+    }
+  });
+
   // Initialize existing items from JSON script or hidden payload
   let loadedItems = [];
   const existingEl = document.getElementById("existing-order-items");
@@ -336,12 +376,15 @@
           e.preventDefault();
           const selectedMat = calculator.querySelector("input[name='calculator_material']:checked")?.value || "dtf_textil";
           setStatus("Calculando item DTF antes de salvar…");
+          const { customerId, special } = getSelectedCustomerInfo();
           const quote = await calculateItem({
             kind: "material",
             material_code: selectedMat,
             width_cm: width,
             height_cm: height,
             quantity: qty,
+            cliente_id: customerId,
+            custom_price_per_meter: special,
           });
           if (quote) {
             cartItems.push(quote);

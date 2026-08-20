@@ -78,7 +78,7 @@ def get_service_name_and_measures(order: Order) -> tuple[str, str, str]:
 
 
 def build_quote_whatsapp_message(order: Order, public_quote_url: str = "") -> str:
-    """Template 1: Orçamento Completo."""
+    """Template 1: Orçamento Completo (sem emojis, limpo e profissional)."""
     service_name, measures, valor_metro = get_service_name_and_measures(order)
     valor_total = format_money_br(order.total_amount)
 
@@ -87,29 +87,30 @@ def build_quote_whatsapp_message(order: Order, public_quote_url: str = "") -> st
     else:
         prazo = "A combinar com nossa equipe"
 
-    link_part = f"\n🔗 Visualize e aprove seu orçamento:\n{public_quote_url}\n" if public_quote_url else ""
+    link_part = f"\nVisualize o preview e aprove seu orçamento pelo link:\n{public_quote_url}\n" if public_quote_url else ""
 
     message = (
-        f"🍀 PRINT FORNECE\n"
-        f"Segue o orçamento para {service_name}:\n"
+        f"PRINT FORNECE\n"
+        f"Olá, {order.client_name}.\n\n"
+        f"Segue o orçamento solicitado para {service_name}:\n"
         f"━━━━━━━━━━━━━━━\n"
-        f"📏 Medida: {measures}\n\n"
-        f"💰 Valor do metro: R$ {valor_metro}\n\n"
-        f"🟢 TOTAL: R$ {valor_total} ✅\n"
+        f"Medida / Especificações:{measures}\n\n"
+        f"Valor unitário/metro: R$ {valor_metro}\n"
+        f"TOTAL: R$ {valor_total}\n"
         f"━━━━━━━━━━━━━━━\n"
-        f"⏰ Prazo: {prazo}\n\n"
-        f"💳 Pagamento: PIX ou Cartão (crédito/débito via link){link_part}\n"
-        f"⚠️ Importante:\n"
-        f"• A produção inicia mediante a confirmação do pagamento\n"
+        f"Prazo estimado: {prazo}\n"
+        f"Pagamento: PIX ou Cartão{link_part}\n"
+        f"Importante:\n"
+        f"• A produção inicia após a confirmação do pagamento e aprovação da arte\n"
         f"• Não realizamos reimpressão de arte já aprovada ou material cortado\n"
         f"• Confira todos os detalhes antes de confirmar\n\n"
-        f"Ficou alguma dúvida? É só falar! 😊"
+        f"Estou enviando também o preview da arte para conferência. Qualquer ajuste, nos avise."
     )
     return message
 
 
 def build_ready_whatsapp_message(order: Order, public_quote_url: str = "") -> str:
-    """Template 2: Pronto para Retirada."""
+    """Template 2: Pronto para Retirada (sem emojis, limpo e profissional)."""
     items = list(order.items.all())
     if items:
         item_names = [f"• {i.material_name} ({i.billing_quantity} {i.billing_unit})" for i in items]
@@ -118,26 +119,26 @@ def build_ready_whatsapp_message(order: Order, public_quote_url: str = "") -> st
         resumo_itens = f"\n• {order.description[:80]}"
 
     valor_total = format_money_br(order.total_amount)
-    link_part = f"\n🖼️ Visualize seu pedido e arte:\n{public_quote_url}\n" if public_quote_url else ""
+    link_part = f"\nVisualize seu pedido e arte aprovada:\n{public_quote_url}\n" if public_quote_url else ""
 
     message = (
-        f"🍀 PRINT FORNECE\n"
-        f"Olá, {order.client_name}! 👋\n"
-        f"Seu pedido #{order.number} está *PRONTO PARA RETIRADA*! 🎉\n"
+        f"PRINT FORNECE\n"
+        f"Olá, {order.client_name}.\n\n"
+        f"Seu pedido #{order.number} está pronto para retirada.\n"
         f"━━━━━━━━━━━━━━━\n"
-        f"📦 Itens:{resumo_itens}\n"
-        f"🟢 TOTAL: R$ {valor_total}\n"
+        f"Itens:{resumo_itens}\n"
+        f"Total: R$ {valor_total}\n"
         f"{link_part}"
         f"━━━━━━━━━━━━━━━\n"
-        f"📍 Retirada: Loja Print Fornece\n"
-        f"⏰ Horário: Segunda a Sexta, das 08h às 18h\n\n"
-        f"Qualquer dúvida estamos à disposição! 😊"
+        f"Retirada: Loja Print Fornece\n"
+        f"Horário: Segunda a Sexta, das 08h às 18h\n\n"
+        f"Qualquer dúvida, estamos à disposição."
     )
     return message
 
 
 def build_delivered_whatsapp_message(order: Order, public_quote_url: str = "") -> str:
-    """Template 3: Material Entregue."""
+    """Template 3: Material Entregue (sem emojis, limpo e profissional)."""
     items = list(order.items.all())
     if items:
         item_names = [f"• {i.material_name} ({i.billing_quantity} {i.billing_unit})" for i in items]
@@ -146,19 +147,19 @@ def build_delivered_whatsapp_message(order: Order, public_quote_url: str = "") -
         resumo_itens = f"\n• {order.description[:80]}"
 
     valor_total = format_money_br(order.total_amount)
-    link_part = f"\n🖼️ Comprovante e arte aprovada:\n{public_quote_url}\n" if public_quote_url else ""
+    link_part = f"\nComprovante e arte aprovada:\n{public_quote_url}\n" if public_quote_url else ""
 
     message = (
-        f"🍀 PRINT FORNECE\n"
-        f"Olá, {order.client_name}! 👋\n"
-        f"Confirmamos a *ENTREGA* do seu pedido #{order.number}! ✅\n"
+        f"PRINT FORNECE\n"
+        f"Olá, {order.client_name}.\n\n"
+        f"Confirmamos a entrega do seu pedido #{order.number}.\n"
         f"━━━━━━━━━━━━━━━\n"
-        f"📦 Itens entregues:{resumo_itens}\n"
-        f"🟢 Total: R$ {valor_total}\n"
+        f"Itens entregues:{resumo_itens}\n"
+        f"Total: R$ {valor_total}\n"
         f"{link_part}"
         f"━━━━━━━━━━━━━━━\n"
-        f"Muito obrigado pela confiança e preferência!\n"
-        f"Precisando de novos materiais ou produtos, é só nos chamar por aqui! 😊🍀"
+        f"Agradecemos pela confiança e preferência.\n"
+        f"Precisando de novos materiais ou produtos, estamos à disposição."
     )
     return message
 

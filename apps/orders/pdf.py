@@ -144,16 +144,10 @@ def generate_order_receipt_pdf(order) -> bytes:
     snapshot = _receipt_snapshot(order)
     paid_at = timezone.localtime(snapshot["paid_at"])
     buffer = io.BytesIO()
-    doc = SimpleDocTemplate(
-        buffer,
-        pagesize=(RECEIPT_WIDTH, _receipt_page_height(order)),
-        leftMargin=RECEIPT_MARGIN,
-        rightMargin=RECEIPT_MARGIN,
-        topMargin=4 * mm,
-        bottomMargin=4 * mm,
-        title=f"Comprovante {order.number}",
-        author="Print Fornece",
-    )
+
+    top_margin = 3 * mm
+    bottom_margin = 3 * mm
+    usable_width = RECEIPT_WIDTH - (2 * RECEIPT_MARGIN)
 
     stylesheet = getSampleStyleSheet()
     styles = {
@@ -168,7 +162,31 @@ def generate_order_receipt_pdf(order) -> bytes:
         "total_value": ParagraphStyle("ReceiptTotalValue", parent=stylesheet["Normal"], fontName="Helvetica-Bold", fontSize=10.5, leading=13, alignment=2, textColor=colors.black),
         "footer": ParagraphStyle("ReceiptFooter", parent=stylesheet["Normal"], fontName="Helvetica-Bold", fontSize=8.5, leading=11, alignment=1, textColor=colors.black),
         "footer_small": ParagraphStyle("ReceiptFooterSmall", parent=stylesheet["Normal"], fontName="Helvetica-Bold", fontSize=7.5, leading=9.5, alignment=1, textColor=colors.black),
+        "alert_title": ParagraphStyle("ReceiptAlertTitle", parent=stylesheet["Normal"], fontName="Helvetica-Bold", fontSize=11.5, leading=13.5, alignment=1, textColor=colors.black),
+        "alert_subtitle": ParagraphStyle("ReceiptAlertSubtitle", parent=stylesheet["Normal"], fontName="Helvetica-Bold", fontSize=9.5, leading=11.5, alignment=1, textColor=colors.black),
+        "alert_row_label": ParagraphStyle("ReceiptAlertRowLabel", parent=stylesheet["Normal"], fontName="Helvetica-Bold", fontSize=8.0, leading=10.0, textColor=colors.black),
+        "alert_row_val": ParagraphStyle("ReceiptAlertRowVal", parent=stylesheet["Normal"], fontName="Helvetica-Bold", fontSize=8.0, leading=10.0, alignment=2, textColor=colors.black),
+        "alert_row_val_highlight": ParagraphStyle("ReceiptAlertRowValHi", parent=stylesheet["Normal"], fontName="Helvetica-Bold", fontSize=9.5, leading=11.5, alignment=2, textColor=colors.black),
     }
+
+    client_str = str(snapshot["client_name"] or "Não informado").strip()
+    client_font_size = 13.0
+    client_leading = 15.0
+    if len(client_str) > 40:
+        client_font_size = 10.0
+        client_leading = 12.0
+    elif len(client_str) > 25:
+        client_font_size = 11.5
+        client_leading = 13.5
+
+    client_style = ParagraphStyle(
+        "ReceiptClientName",
+        parent=stylesheet["Normal"],
+        fontName="Helvetica-Bold",
+        fontSize=client_font_size,
+        leading=client_leading,
+        textColor=colors.black,
+    )
 
     header = Table(
         [[_logo_flowable(styles), Paragraph(
@@ -188,13 +206,16 @@ def generate_order_receipt_pdf(order) -> bytes:
 
     story = [
         header,
-        Spacer(1, 2.5 * mm),
-        HRFlowable(width="100%", thickness=1.0, color=colors.black, spaceBefore=0, spaceAfter=2.5 * mm),
-        Paragraph(f"<b>Cliente:</b> {escape(str(snapshot['client_name']))}", styles["body"]),
+        Spacer(1, 2.0 * mm),
+        HRFlowable(width="100%", thickness=1.0, color=colors.black, spaceBefore=0, spaceAfter=2.0 * mm),
+        Paragraph("<b>CLIENTE</b>", styles["label"]),
+        Spacer(1, 0.8 * mm),
+        Paragraph(f"<b>{escape(client_str)}</b>", client_style),
+        Spacer(1, 1.5 * mm),
         Paragraph(f"<b>Vendedor:</b> {escape(str(snapshot['seller_name']))}", styles["body"]),
-        Paragraph(f"<b>Venda (n: {escape(order.number)})</b>", styles["body"]),
-        Spacer(1, 2.6 * mm),
-        HRFlowable(width="100%", thickness=0.8, color=colors.black, spaceBefore=0, spaceAfter=2.3 * mm),
+        Paragraph(f"<b>Venda (nº: {escape(order.number)})</b>", styles["body"]),
+        Spacer(1, 2.0 * mm),
+        HRFlowable(width="100%", thickness=0.8, color=colors.black, spaceBefore=0, spaceAfter=2.0 * mm),
     ]
 
     item_header = Table(
@@ -217,30 +238,130 @@ def generate_order_receipt_pdf(order) -> bytes:
     else:
         story.append(_legacy_item_flowable(order, snapshot["total"], styles))
 
-    total_table = Table(
-        [
-            [Paragraph("Total a Pagar", styles["total_label"]), Paragraph(_money(snapshot["total"]), styles["total_value"])],
-            [Paragraph(PAYMENT_METHOD_LABELS.get(str(snapshot["payment_method"]), "Não informado"), styles["body"]), Paragraph(_money(snapshot["paid_amount"]), styles["item_total"])],
-        ],
-        colWidths=[48 * mm, 24 * mm],
-        hAlign="LEFT",
-    )
-    total_table.setStyle(TableStyle([
-        ("LINEABOVE", (0, 0), (-1, 0), 1.2, colors.black),
-        ("LINEBELOW", (0, 0), (-1, 0), 0.8, colors.black),
-        ("ALIGN", (1, 0), (1, -1), "RIGHT"),
-        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-        ("LEFTPADDING", (0, 0), (-1, -1), 0),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 0),
-        ("TOPPADDING", (0, 0), (-1, -1), 2 * mm),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 2 * mm),
-    ]))
+    total_amt = Decimal(str(snapshot["total"] or 0))
+    paid_amt = Decimal(str(snapshot["paid_amount"] or 0))
+    remaining_amt = max(Decimal(0), total_amt - paid_amt)
+    method_label = PAYMENT_METHOD_LABELS.get(str(snapshot["payment_method"]), "Não informado")
+
+    if paid_amt >= total_amt and total_amt > 0:
+        total_table = Table(
+            [
+                [Paragraph("Total a Pagar", styles["total_label"]), Paragraph(_money(total_amt), styles["total_value"])],
+                [Paragraph(f"<b>PAGO</b> · {method_label}", styles["body"]), Paragraph(_money(paid_amt), styles["item_total"])],
+            ],
+            colWidths=[48 * mm, 24 * mm],
+            hAlign="LEFT",
+        )
+        total_table.setStyle(TableStyle([
+            ("LINEABOVE", (0, 0), (-1, 0), 1.2, colors.black),
+            ("LINEBELOW", (0, 0), (-1, 0), 0.8, colors.black),
+            ("ALIGN", (1, 0), (1, -1), "RIGHT"),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 0),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+            ("TOPPADDING", (0, 0), (-1, -1), 2 * mm),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 2 * mm),
+        ]))
+        story.append(total_table)
+    elif paid_amt > 0:
+        # Pagamento Parcial em destaque
+        warning_content = [
+            [Paragraph("<b>ATENÇÃO</b>", styles["alert_title"])],
+            [Paragraph("<b>PAGAMENTO PARCIAL</b>", styles["alert_subtitle"])],
+            [Spacer(1, 1.2 * mm)],
+            [Table([
+                [Paragraph("<b>VALOR TOTAL:</b>", styles["alert_row_label"]), Paragraph(f"<b>{_money(total_amt)}</b>", styles["alert_row_val"])],
+                [Paragraph(f"<b>VALOR PAGO ({method_label}):</b>", styles["alert_row_label"]), Paragraph(f"<b>{_money(paid_amt)}</b>", styles["alert_row_val"])],
+                [Paragraph("<b>SALDO PENDENTE:</b>", styles["alert_row_label"]), Paragraph(f"<b>{_money(remaining_amt)}</b>", styles["alert_row_val_highlight"])],
+            ], colWidths=[44 * mm, 26 * mm], hAlign="CENTER", style=[
+                ("LEFTPADDING", (0, 0), (-1, -1), 0),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+                ("TOPPADDING", (0, 0), (-1, -1), 0.4 * mm),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 0.4 * mm),
+                ("ALIGN", (1, 0), (1, -1), "RIGHT"),
+            ])]
+        ]
+        warning_table = Table(
+            warning_content,
+            colWidths=[72 * mm],
+            hAlign="CENTER",
+        )
+        warning_table.setStyle(TableStyle([
+            ("BOX", (0, 0), (-1, -1), 1.6, colors.black),
+            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("TOPPADDING", (0, 0), (-1, -1), 2 * mm),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 2 * mm),
+            ("LEFTPADDING", (0, 0), (-1, -1), 1.5 * mm),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 1.5 * mm),
+        ]))
+        story.append(warning_table)
+    else:
+        # Pagamento Pendente em destaque
+        warning_content = [
+            [Paragraph("<b>ATENÇÃO</b>", styles["alert_title"])],
+            [Paragraph("<b>PAGAMENTO PENDENTE</b>", styles["alert_subtitle"])],
+            [Spacer(1, 1.2 * mm)],
+            [Table([
+                [Paragraph("<b>VALOR TOTAL:</b>", styles["alert_row_label"]), Paragraph(f"<b>{_money(total_amt)}</b>", styles["alert_row_val"])],
+                [Paragraph("<b>SALDO PENDENTE:</b>", styles["alert_row_label"]), Paragraph(f"<b>{_money(total_amt)}</b>", styles["alert_row_val_highlight"])],
+            ], colWidths=[44 * mm, 26 * mm], hAlign="CENTER", style=[
+                ("LEFTPADDING", (0, 0), (-1, -1), 0),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+                ("TOPPADDING", (0, 0), (-1, -1), 0.4 * mm),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 0.4 * mm),
+                ("ALIGN", (1, 0), (1, -1), "RIGHT"),
+            ])]
+        ]
+        warning_table = Table(
+            warning_content,
+            colWidths=[72 * mm],
+            hAlign="CENTER",
+        )
+        warning_table.setStyle(TableStyle([
+            ("BOX", (0, 0), (-1, -1), 1.6, colors.black),
+            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("TOPPADDING", (0, 0), (-1, -1), 2 * mm),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 2 * mm),
+            ("LEFTPADDING", (0, 0), (-1, -1), 1.5 * mm),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 1.5 * mm),
+        ]))
+        story.append(warning_table)
+
     story.extend([
-        total_table,
-        Spacer(1, 4 * mm),
+        Spacer(1, 3.5 * mm),
         Paragraph("CONFIRA SEU MATERIAL ANTES DE CORTAR", styles["footer"]),
         Paragraph("(não trocamos material cortado)", styles["footer_small"]),
     ])
+
+    def _flowable_height(flowable, width: float) -> float:
+        sb = getattr(flowable, "getSpaceBefore", lambda: getattr(flowable, "spaceBefore", 0))() or 0
+        sa = getattr(flowable, "getSpaceAfter", lambda: getattr(flowable, "spaceAfter", 0))() or 0
+        if hasattr(flowable, "_content"):
+            ch = sum(_flowable_height(item, width) for item in getattr(flowable, "_content", []))
+        else:
+            try:
+                _, h = flowable.wrap(width, 999999)
+                ch = float(h)
+            except Exception:
+                ch = 0.0
+        return ch + float(sb) + float(sa)
+
+    # Dynamic and exact single-page height calculation with safety buffer for thermal rolls
+    content_height = sum(_flowable_height(f, usable_width) for f in story)
+    page_height = content_height + top_margin + bottom_margin + (10.0 * mm)
+
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=(RECEIPT_WIDTH, page_height),
+        leftMargin=RECEIPT_MARGIN,
+        rightMargin=RECEIPT_MARGIN,
+        topMargin=top_margin,
+        bottomMargin=bottom_margin,
+        title=f"Comprovante {order.number}",
+        author="Print Fornece",
+    )
 
     doc.build(story)
     pdf_data = buffer.getvalue()

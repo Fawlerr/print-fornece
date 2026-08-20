@@ -10,6 +10,7 @@ from django.db.models import Count, Prefetch, Q
 from django.http import HttpResponseBadRequest, JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
+from django.utils import timezone
 from django.views.decorators.http import require_POST
 from django.views.generic import DetailView, TemplateView
 
@@ -267,3 +268,34 @@ def cancel(request, pk: int):
 @require_POST
 def restore(request, pk: int):
     return _order_action(request, pk, restore_order, "Pedido restaurado para Pedido novo.")
+
+
+@login_required
+@require_POST
+def mark_whatsapp_notified(request, pk: int):
+    order = _order_for_request(request, pk)
+    order.notified_whatsapp = True
+    order.notified_whatsapp_at = timezone.now()
+    order.notified_whatsapp_by = request.user
+    order.save(update_fields=["notified_whatsapp", "notified_whatsapp_at", "notified_whatsapp_by", "updated_at"])
+
+    user_display = request.user.name or request.user.email
+    OrderHistory.objects.create(
+        order=order,
+        user=request.user,
+        action="cliente_avisado_whatsapp",
+        description=f"Cliente avisado no WhatsApp por {user_display}.",
+    )
+    from apps.audit.services import record_audit
+    record_audit(
+        request.user,
+        "notificacao_whatsapp",
+        "pedido",
+        order.pk,
+        after={"notified_whatsapp": True, "by": user_display, "at": order.notified_whatsapp_at.isoformat()},
+        request=request,
+    )
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest" or (request.content_type or "").startswith("application/json"):
+        return JsonResponse({"ok": True, "message": "Cliente marcado como avisado!"})
+    messages.success(request, f"Cliente marcado como avisado no WhatsApp ({user_display}).")
+    return redirect("production:detail", pk=pk)

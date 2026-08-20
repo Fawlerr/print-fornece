@@ -2,9 +2,15 @@
   <div class="order-card-header" style="display: flex; justify-content: space-between; align-items: center; gap: 6px; margin-bottom: 6px;">
     <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
       <span class="order-number" style="font-weight: 700; color: #f8fafc;">#{{ order.number }}</span>
-      <span class="badge-material-type" style="font-size: 0.70rem; font-weight: 700; padding: 2px 6px; border-radius: 4px; background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3);">
-        {{ order.primary_material_label }}
-      </span>
+      {% if order.is_uv %}
+        <span class="badge-material-type badge-material-uv" style="font-size: 0.70rem; font-weight: 800; padding: 2px 7px; border-radius: 4px; background: rgba(168, 85, 247, 0.22); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.5); letter-spacing: 0.2px;">
+          {{ order.primary_material_label }}
+        </span>
+      {% else %}
+        <span class="badge-material-type" style="font-size: 0.70rem; font-weight: 700; padding: 2px 6px; border-radius: 4px; background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3);">
+          {{ order.primary_material_label }}
+        </span>
+      {% endif %}
       {% if order.priority == "urgente" %}
         <span class="priority" title="Pedido Urgente" style="font-size: 0.70rem; padding: 2px 6px; border-radius: 4px; background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3);">
           <i class="fa-solid fa-bolt" aria-hidden="true"></i> Urgente
@@ -55,6 +61,12 @@
       <span class="badge badge-parcial" style="font-size: 0.74rem;" title="R$ {{ order.paid_amount|floatformat:2 }} de R$ {{ order.total_amount|floatformat:2 }}">Parcial (R$ {{ order.paid_amount|floatformat:2 }})</span>
     {% else %}
       <span class="badge badge-nao_pago" style="font-size: 0.74rem;">Não pago</span>
+    {% endif %}
+
+    {% if order.notified_whatsapp %}
+      <span class="badge badge-avisado" title="Avisado no WhatsApp{% if order.notified_whatsapp_by %} por {{ order.notified_whatsapp_by.name|default:order.notified_whatsapp_by.email }}{% endif %}{% if order.notified_whatsapp_at %} em {{ order.notified_whatsapp_at|date:'d/m H:i' }}{% endif %}" style="font-size: 0.72rem; padding: 2px 6px; border-radius: 4px; background: rgba(37, 211, 102, 0.16); color: #25D366; border: 1px solid rgba(37, 211, 102, 0.35); font-weight: 700; display: inline-flex; align-items: center; gap: 3px;">
+        <i class="fa-brands fa-whatsapp" aria-hidden="true"></i> Avisado
+      </span>
     {% endif %}
     
     <span class="order-details-item" title="Turno: {{ order.get_shift_display }}{% if order.due_at %} · Prazo: {{ order.due_at|date:'d/m H:i' }}{% endif %}" style="font-size: 0.76rem;">

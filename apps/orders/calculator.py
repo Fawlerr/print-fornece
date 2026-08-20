@@ -334,7 +334,14 @@ def _price_uv(film_cm: Decimal, film_m: Decimal) -> tuple[str, str, Decimal, Dec
     return "per_meter", "06 metros ou mais", unit_price, (film_m * unit_price).quantize(MONEY_CENT, rounding=ROUND_HALF_UP)
 
 
-def calculate_quote(*, material_code: str, width_cm, height_cm, quantity) -> Quote:
+def calculate_quote(
+    *,
+    material_code: str,
+    width_cm,
+    height_cm,
+    quantity,
+    custom_price_per_meter: Decimal | float | str | None = None,
+) -> Quote:
     material = MATERIALS.get(material_code)
     if material is None:
         raise CalculatorValidationError("Selecione um material válido.")
@@ -365,7 +372,21 @@ def calculate_quote(*, material_code: str, width_cm, height_cm, quantity) -> Quo
     used_cm = _ceil_centimeter(length_cm)
     used_m = (used_cm / CENTIMETERS_PER_METER).quantize(Decimal("0.01"))
 
-    if material.code == "dtf_textil":
+    custom_price_dec = None
+    if custom_price_per_meter is not None and str(custom_price_per_meter).strip():
+        try:
+            parsed_custom = Decimal(str(custom_price_per_meter).strip().replace(",", "."))
+            if parsed_custom > 0:
+                custom_price_dec = parsed_custom
+        except (InvalidOperation, ValueError):
+            custom_price_dec = None
+
+    if custom_price_dec is not None:
+        pricing_type = "per_meter"
+        pricing_rule = f"Preço especial: R$ {custom_price_dec:.2f}/m".replace(".", ",")
+        unit_price = custom_price_dec
+        total = (used_m * unit_price).quantize(MONEY_CENT, rounding=ROUND_HALF_UP)
+    elif material.code == "dtf_textil":
         pricing_type, pricing_rule, unit_price, total = _price_textile(used_cm, used_m)
     else:
         pricing_type, pricing_rule, unit_price, total = _price_uv(used_cm, used_m)

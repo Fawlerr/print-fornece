@@ -74,7 +74,7 @@ def generate_order_number() -> str:
     return f"{next_num:04d}"
 
 
-def _parse_items_from_payload(payload) -> list[Quote | ShirtQuote | ServiceQuote]:
+def _parse_items_from_payload(payload, cliente=None) -> list[Quote | ShirtQuote | ServiceQuote]:
     """Validate and parse browser cart items against authoritative pricing rules."""
     if not payload:
         return []
@@ -92,6 +92,8 @@ def _parse_items_from_payload(payload) -> list[Quote | ShirtQuote | ServiceQuote
         raw_items = data
     else:
         raise ValidationError("Os dados do orçamento são inválidos. Recalcule antes de salvar.")
+
+    custom_price_fallback = getattr(cliente, "preco_especial_metro", None)
 
     calculated_items: list[Quote | ShirtQuote | ServiceQuote] = []
     try:
@@ -121,12 +123,14 @@ def _parse_items_from_payload(payload) -> list[Quote | ShirtQuote | ServiceQuote
                 )
             else:
                 # Default DTF Material
+                custom_price = item.get("custom_price_per_meter") or custom_price_fallback
                 calculated_items.append(
                     calculate_quote(
                         material_code=mat_code or "dtf_textil",
                         width_cm=item.get("width_cm") or item.get("art_width_cm"),
                         height_cm=item.get("height_cm") or item.get("art_height_cm"),
                         quantity=item.get("quantity") or item.get("art_quantity"),
+                        custom_price_per_meter=custom_price,
                     )
                 )
     except CalculatorValidationError as exc:
@@ -257,7 +261,8 @@ def _snapshot_receipt_on_payment(order: Order, actor) -> None:
 
 def create_order(*, form, actor, files, request=None) -> Order:
     payload = form.cleaned_data.get("calculation_payload")
-    items = _parse_items_from_payload(payload)
+    cliente = form.cleaned_data.get("cliente")
+    items = _parse_items_from_payload(payload, cliente=cliente)
 
     with transaction.atomic():
         order = form.save(commit=False)
@@ -319,7 +324,8 @@ def create_order(*, form, actor, files, request=None) -> Order:
 def update_order(*, order: Order, form, actor, files, request=None, previous_state=None) -> Order:
     require_order_access(actor, order)
     payload = form.cleaned_data.get("calculation_payload")
-    items = _parse_items_from_payload(payload)
+    cliente = form.cleaned_data.get("cliente") if hasattr(form, "cleaned_data") else getattr(order, "cliente", None)
+    items = _parse_items_from_payload(payload, cliente=cliente)
 
     previous = previous_state or {
         "payment_status": order.payment_status,

@@ -86,6 +86,16 @@ class Order(models.Model):
     is_correction = models.BooleanField("pedido de correção / garantia", default=False)
     correction_reason = models.CharField("motivo da correção / defeito", max_length=255, blank=True, default="")
     discount_advance = models.DecimalField("abatimento / entrada já paga", max_digits=12, decimal_places=2, default=0)
+    notified_whatsapp = models.BooleanField("cliente avisado no WhatsApp", default=False)
+    notified_whatsapp_at = models.DateTimeField("cliente avisado em", null=True, blank=True)
+    notified_whatsapp_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="whatsapp_notifications_sent",
+        verbose_name="cliente avisado por",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -105,6 +115,11 @@ class Order(models.Model):
 
     def __str__(self) -> str:
         return f"{self.number} — {self.client_name}"
+
+    @property
+    def is_uv(self) -> bool:
+        label = self.primary_material_label.lower()
+        return "uv" in label
 
     @property
     def remaining_amount(self):

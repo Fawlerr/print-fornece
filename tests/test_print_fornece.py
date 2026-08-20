@@ -566,15 +566,23 @@ class PrintForneceTestCase(TestCase):
         )
         quote_msg = build_quote_whatsapp_message(self.order, "https://exemplo.com/orders/quote/token123/")
         self.assertIn("PRINT FORNECE", quote_msg)
-        self.assertIn("Valor do metro:", quote_msg)
+        self.assertIn("Valor unitário/metro:", quote_msg)
         self.assertIn("TOTAL: R$", quote_msg)
-        self.assertIn("Prazo:", quote_msg)
+        self.assertIn("Prazo estimado:", quote_msg)
+        self.assertIn("preview", quote_msg.lower())
+        # Ensure zero emojis in the message
+        for emoji in ["🍀", "📏", "💰", "🟢", "✅", "⏰", "💳", "⚠️", "😊", "👋", "🎉", "📦", "📍", "🖼️"]:
+            self.assertNotIn(emoji, quote_msg)
 
         ready_msg = build_ready_whatsapp_message(self.order)
-        self.assertIn("PRONTO PARA RETIRADA", ready_msg)
+        self.assertIn("pronto para retirada", ready_msg.lower())
+        for emoji in ["🍀", "📏", "💰", "🟢", "✅", "⏰", "💳", "⚠️", "😊", "👋", "🎉", "📦", "📍", "🖼️"]:
+            self.assertNotIn(emoji, ready_msg)
 
         delivered_msg = build_delivered_whatsapp_message(self.order)
-        self.assertIn("ENTREGA", delivered_msg)
+        self.assertIn("entrega", delivered_msg.lower())
+        for emoji in ["🍀", "📏", "💰", "🟢", "✅", "⏰", "💳", "⚠️", "😊", "👋", "🎉", "📦", "📍", "🖼️"]:
+            self.assertNotIn(emoji, delivered_msg)
 
         links = get_whatsapp_share_links(self.order, "https://exemplo.com")
         self.assertIn("https://wa.me/5584999999999", links["quote_url"])
@@ -598,6 +606,135 @@ class PrintForneceTestCase(TestCase):
         num = generate_order_number()
         self.assertEqual(len(num), 4)
         self.assertTrue(num.isdigit())
+
+    def test_receipt_pdf_single_page_and_financial_alerts(self):
+        import re
+        from apps.orders.pdf import generate_order_receipt_pdf
+
+        def _count_pages(pdf_bytes: bytes) -> int:
+            return len(re.findall(rb"/Type\s*/Page\b", pdf_bytes))
+
+        # Caso 1: Nome curto + PAGO -> exatamente 1 página
+        order1 = Order.objects.create(
+            number="PDF-0001",
+            client_name="JOÃO",
+            client_whatsapp="84999991111",
+            total_amount=Decimal("100.00"),
+            paid_amount=Decimal("100.00"),
+            payment_status=Order.PaymentStatus.PAID,
+            created_by=self.admin,
+        )
+        pdf1 = generate_order_receipt_pdf(order1)
+        self.assertEqual(_count_pages(pdf1), 1)
+
+        # Caso 2: Nome extremamente longo + PAGO -> exatamente 1 página
+        order2 = Order.objects.create(
+            number="PDF-0002",
+            client_name="NOME EXTREMAMENTE GRANDE DE CLIENTE PARA TESTE DE IMPRESSÃO DA PRINT FORNECE",
+            client_whatsapp="84999992222",
+            total_amount=Decimal("250.00"),
+            paid_amount=Decimal("250.00"),
+            payment_status=Order.PaymentStatus.PAID,
+            created_by=self.admin,
+        )
+        pdf2 = generate_order_receipt_pdf(order2)
+        self.assertEqual(_count_pages(pdf2), 1)
+
+        # Caso 3: Total R$ 150, Pago R$ 70, Saldo R$ 80 -> PAGAMENTO PARCIAL -> exatamente 1 página
+        order3 = Order.objects.create(
+            number="PDF-0003",
+            client_name="Cliente Parcial",
+            client_whatsapp="84999993333",
+            total_amount=Decimal("150.00"),
+            paid_amount=Decimal("70.00"),
+            payment_status=Order.PaymentStatus.PARTIAL,
+            created_by=self.admin,
+        )
+        pdf3 = generate_order_receipt_pdf(order3)
+        self.assertEqual(_count_pages(pdf3), 1)
+
+        # Caso 4: Total R$ 150, Pago R$ 0 -> PAGAMENTO PENDENTE -> exatamente 1 página
+        order4 = Order.objects.create(
+            number="PDF-0004",
+            client_name="Cliente Não Pago",
+            client_whatsapp="84999994444",
+            total_amount=Decimal("150.00"),
+            paid_amount=Decimal("0.00"),
+            payment_status=Order.PaymentStatus.UNPAID,
+            created_by=self.admin,
+        )
+        pdf4 = generate_order_receipt_pdf(order4)
+        self.assertEqual(_count_pages(pdf4), 1)
+
+    def test_customer_special_price_45_applied_automatically(self):
+        from apps.orders.calculator import calculate_quote
+        from apps.payments.models import Cliente
+
+        # Cliente padrão sem preço especial (58x100cm = 1m dtf textil -> R$ 50,00)
+        quote_normal = calculate_quote(material_code="dtf_textil", width_cm="58", height_cm="100", quantity=1)
+        self.assertEqual(quote_normal.total, Decimal("50.00"))
+
+        # Cliente com preço especial de R$ 45,00/m (58x100cm = 1m dtf textil -> R$ 45,00)
+        cli_especial = Cliente.objects.create(
+            nome="Cliente Especial 45",
+            preco_especial_metro=Decimal("45.00"),
+        )
+        quote_especial = calculate_quote(
+            material_code="dtf_textil",
+            width_cm="58",
+            height_cm="100",
+            quantity=1,
+            custom_price_per_meter=cli_especial.preco_especial_metro,
+        )
+        self.assertEqual(quote_especial.total, Decimal("45.00"))
+        self.assertEqual(quote_especial.unit_price, Decimal("45.00"))
+        self.assertIn("Preço especial", quote_especial.pricing_rule)
+
+        # Via endpoint calculator com cliente_id
+        self.login_as(self.admin)
+        res = self.client.post(
+            reverse("orders:calculate_quote"),
+            data=json.dumps({
+                "kind": "material",
+                "material_code": "dtf_textil",
+                "width_cm": "58",
+                "height_cm": "100",
+                "quantity": 1,
+                "cliente_id": cli_especial.pk,
+            }),
+            content_type="application/json",
+        )
+        self.assertEqual(res.status_code, 200)
+        res_data = res.json()
+        self.assertEqual(res_data["quote"]["total"], "45.00")
+        self.assertEqual(res_data["quote"]["unit_price"], "45.00")
+
+    def test_kanban_uv_differentiation_and_whatsapp_notified(self):
+        self.login_as(self.admin)
+        uv_order = Order.objects.create(
+            number="UV-0001",
+            client_name="Cliente UV Card",
+            client_whatsapp="84999995555",
+            total_amount=Decimal("80.00"),
+            description="DTF UV Rígidos",
+            created_by=self.admin,
+        )
+        self.assertTrue(uv_order.is_uv)
+
+        # Mark as notified via post endpoint
+        res_notify = self.client.post(reverse("production:mark_whatsapp_notified", args=[uv_order.pk]))
+        self.assertEqual(res_notify.status_code, 302)
+        uv_order.refresh_from_db()
+        self.assertTrue(uv_order.notified_whatsapp)
+        self.assertIsNotNone(uv_order.notified_whatsapp_at)
+        self.assertEqual(uv_order.notified_whatsapp_by, self.admin)
+
+        # Check Kanban view contains UV badge and Avisado indicator
+        res_kanban = self.client.get(reverse("production:kanban"))
+        self.assertEqual(res_kanban.status_code, 200)
+        self.assertContains(res_kanban, "badge-material-uv")
+        self.assertContains(res_kanban, "badge-avisado")
+        self.assertContains(res_kanban, "Avisado")
 
         # Test creating an order with blank description
         self.login_as(self.admin)
@@ -817,11 +954,11 @@ class PrintForneceTestCase(TestCase):
         preview_url = "https://printfornece.com/orders/quote/test-token-123/"
         ready_msg = build_ready_whatsapp_message(self.order, public_quote_url=preview_url)
         self.assertIn(preview_url, ready_msg)
-        self.assertIn("PRONTO PARA RETIRADA", ready_msg)
+        self.assertIn("pronto para retirada", ready_msg.lower())
 
         delivered_msg = build_delivered_whatsapp_message(self.order, public_quote_url=preview_url)
         self.assertIn(preview_url, delivered_msg)
-        self.assertIn("ENTREGA", delivered_msg)
+        self.assertIn("entrega", delivered_msg.lower())
 
     def test_sector_permission_rules(self):
         from apps.production.services import move_order_stage

@@ -166,13 +166,42 @@
             <i class="fa-brands fa-whatsapp" style="color: #25D366; font-size: 1.15rem;"></i> Notificações WhatsApp
           </h3>
         </div>
-        <p class="text-muted" style="font-size: 0.85rem; line-height: 1.4; margin-bottom: 12px;">Dispare as mensagens prontas para cada etapa do funil do cliente:</p>
+
+        <!-- Status de Notificação do WhatsApp -->
+        <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 10px 12px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+          <div>
+            <span style="font-size: 0.80rem; color: var(--muted, #9ca3af); display: block;">Status do Aviso WhatsApp:</span>
+            {% if order.notified_whatsapp %}
+              <strong style="color: #25D366; font-size: 0.88rem; display: inline-flex; align-items: center; gap: 4px;">
+                <i class="fa-solid fa-circle-check"></i> Cliente já avisado
+              </strong>
+              <small style="color: var(--muted, #9ca3af); display: block; font-size: 0.78rem;">
+                Por: {{ order.notified_whatsapp_by.name|default:order.notified_whatsapp_by.email|default:"Não informado" }} em {{ order.notified_whatsapp_at|date:"d/m/Y H:i" }}
+              </small>
+            {% else %}
+              <strong style="color: #f59e0b; font-size: 0.88rem; display: inline-flex; align-items: center; gap: 4px;">
+                <i class="fa-solid fa-clock"></i> Ainda não avisado
+              </strong>
+            {% endif %}
+          </div>
+          <form method="post" action="{% url 'production:mark_whatsapp_notified' pk=order.pk %}" style="margin: 0;">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-secondary btn-small" style="font-size: 0.8rem; padding: 5px 10px;" title="Registrar que o cliente foi avisado">
+              <i class="fa-solid fa-check"></i> {% if order.notified_whatsapp %}Reconfirmar aviso{% else %}Marcar como avisado{% endif %}
+            </button>
+          </form>
+        </div>
+
+        <p class="text-muted" style="font-size: 0.85rem; line-height: 1.4; margin-bottom: 12px;">Dispare as mensagens prontas (sem emojis) para cada etapa do funil:</p>
 
         <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px;">
-          <!-- 1. Orçamento Completo -->
-          <div style="display: flex; gap: 6px; align-items: center;">
-            <a href="{{ whatsapp_links.quote_url }}" target="_blank" class="btn btn-primary" style="flex: 1; background-color: #25D366; border-color: #25D366; color: #fff; height: 38px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-size: 0.88rem;">
+          <!-- 1. Orçamento Completo + Preview -->
+          <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+            <a href="{{ whatsapp_links.quote_url }}" target="_blank" class="btn btn-primary" style="flex: 1; min-width: 180px; background-color: #25D366; border-color: #25D366; color: #fff; height: 38px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-size: 0.88rem;">
               <i class="fa-brands fa-whatsapp"></i> 1. Enviar Orçamento Completo
+            </a>
+            <a href="{% url 'orders:art_preview' pk=order.pk %}" target="_blank" class="btn btn-secondary btn-small" title="Abrir imagem de preview para conferir/anexar" style="height: 38px; display: inline-flex; align-items: center; gap: 4px;">
+              <i class="fa-solid fa-image"></i> Preview
             </a>
             <button type="button" class="btn btn-secondary btn-small" onclick="copyToClipboard('{{ whatsapp_links.quote_message|escapejs }}', this)" title="Copiar texto do orçamento" style="height: 38px;">
               <i class="fa-solid fa-copy"></i>
@@ -201,7 +230,7 @@
         </div>
 
         <div style="padding: 8px 12px; background: rgba(255,255,255,0.03); border-radius: 6px; font-size: 0.8rem; word-break: break-all; color: var(--muted, #9ca3af);">
-          Link público do orçamento: <a href="{{ public_quote_url }}" target="_blank" style="color: #86efac; text-decoration: underline;">{{ public_quote_url }}</a>
+          Link público do orçamento e arte: <a href="{{ public_quote_url }}" target="_blank" style="color: #86efac; text-decoration: underline;">{{ public_quote_url }}</a>
         </div>
       </div>
 

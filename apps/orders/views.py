@@ -254,6 +254,17 @@ def calculate_order_quote(request):
     kind = payload.get("kind") or payload.get("type")
     mat_code = str(payload.get("material_code") or payload.get("code") or "")
 
+    cliente_id = payload.get("cliente_id") or payload.get("client_id")
+    custom_price = payload.get("custom_price_per_meter") or payload.get("preco_especial_metro")
+    if not custom_price and cliente_id:
+        try:
+            from apps.payments.models import Cliente
+            cli = Cliente.objects.filter(pk=cliente_id).first()
+            if cli and cli.preco_especial_metro:
+                custom_price = cli.preco_especial_metro
+        except Exception:
+            pass
+
     try:
         if kind == "produto" or mat_code.startswith("camisa_"):
             shirt_code = str(payload.get("shirt_code") or mat_code)
@@ -275,6 +286,7 @@ def calculate_order_quote(request):
                 width_cm=payload.get("width_cm"),
                 height_cm=payload.get("height_cm"),
                 quantity=payload.get("quantity"),
+                custom_price_per_meter=custom_price,
             )
     except CalculatorValidationError as exc:
         return JsonResponse({"message": str(exc)}, status=422)

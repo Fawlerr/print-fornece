@@ -580,4 +580,20 @@ label.required {
   box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.25) !important;
 }
 
+/* Badge exclusivo UV e Badge de Cliente Avisado */
+.badge-material-uv {
+  background: rgba(168, 85, 247, 0.22) !important;
+  color: #c084fc !important;
+  border: 1px solid rgba(168, 85, 247, 0.5) !important;
+  font-weight: 800 !important;
+  text-shadow: 0 0 8px rgba(168, 85, 247, 0.3);
+}
+
+.badge-avisado {
+  background: rgba(37, 211, 102, 0.16) !important;
+  color: #25D366 !important;
+  border: 1px solid rgba(37, 211, 102, 0.35) !important;
+  font-weight: 700 !important;
+}
+
 

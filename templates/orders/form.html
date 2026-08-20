@@ -328,7 +328,10 @@
                     const saldo = item.dataset.saldo;
                     const metros = item.dataset.metros;
 
-                    if (clienteHidden) clienteHidden.value = id;
+                    if (clienteHidden) {
+                      clienteHidden.value = id;
+                      clienteHidden.dataset.special = special || "";
+                    }
                     if (clientNameInput) clientNameInput.value = name;
                     if (clientWhatsappInput && phone) clientWhatsappInput.value = phone;
 
@@ -340,6 +343,8 @@
                       selectedInfoBox.innerHTML = infoHtml;
                       selectedInfoBox.style.display = "block";
                     }
+
+                    document.dispatchEvent(new CustomEvent("customer-selected", { detail: { id, name, phone, special, saldo, metros } }));
 
                     searchInput.value = name;
                     resultsBox.style.display = "none";

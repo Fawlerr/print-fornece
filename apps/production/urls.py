@@ -13,5 +13,6 @@ urlpatterns = [
     path("<int:pk>/finalize/", views.finalize, name="finalize"),
     path("<int:pk>/cancel/", views.cancel, name="cancel"),
     path("<int:pk>/restore/", views.restore, name="restore"),
+    path("<int:pk>/mark-notified/", views.mark_whatsapp_notified, name="mark_whatsapp_notified"),
 ]
 
