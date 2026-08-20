@@ -1001,6 +1001,19 @@ class PrintForneceTestCase(TestCase):
         with self.assertRaises(PermissionDenied):
             move_order_stage(order_id=test_order.pk, new_stage=Order.Stage.PRE_PRESS, actor=atendimento_user)
 
+        # Paula can move payment_confirmed to pre_impressao
+        moved_order = move_order_stage(order_id=test_order.pk, new_stage=Order.Stage.PRE_PRESS, actor=paula_user)
+        self.assertEqual(moved_order.stage, Order.Stage.PRE_PRESS)
+
+        # Kanban view for Paula shows PAYMENT_CONFIRMED
+        self.client.force_login(paula_user)
+        kanban_res = self.client.get(reverse("production:kanban"))
+        self.assertEqual(kanban_res.status_code, 200)
+        stages_in_kanban = [col["stage"] for col in kanban_res.context["kanban_columns"]]
+        self.assertIn(Order.Stage.PAYMENT_CONFIRMED, stages_in_kanban)
+        self.assertNotIn(Order.Stage.NEW, stages_in_kanban)
+        self.assertNotIn(Order.Stage.AWAITING_PAYMENT, stages_in_kanban)
+
     def test_unpaid_order_stage_move_preserves_payment_status(self):
         order = Order.objects.create(
             number="PED-PAY-01",

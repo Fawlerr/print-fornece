@@ -49,8 +49,9 @@ class KanbanView(LoginRequiredMixin, TemplateView):
         ]
 
         if getattr(user, "is_prepress_production_only", False):
-            # Paula só vê a partir de Pré-Impressão
+            # Paula vê a partir de Pagamento Confirmado
             active_stages_list = [
+                Order.Stage.PAYMENT_CONFIRMED,
                 Order.Stage.PRE_PRESS,
                 Order.Stage.PRODUCTION,
                 Order.Stage.READY,
@@ -85,11 +86,12 @@ class KanbanView(LoginRequiredMixin, TemplateView):
             if order.stage in columns:
                 columns[order.stage].append(order)
 
+        is_prepress_only = getattr(user, "is_prepress_production_only", False)
         previous_next = {
             Order.Stage.NEW: (None, Order.Stage.AWAITING_PAYMENT),
             Order.Stage.AWAITING_PAYMENT: (Order.Stage.NEW, Order.Stage.PAYMENT_CONFIRMED),
-            Order.Stage.PAYMENT_CONFIRMED: (Order.Stage.AWAITING_PAYMENT, Order.Stage.PRE_PRESS),
-            Order.Stage.PRE_PRESS: (Order.Stage.PAYMENT_CONFIRMED if not getattr(user, "is_prepress_production_only", False) else None, Order.Stage.PRODUCTION),
+            Order.Stage.PAYMENT_CONFIRMED: (None if is_prepress_only else Order.Stage.AWAITING_PAYMENT, Order.Stage.PRE_PRESS),
+            Order.Stage.PRE_PRESS: (Order.Stage.PAYMENT_CONFIRMED, Order.Stage.PRODUCTION),
             Order.Stage.PRODUCTION: (Order.Stage.PRE_PRESS, Order.Stage.READY),
             Order.Stage.READY: (Order.Stage.PRODUCTION, Order.Stage.DELIVERED),
             Order.Stage.DELIVERED: (Order.Stage.READY, None),
