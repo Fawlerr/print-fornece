@@ -110,7 +110,7 @@ def build_quote_whatsapp_message(order: Order, public_quote_url: str = "") -> st
 
 
 def build_ready_whatsapp_message(order: Order, public_quote_url: str = "") -> str:
-    """Template 2: Pronto para Retirada (sem emojis, limpo e profissional)."""
+    """Template 2: Pronto para Retirada (sem emojis, limpo e profissional conforme padrão Print Fornece)."""
     items = list(order.items.all())
     if items:
         item_names = [f"• {i.material_name} ({i.billing_quantity} {i.billing_unit})" for i in items]
@@ -123,22 +123,26 @@ def build_ready_whatsapp_message(order: Order, public_quote_url: str = "") -> st
 
     message = (
         f"PRINT FORNECE\n"
-        f"Olá, {order.client_name}.\n\n"
-        f"Seu pedido #{order.number} está pronto para retirada.\n"
+        f"Olá! Passando para avisar que seu pedido #{order.number} já foi finalizado e está disponível para retirada.\n\n"
+        f"Material no nome de: {order.client_name}\n"
         f"━━━━━━━━━━━━━━━\n"
         f"Itens:{resumo_itens}\n"
         f"Total: R$ {valor_total}\n"
         f"{link_part}"
         f"━━━━━━━━━━━━━━━\n"
-        f"Retirada: Loja Print Fornece\n"
-        f"Horário: Segunda a Sexta, das 08h às 18h\n\n"
+        f"Local de Retirada: Print Fornece\n"
+        f"Av. Coronel Estevam, 1534 - Alecrim\n\n"
+        f"Horário de Funcionamento:\n"
+        f"Seg a Sex: 8h às 17h\n"
+        f"Sáb: 8h às 12h\n\n"
+        f"Vai mandar entregador? Por favor, nos envie o comprovante/print com os dados da corrida ou link e oriente o motorista a informar o seu nome ({order.client_name}) ao chegar. Assim, garantimos a entrega correta e rápida!\n\n"
         f"Qualquer dúvida, estamos à disposição."
     )
     return message
 
 
 def build_delivered_whatsapp_message(order: Order, public_quote_url: str = "") -> str:
-    """Template 3: Material Entregue (sem emojis, limpo e profissional)."""
+    """Template 3: Material Entregue com Avaliação Google (sem emojis, limpo e profissional)."""
     items = list(order.items.all())
     if items:
         item_names = [f"• {i.material_name} ({i.billing_quantity} {i.billing_unit})" for i in items]
@@ -150,16 +154,18 @@ def build_delivered_whatsapp_message(order: Order, public_quote_url: str = "") -
     link_part = f"\nComprovante e arte aprovada:\n{public_quote_url}\n" if public_quote_url else ""
 
     message = (
-        f"PRINT FORNECE\n"
-        f"Olá, {order.client_name}.\n\n"
-        f"Confirmamos a entrega do seu pedido #{order.number}.\n"
+        f"CONFIRMAÇÃO DE PEDIDO ENTREGUE\n\n"
+        f"Olá, {order.client_name}!\n"
+        f"Seu pedido #{order.number} foi entregue com sucesso.\n"
         f"━━━━━━━━━━━━━━━\n"
         f"Itens entregues:{resumo_itens}\n"
         f"Total: R$ {valor_total}\n"
         f"{link_part}"
         f"━━━━━━━━━━━━━━━\n"
-        f"Agradecemos pela confiança e preferência.\n"
-        f"Precisando de novos materiais ou produtos, estamos à disposição."
+        f"Pode nos dar uma mãozinha? Sua opinião é muito importante para nós. Se puder, deixe uma avaliação rápida no Google contando como foi sua experiência:\n\n"
+        f"Clique aqui para nos avaliar: https://g.page/r/CSCVNu3H9F25EBM/review\n\n"
+        f"Agradecemos muito pela confiança e preferência!\n"
+        f"PRINT FORNECE"
     )
     return message
 

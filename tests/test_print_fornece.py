@@ -575,12 +575,12 @@ class PrintForneceTestCase(TestCase):
             self.assertNotIn(emoji, quote_msg)
 
         ready_msg = build_ready_whatsapp_message(self.order)
-        self.assertIn("pronto para retirada", ready_msg.lower())
+        self.assertIn("disponível para retirada", ready_msg.lower())
         for emoji in ["🍀", "📏", "💰", "🟢", "✅", "⏰", "💳", "⚠️", "😊", "👋", "🎉", "📦", "📍", "🖼️"]:
             self.assertNotIn(emoji, ready_msg)
 
         delivered_msg = build_delivered_whatsapp_message(self.order)
-        self.assertIn("entrega", delivered_msg.lower())
+        self.assertIn("entregue", delivered_msg.lower())
         for emoji in ["🍀", "📏", "💰", "🟢", "✅", "⏰", "💳", "⚠️", "😊", "👋", "🎉", "📦", "📍", "🖼️"]:
             self.assertNotIn(emoji, delivered_msg)
 
@@ -954,11 +954,11 @@ class PrintForneceTestCase(TestCase):
         preview_url = "https://printfornece.com/orders/quote/test-token-123/"
         ready_msg = build_ready_whatsapp_message(self.order, public_quote_url=preview_url)
         self.assertIn(preview_url, ready_msg)
-        self.assertIn("pronto para retirada", ready_msg.lower())
+        self.assertIn("disponível para retirada", ready_msg.lower())
 
         delivered_msg = build_delivered_whatsapp_message(self.order, public_quote_url=preview_url)
         self.assertIn(preview_url, delivered_msg)
-        self.assertIn("entrega", delivered_msg.lower())
+        self.assertIn("entregue", delivered_msg.lower())
 
     def test_sector_permission_rules(self):
         from apps.production.services import move_order_stage
