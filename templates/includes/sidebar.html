@@ -22,6 +22,9 @@
     <a href="{% url 'payments:customer_list' %}"{% if request.resolver_match.namespace == 'payments' %} class="active" aria-current="page"{% endif %}>
       <i class="fa-solid fa-address-book" aria-hidden="true"></i><span>Clientes</span>
     </a>
+    <a href="{% url 'inventory:list' %}"{% if request.resolver_match.namespace == 'inventory' %} class="active" aria-current="page"{% endif %}>
+      <i class="fa-solid fa-boxes-stacked" aria-hidden="true"></i><span>Estoque de Insumos</span>
+    </a>
     {% if user.is_administrator %}
       <a href="{% url 'expenses:list' %}"{% if request.resolver_match.namespace == 'expenses' %} class="active" aria-current="page"{% endif %}>
         <i class="fa-solid fa-wallet" aria-hidden="true"></i><span>Despesas</span>

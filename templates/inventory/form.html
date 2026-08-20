@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}{% if object %}Editar Insumo{% else %}Novo Insumo de Estoque{% endif %} | Print Fornece{% endblock %}
+{% block page_heading %}{% if object %}Editar Insumo: {{ object.name }}{% else %}Novo Insumo de Estoque{% endif %}{% endblock %}
+
+{% block content %}
+<div class="page-container" style="max-width: 700px; margin: 0 auto;">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    <a href="{% url 'inventory:list' %}" class="btn btn-secondary" style="display: inline-flex; align-items: center; gap: 6px;">
+      <i class="fa-solid fa-arrow-left"></i> Voltar ao estoque
+    </a>
+  </div>
+
+  <div class="card" style="background: rgba(30, 41, 59, 0.85); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 24px;">
+    <h2 style="margin: 0 0 16px 0; font-size: 1.25rem; color: #f8fafc;">
+      {% if object %}Editar Informações do Insumo{% else %}Cadastrar Novo Insumo de Estoque{% endif %}
+    </h2>
+    <p style="margin: 0 0 20px 0; color: var(--muted, #94a3b8); font-size: 0.88rem;">
+      Campos com asterisco (<span style="color: #ef4444;">*</span>) são obrigatórios.
+    </p>
+
+    <form method="post">
+      {% csrf_token %}
+      
+      <div class="form-grid" style="display: grid; gap: 16px;">
+        {% include "includes/form_field.html" with field=form.name full=True %}
+        {% include "includes/form_field.html" with field=form.category %}
+        {% include "includes/form_field.html" with field=form.unit %}
+        {% include "includes/form_field.html" with field=form.quantity %}
+        {% include "includes/form_field.html" with field=form.minimum_quantity %}
+        {% include "includes/form_field.html" with field=form.notes full=True %}
+      </div>
+
+      <div class="form-actions" style="margin-top: 24px; display: flex; justify-content: flex-end; gap: 12px;">
+        <a class="btn btn-secondary" href="{% url 'inventory:list' %}">Cancelar</a>
+        <button class="btn btn-primary" type="submit">
+          <i class="fa-solid fa-floppy-disk"></i> {% if object %}Salvar alterações{% else %}Cadastrar insumo{% endif %}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

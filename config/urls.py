@@ -19,6 +19,7 @@ urlpatterns = [
     path("notifications/", include("apps.notifications.urls")),
     path("payments/", include("apps.payments.urls")),
     path("bug-reports/", include("apps.bug_reports.urls")),
+    path("inventory/", include("apps.inventory.urls")),
     re_path(r"^media/(?P<path>.*)$", serve, {"document_root": settings.MEDIA_ROOT}),
 ]
 
