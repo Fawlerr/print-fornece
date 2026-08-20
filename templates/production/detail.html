@@ -22,6 +22,20 @@
     </div>
   </div>
 
+  {% if order.payment_status != "pago" %}
+    <div class="alert alert-danger no-print" style="margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; background: rgba(239, 68, 68, 0.14); border: 1px solid rgba(239, 68, 68, 0.4); color: #fca5a5; padding: 12px 18px; border-radius: 8px; font-weight: 600; flex-wrap: wrap;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <i class="fa-solid fa-triangle-exclamation" style="color: #ef4444; font-size: 1.25rem;"></i>
+        <span>
+          Atenção: Este pedido está na etapa <strong>{{ order.get_stage_display }}</strong> mas <strong>NÃO FOI TOTALMENTE PAGO</strong> (Status: {{ order.get_payment_status_display }}).
+        </span>
+      </div>
+      <div style="white-space: nowrap; font-size: 0.95rem; color: #ef4444; background: rgba(239, 68, 68, 0.2); padding: 4px 10px; border-radius: 6px;">
+        Saldo Devedor: <strong>R$ {{ order.remaining_amount|floatformat:2 }}</strong>
+      </div>
+    </div>
+  {% endif %}
+
   <div class="grid two-col">
     <section class="card card-pad">
       <div class="section-heading"><h2>Resumo do pedido</h2><span class="badge badge-{{ order.stage }}">{{ order.get_stage_display }}</span></div>

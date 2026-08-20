@@ -37,7 +37,7 @@ def move_order_stage(*, order_id: int, new_stage: str, actor, request=None) -> O
     update_fields = ["stage", "stage_updated_at", "updated_at"]
 
     # Sincronização automática do status de pagamento em etapas confirmadas
-    if new_stage in {Order.Stage.PAYMENT_CONFIRMED, Order.Stage.PRE_PRESS, Order.Stage.PRODUCTION, Order.Stage.READY, Order.Stage.DELIVERED}:
+    if new_stage == Order.Stage.PAYMENT_CONFIRMED:
         if order.payment_status == Order.PaymentStatus.UNPAID:
             order.payment_status = Order.PaymentStatus.PAID
             order.paid_amount = order.total_amount

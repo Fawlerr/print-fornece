@@ -132,19 +132,56 @@ class Order(models.Model):
         items = list(self.items.all())
         if not items:
             desc = (self.description or "").lower()
-            if "uv" in desc:
+            has_uv = "uv" in desc
+            has_textil = "textil" in desc or "têxtil" in desc or ("dtf" in desc and not has_uv)
+            if has_uv and has_textil:
+                return "DTF Têxtil + UV"
+            if has_uv:
                 return "DTF UV"
             if "camisa" in desc or "camiseta" in desc:
                 return "Camiseta"
             return "DTF Têxtil"
-        first = items[0]
-        if first.kind == OrderItem.Kind.PRODUCT or "camisa" in first.material_code.lower():
-            return "Camisetas"
-        if "uv" in first.material_code.lower() or "uv" in first.material_name.lower():
-            return "DTF UV"
-        if first.kind == OrderItem.Kind.SERVICE:
-            return "Serviço"
-        return "DTF Têxtil" if "dtf" in first.material_name.lower() else first.material_name
+
+        has_uv = False
+        has_textil = False
+        has_camisas = False
+        has_service = False
+        other_labels = []
+
+        for item in items:
+            mat_name_lower = (item.material_name or "").lower()
+            mat_code_lower = (item.material_code or "").lower()
+
+            if item.kind == OrderItem.Kind.PRODUCT or "camisa" in mat_code_lower or "camisa" in mat_name_lower:
+                has_camisas = True
+            elif "uv" in mat_code_lower or "uv" in mat_name_lower:
+                has_uv = True
+            elif "dtf" in mat_name_lower or "textil" in mat_code_lower or "textil" in mat_name_lower or "têxtil" in mat_name_lower:
+                has_textil = True
+            elif item.kind == OrderItem.Kind.SERVICE:
+                has_service = True
+            elif item.kind == OrderItem.Kind.MATERIAL:
+                other_labels.append(item.material_name)
+
+        labels = []
+        if has_textil and has_uv:
+            labels.append("DTF Têxtil + UV")
+        elif has_textil:
+            labels.append("DTF Têxtil")
+        elif has_uv:
+            labels.append("DTF UV")
+
+        if has_camisas:
+            labels.append("Camisetas")
+        if has_service and not labels:
+            labels.append("Serviço")
+        if not labels:
+            if other_labels:
+                labels.append(other_labels[0])
+            else:
+                labels.append("DTF Têxtil")
+
+        return " + ".join(labels)
 
     @property
     def is_active_stage(self) -> bool:

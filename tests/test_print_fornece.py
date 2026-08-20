@@ -17,6 +17,7 @@ from apps.notifications.models import Notification
 from apps.orders.calculator import CalculatorValidationError, calculate_quote
 from apps.orders.legacy_import import LegacyImporter, legacy_link
 from apps.orders.models import Order, OrderAttachment, OrderHistory, OrderItem, OrderNote, OrderStageHistory
+from apps.production.services import move_order_stage
 
 
 class FakeCursor:
@@ -999,6 +1000,56 @@ class PrintForneceTestCase(TestCase):
         test_order.save()
         with self.assertRaises(PermissionDenied):
             move_order_stage(order_id=test_order.pk, new_stage=Order.Stage.PRE_PRESS, actor=atendimento_user)
+
+    def test_unpaid_order_stage_move_preserves_payment_status(self):
+        order = Order.objects.create(
+            number="PED-PAY-01",
+            client_name="Cliente Pagamento Teste",
+            client_whatsapp="11999999999",
+            total_amount=Decimal("150.00"),
+            paid_amount=Decimal("50.00"),
+            payment_status=Order.PaymentStatus.PARTIAL,
+            stage=Order.Stage.NEW,
+            created_by=self.admin,
+        )
+        move_order_stage(order_id=order.pk, new_stage=Order.Stage.PRE_PRESS, actor=self.admin)
+        order.refresh_from_db()
+        self.assertEqual(order.stage, Order.Stage.PRE_PRESS)
+        self.assertEqual(order.payment_status, Order.PaymentStatus.PARTIAL)
+        self.assertEqual(order.paid_amount, Decimal("50.00"))
+
+        move_order_stage(order_id=order.pk, new_stage=Order.Stage.PRODUCTION, actor=self.admin)
+        order.refresh_from_db()
+        self.assertEqual(order.stage, Order.Stage.PRODUCTION)
+        self.assertEqual(order.payment_status, Order.PaymentStatus.PARTIAL)
+        self.assertEqual(order.remaining_amount, Decimal("100.00"))
+
+    def test_combined_dtf_textil_and_uv_primary_label(self):
+        order = Order.objects.create(
+            number="PED-MAT-01",
+            client_name="Cliente Múltiplos Formatos",
+            client_whatsapp="11988887777",
+            total_amount=Decimal("200.00"),
+            created_by=self.admin,
+        )
+        OrderItem.objects.create(
+            order=order,
+            material_name="DTF Têxtil",
+            material_code="dtf_textil",
+            billing_quantity=Decimal("1.00"),
+            unit_price=Decimal("60.00"),
+            line_total=Decimal("60.00"),
+        )
+        OrderItem.objects.create(
+            order=order,
+            material_name="DTF UV",
+            material_code="dtf_uv",
+            billing_quantity=Decimal("2.00"),
+            unit_price=Decimal("70.00"),
+            line_total=Decimal("140.00"),
+        )
+        self.assertEqual(order.primary_material_label, "DTF Têxtil + UV")
+        self.assertTrue(order.is_uv)
 
 
 
