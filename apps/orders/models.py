@@ -30,6 +30,8 @@ class Order(models.Model):
         CARD = "cartao", "Cartão"
         CASH = "dinheiro", "Dinheiro"
         TRANSFER = "transferencia", "Transferência"
+        ON_DELIVERY = "na_retirada", "Pagamento na Retirada"
+        CREDIT_BALANCE = "saldo_credito", "Saldo do Plano / Crédito"
         OTHER = "outro", "Outro"
 
     class Priority(models.TextChoices):

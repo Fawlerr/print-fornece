@@ -21,6 +21,8 @@ PAYMENT_METHOD_LABELS = {
     "cartao": "Cartão",
     "dinheiro": "Dinheiro",
     "transferencia": "Transferência",
+    "na_retirada": "Pagamento na Retirada",
+    "saldo_credito": "Saldo do Plano / Crédito",
     "outro": "Outro",
 }
 

@@ -287,6 +287,20 @@
         });
       }
 
+      const paymentMethodSelect = document.getElementById("id_payment_method");
+      if (paymentMethodSelect) {
+        paymentMethodSelect.addEventListener("change", () => {
+          if (paymentMethodSelect.value === "na_retirada") {
+            if (paymentStatusSelect && paymentStatusSelect.value === "pago") {
+              paymentStatusSelect.value = "nao_pago";
+            }
+            if (paidAmountInput && (!paidAmountInput.value || paidAmountInput.value === "0,00")) {
+              paidAmountInput.value = "0,00";
+            }
+          }
+        });
+      }
+
       // Autocomplete de Busca de Clientes
       const searchInput = document.getElementById("customer_search_input");
       const resultsBox = document.getElementById("customer_search_results");

@@ -1,7 +1,7 @@
 from django.conf import settings
-from django.conf.urls.static import static
 from django.contrib import admin
-from django.urls import include, path
+from django.urls import include, path, re_path
+from django.views.static import serve
 
 from apps.dashboard.views import home
 from . import health, views
@@ -19,12 +19,10 @@ urlpatterns = [
     path("notifications/", include("apps.notifications.urls")),
     path("payments/", include("apps.payments.urls")),
     path("bug-reports/", include("apps.bug_reports.urls")),
+    re_path(r"^media/(?P<path>.*)$", serve, {"document_root": settings.MEDIA_ROOT}),
 ]
 
 handler400 = "config.views.error_400"
 handler403 = "config.views.error_403"
 handler404 = "config.views.error_404"
 handler500 = "config.views.error_500"
-
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

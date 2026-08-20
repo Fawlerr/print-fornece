@@ -72,6 +72,8 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     @property
     def is_administrator(self) -> bool:
+        if self.role == self.Role.EMPLOYEE:
+            return False
         return self.is_superuser or self.role in {self.Role.ADMINISTRATOR, self.Role.DEV}
 
     @property
@@ -91,5 +93,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     def save(self, *args, **kwargs):
         if self.role in {self.Role.ADMINISTRATOR, self.Role.DEV}:
             self.is_staff = True
+        elif self.role == self.Role.EMPLOYEE:
+            self.is_staff = False
+            self.is_superuser = False
         super().save(*args, **kwargs)
 

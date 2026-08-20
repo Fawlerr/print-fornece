@@ -1051,6 +1051,34 @@ class PrintForneceTestCase(TestCase):
         self.assertEqual(order.primary_material_label, "DTF Têxtil + UV")
         self.assertTrue(order.is_uv)
 
+    def test_employee_role_shields_admin_access(self):
+        emp = User.objects.create(
+            name="Funcionario Teste",
+            email="func_teste@printfornece.com.br",
+            role=User.Role.EMPLOYEE,
+            is_superuser=True, # Even if superuser is true from legacy
+        )
+        self.assertFalse(emp.is_administrator)
+        emp.save()
+        self.assertFalse(emp.is_superuser)
+        self.assertFalse(emp.is_staff)
+
+    def test_on_delivery_payment_method(self):
+        order = Order.objects.create(
+            number="PED-RET-01",
+            client_name="Cliente Retirada",
+            client_whatsapp="11988887777",
+            total_amount=Decimal("120.00"),
+            paid_amount=Decimal("0.00"),
+            payment_status=Order.PaymentStatus.UNPAID,
+            payment_method=Order.PaymentMethod.ON_DELIVERY,
+            created_by=self.admin,
+        )
+        self.assertEqual(order.payment_method, "na_retirada")
+        self.assertEqual(order.get_payment_method_display(), "Pagamento na Retirada")
+        self.assertEqual(order.payment_status, Order.PaymentStatus.UNPAID)
+
+
 
 
 
