@@ -301,6 +301,66 @@
         });
       }
 
+      // Sincronização inteligente de Situação de Pagamento e Valor Pago
+      const parseCurrency = (val) => {
+        if (!val) return 0;
+        const clean = String(val).replace(/\./g, "").replace(",", ".").trim();
+        const num = parseFloat(clean);
+        return isNaN(num) ? 0 : num;
+      };
+
+      const formatCurrency = (val) => {
+        return Number(val || 0).toLocaleString("pt-BR", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        });
+      };
+
+      if (paymentStatusSelect) {
+        paymentStatusSelect.addEventListener("change", () => {
+          const status = paymentStatusSelect.value;
+          const total = parseCurrency(totalAmountInput ? totalAmountInput.value : 0);
+
+          if (status === "pago") {
+            if (paidAmountInput) {
+              paidAmountInput.value = formatCurrency(total);
+            }
+          } else if (status === "nao_pago") {
+            if (paidAmountInput) {
+              paidAmountInput.value = "0,00";
+            }
+          } else if (status === "parcial") {
+            if (paidAmountInput) {
+              const currentPaid = parseCurrency(paidAmountInput.value);
+              if (currentPaid <= 0 || currentPaid >= total) {
+                paidAmountInput.value = total > 0 ? formatCurrency(total / 2) : "";
+              }
+              paidAmountInput.focus();
+              if (typeof paidAmountInput.select === "function") {
+                paidAmountInput.select();
+              }
+            }
+          }
+        });
+      }
+
+      if (paidAmountInput) {
+        paidAmountInput.addEventListener("input", () => {
+          const total = parseCurrency(totalAmountInput ? totalAmountInput.value : 0);
+          const paid = parseCurrency(paidAmountInput.value);
+
+          if (total > 0 && paymentStatusSelect) {
+            if (paid <= 0) {
+              paymentStatusSelect.value = "nao_pago";
+            } else if (paid >= total) {
+              paymentStatusSelect.value = "pago";
+            } else {
+              paymentStatusSelect.value = "parcial";
+            }
+          }
+        });
+      }
+
       // Autocomplete de Busca de Clientes
       const searchInput = document.getElementById("customer_search_input");
       const resultsBox = document.getElementById("customer_search_results");

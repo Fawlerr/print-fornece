@@ -1091,6 +1091,35 @@ class PrintForneceTestCase(TestCase):
         self.assertEqual(order.get_payment_method_display(), "Pagamento na Retirada")
         self.assertEqual(order.payment_status, Order.PaymentStatus.UNPAID)
 
+    def test_employee_can_edit_partial_payment_and_amounts(self):
+        self.client.force_login(self.employee)
+        order = Order.objects.create(
+            number="PED-PARTIAL-01",
+            client_name="Cliente Parcial",
+            client_whatsapp="11955554444",
+            total_amount=Decimal("200.00"),
+            paid_amount=Decimal("0.00"),
+            payment_status=Order.PaymentStatus.UNPAID,
+            created_by=self.employee,
+            responsible=self.employee,
+        )
+        response = self.client.post(reverse("orders:edit", args=[order.pk]), {
+            "client_name": "Cliente Parcial Atualizado",
+            "client_whatsapp": "11955554444",
+            "total_amount": "250,00",
+            "paid_amount": "100,00",
+            "payment_status": "parcial",
+            "payment_method": "pix",
+            "priority": "normal",
+            "shift": "manha",
+        })
+        self.assertEqual(response.status_code, 302)
+        order.refresh_from_db()
+        self.assertEqual(order.total_amount, Decimal("250.00"))
+        self.assertEqual(order.paid_amount, Decimal("100.00"))
+        self.assertEqual(order.payment_status, Order.PaymentStatus.PARTIAL)
+
+
 
 
 

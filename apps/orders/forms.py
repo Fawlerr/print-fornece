@@ -75,12 +75,6 @@ class OrderForm(forms.ModelForm):
         self.fields["cliente"].queryset = Cliente.objects.all().order_by("nome")
         self.fields["cliente"].required = False
         self.fields["responsible"].queryset = self.fields["responsible"].queryset.filter(is_active=True).order_by("name")
-        if user and not user.is_administrator and self.instance.pk:
-            # Employees keep the historic ability to work orders, but cannot
-            # mutate money or assignment; values are enforced in clean().
-            for name in ("total_amount", "payment_status", "paid_amount", "discount_advance", "payment_method", "responsible"):
-                if name in self.fields:
-                    self.fields[name].disabled = True
         self.fields["shift"].required = False
         for name in ("total_amount", "paid_amount", "discount_advance"):
             value = self.initial.get(name)
@@ -122,8 +116,12 @@ class OrderForm(forms.ModelForm):
             cleaned["paid_amount"] = total
         elif status == Order.PaymentStatus.UNPAID:
             cleaned["paid_amount"] = Decimal("0")
-        elif status == Order.PaymentStatus.PARTIAL and not (Decimal("0") < paid < total):
-            self.add_error("paid_amount", "Para pagamento parcial, informe um valor maior que zero e menor que o total.")
+        elif status == Order.PaymentStatus.PARTIAL:
+            if paid >= total and total > Decimal("0"):
+                cleaned["payment_status"] = Order.PaymentStatus.PAID
+                cleaned["paid_amount"] = total
+            elif paid <= Decimal("0"):
+                self.add_error("paid_amount", "Para pagamento parcial, informe um valor maior que zero e menor que o total.")
         elif paid > total:
             self.add_error("paid_amount", "O valor pago não pode superar o valor total.")
         return cleaned
