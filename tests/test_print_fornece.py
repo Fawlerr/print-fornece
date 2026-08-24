@@ -1119,6 +1119,166 @@ class PrintForneceTestCase(TestCase):
         self.assertEqual(order.paid_amount, Decimal("100.00"))
         self.assertEqual(order.payment_status, Order.PaymentStatus.PARTIAL)
 
+    def test_changelog_modal_and_button(self):
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse("production:kanban"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "data-open-changelog")
+        self.assertContains(response, "changelogModal")
+        self.assertContains(response, "Histórico de Atualizações")
+
+    def test_correction_order_receipt_pdf_shows_paid_correction_status(self):
+        from apps.orders.pdf import generate_order_receipt_pdf
+        corr_order = Order.objects.create(
+            number="PF-CORR-01",
+            client_name="Cliente Correcao",
+            client_whatsapp="84999998888",
+            is_correction=True,
+            correction_reason="Falha de impressão no primeiro envio",
+            total_amount=Decimal("0.00"),
+            paid_amount=Decimal("0.00"),
+            payment_status=Order.PaymentStatus.PAID,
+            created_by=self.admin,
+        )
+        pdf_bytes = generate_order_receipt_pdf(corr_order)
+        self.assertTrue(len(pdf_bytes) > 500)
+        self.assertNotIn(b"PAGAMENTO PENDENTE", pdf_bytes)
+
+    def test_automatic_stock_deduction_for_films_and_shirts(self):
+        from apps.inventory.models import SupplyItem, SupplyMovement
+        filme_textil = SupplyItem.objects.create(
+            name="Filme DTF Têxtil (Bobina 60cm)",
+            category=SupplyItem.Category.DTF_TEXTIL,
+            unit=SupplyItem.Unit.METER,
+            quantity=Decimal("100.00"),
+        )
+        camisa_p = SupplyItem.objects.create(
+            name="Camiseta Algodão - Tam. P",
+            category=SupplyItem.Category.SHIRTS,
+            unit=SupplyItem.Unit.UNIT,
+            quantity=Decimal("50.00"),
+        )
+        tinta_preta = SupplyItem.objects.create(
+            name="Tinta DTF Têxtil - Preto",
+            category=SupplyItem.Category.DTF_TEXTIL,
+            unit=SupplyItem.Unit.LITER,
+            quantity=Decimal("10.00"),
+        )
+
+        calc_payload = json.dumps({
+            "items": [
+                {
+                    "kind": "material",
+                    "material_code": "dtf_textil",
+                    "width_cm": 50,
+                    "height_cm": 100,
+                    "quantity": 2,
+                },
+                {
+                    "kind": "produto",
+                    "shirt_code": "camisa_algodao_menegotti",
+                    "color": "Preta",
+                    "size": "P",
+                    "quantity": 3,
+                }
+            ]
+        })
+
+        self.client.force_login(self.admin)
+        response = self.client.post(reverse("orders:create"), {
+            "client_name": "Cliente Teste Estoque",
+            "client_whatsapp": "84999887766",
+            "description": "Pedido com DTF e camisetas",
+            "total_amount": "180,00",
+            "paid_amount": "180,00",
+            "payment_status": Order.PaymentStatus.PAID,
+            "payment_method": "pix",
+            "priority": Order.Priority.NORMAL,
+            "calculation_payload": calc_payload,
+        })
+        self.assertEqual(response.status_code, 302)
+
+        filme_textil.refresh_from_db()
+        camisa_p.refresh_from_db()
+        tinta_preta.refresh_from_db()
+
+        self.assertLess(filme_textil.quantity, Decimal("100.00"))
+        self.assertEqual(camisa_p.quantity, Decimal("47.00"))
+        self.assertEqual(tinta_preta.quantity, Decimal("10.00"))  # Tintas não abatidas
+        self.assertTrue(SupplyMovement.objects.filter(item=filme_textil, movement_type="saida").exists())
+        self.assertTrue(SupplyMovement.objects.filter(item=camisa_p, movement_type="saida").exists())
+
+    def test_manual_mark_as_paid_action(self):
+        order = Order.objects.create(
+            number="PF-MANUAL-01",
+            client_name="Cliente Balcao",
+            client_whatsapp="84999112233",
+            total_amount=Decimal("150.00"),
+            paid_amount=Decimal("0.00"),
+            payment_status=Order.PaymentStatus.UNPAID,
+            payment_method=Order.PaymentMethod.ON_DELIVERY,
+            stage=Order.Stage.READY,
+            created_by=self.admin,
+        )
+        self.client.force_login(self.employee)
+        response = self.client.post(reverse("orders:mark_as_paid", args=[order.pk]), {
+            "payment_method": "dinheiro",
+        })
+        self.assertEqual(response.status_code, 302)
+        order.refresh_from_db()
+        self.assertEqual(order.payment_status, Order.PaymentStatus.PAID)
+        self.assertEqual(order.paid_amount, Decimal("150.00"))
+        self.assertEqual(order.payment_method, "dinheiro")
+        self.assertIsNotNone(order.payment_confirmed_at)
+
+    def test_automatic_customer_package_deduction(self):
+        from apps.payments.models import Cliente
+        cliente = Cliente.objects.create(
+            nome="Cliente Pacote 50m",
+            telefone="84988776655",
+            metros_saldo=Decimal("50.00"),
+        )
+        calc_payload = json.dumps({
+            "items": [
+                {
+                    "kind": "material",
+                    "material_code": "dtf_textil",
+                    "width_cm": 50,
+                    "height_cm": 100,
+                    "quantity": 5,
+                }
+            ]
+        })
+        self.client.force_login(self.admin)
+        response = self.client.post(reverse("orders:create"), {
+            "cliente": str(cliente.pk),
+            "client_name": cliente.nome,
+            "client_whatsapp": cliente.telefone,
+            "description": "Pedido de DTF do pacote",
+            "total_amount": "175,00",
+            "paid_amount": "0,00",
+            "payment_status": Order.PaymentStatus.UNPAID,
+            "payment_method": "saldo_credito",
+            "priority": Order.Priority.NORMAL,
+            "calculation_payload": calc_payload,
+        })
+        self.assertEqual(response.status_code, 302)
+        cliente.refresh_from_db()
+        self.assertLess(cliente.metros_saldo, Decimal("50.00"))
+
+    def test_production_report_view_and_csv_export(self):
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse("reports:production"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Produção Diária")
+        self.assertContains(response, "Total Geral (Metros)")
+
+        response_csv = self.client.get(f"{reverse('reports:production')}?export=csv")
+        self.assertEqual(response_csv.status_code, 200)
+        self.assertEqual(response_csv["Content-Type"], "text/csv; charset=utf-8")
+        self.assertIn(b"DTF", response_csv.content)
+
+
 
 
 

@@ -190,6 +190,51 @@ def register_payment(request, pk: int):
     return redirect("production:detail", pk=pk)
 
 
+@login_required
+@require_POST
+def mark_order_as_paid(request, pk: int):
+    """Ação rápida manual para alterar o status do pedido para Pedido Pago."""
+    order = get_object_or_404(Order, pk=pk)
+    require_order_access(request.user, order)
+    from .services import _snapshot_receipt_on_payment
+
+    payment_method = request.POST.get("payment_method") or order.payment_method or Order.PaymentMethod.PIX
+    order.payment_method = payment_method
+    order.paid_amount = order.total_amount
+    order.payment_status = Order.PaymentStatus.PAID
+    order.payment_confirmed_at = timezone.now()
+    order.payment_confirmed_by = request.user
+    _snapshot_receipt_on_payment(order, request.user)
+
+    if order.stage in {Order.Stage.NEW, Order.Stage.AWAITING_PAYMENT}:
+        previous_stage = order.stage
+        order.stage = Order.Stage.PAYMENT_CONFIRMED
+        order.stage_updated_at = timezone.now()
+        OrderStageHistory.objects.create(
+            order=order,
+            previous_stage=previous_stage,
+            new_stage=Order.Stage.PAYMENT_CONFIRMED,
+            user=request.user,
+        )
+
+    order.save()
+    desc = f"Status alterado manualmente para Pedido Pago (R$ {order.paid_amount:.2f} via {order.get_payment_method_display()})."
+    OrderHistory.objects.create(order=order, user=request.user, action="pagamento_confirmado", description=desc)
+    record_audit(
+        request.user,
+        "alterar_para_pago",
+        "pedido",
+        order.pk,
+        after={"status": order.payment_status, "total_pago": str(order.paid_amount)},
+        request=request,
+    )
+    messages.success(request, f"Pedido #{order.number} alterado para 'Pedido Pago' com sucesso!")
+    next_url = request.POST.get("next") or request.GET.get("next")
+    if next_url:
+        return redirect(next_url)
+    return redirect("production:detail", pk=pk)
+
+
 def download_attachment(request, order_pk: int, pk: int):
     if not request.user.is_authenticated:
         return redirect(f"{reverse('accounts:login')}?next={request.get_full_path()}")

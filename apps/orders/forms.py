@@ -74,6 +74,7 @@ class OrderForm(forms.ModelForm):
         from apps.payments.models import Cliente
         self.fields["cliente"].queryset = Cliente.objects.all().order_by("nome")
         self.fields["cliente"].required = False
+        self.fields["description"].required = False
         self.fields["responsible"].queryset = self.fields["responsible"].queryset.filter(is_active=True).order_by("name")
         self.fields["shift"].required = False
         for name in ("total_amount", "paid_amount", "discount_advance"):
@@ -106,6 +107,13 @@ class OrderForm(forms.ModelForm):
             cleaned["paid_amount"] = Decimal("0.00")
             cleaned["payment_status"] = Order.PaymentStatus.PAID
             return cleaned
+
+        if self.instance and self.instance.pk and self.actor and not (self.actor.is_administrator or self.actor.is_dev):
+            if self.instance.created_by_id != self.actor.pk and self.instance.responsible_id != self.actor.pk:
+                cleaned["total_amount"] = self.instance.total_amount
+                cleaned["paid_amount"] = self.instance.paid_amount
+                cleaned["payment_status"] = self.instance.payment_status
+                return cleaned
 
         total = cleaned.get("total_amount")
         paid = cleaned.get("paid_amount") or Decimal("0")

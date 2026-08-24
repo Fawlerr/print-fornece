@@ -65,6 +65,8 @@ def _receipt_snapshot(order) -> dict[str, object]:
         "total": order.receipt_total_amount if order.receipt_total_amount is not None else order.total_amount,
         "paid_amount": order.receipt_paid_amount if order.receipt_paid_amount is not None else order.paid_amount,
         "payment_method": order.receipt_payment_method or order.payment_method or "",
+        "is_correction": getattr(order, "is_correction", False),
+        "correction_reason": getattr(order, "correction_reason", ""),
         # Older paid orders did not have a confirmation timestamp.  Their
         # existing creation time is the closest truthful value available.
         "paid_at": order.payment_confirmed_at or order.created_at,
@@ -216,6 +218,7 @@ def generate_order_receipt_pdf(order) -> bytes:
         Spacer(1, 1.5 * mm),
         Paragraph(f"<b>Vendedor:</b> {escape(str(snapshot['seller_name']))}", styles["body"]),
         Paragraph(f"<b>Venda (nº: {escape(order.number)})</b>", styles["body"]),
+        *( [Paragraph("<b>(CORREÇÃO / GARANTIA)</b>", styles["body"])] if snapshot.get("is_correction") else [] ),
         Spacer(1, 2.0 * mm),
         HRFlowable(width="100%", thickness=0.8, color=colors.black, spaceBefore=0, spaceAfter=2.0 * mm),
     ]
@@ -244,8 +247,31 @@ def generate_order_receipt_pdf(order) -> bytes:
     paid_amt = Decimal(str(snapshot["paid_amount"] or 0))
     remaining_amt = max(Decimal(0), total_amt - paid_amt)
     method_label = PAYMENT_METHOD_LABELS.get(str(snapshot["payment_method"]), "Não informado")
+    is_correction = bool(snapshot.get("is_correction"))
 
-    if paid_amt >= total_amt and total_amt > 0:
+    if is_correction or (total_amt == Decimal("0.00") and paid_amt == Decimal("0.00")):
+        correction_reason = snapshot.get("correction_reason")
+        reason_txt = f"<br/><font size=7 color='#444444'>Motivo: {escape(str(correction_reason))}</font>" if correction_reason else ""
+        total_table = Table(
+            [
+                [Paragraph("Total a Pagar", styles["total_label"]), Paragraph(_money(Decimal("0.00")), styles["total_value"])],
+                [Paragraph(f"<b>PAGO</b> · Correção / Garantia{reason_txt}", styles["body"]), Paragraph(_money(Decimal("0.00")), styles["item_total"])],
+            ],
+            colWidths=[48 * mm, 24 * mm],
+            hAlign="LEFT",
+        )
+        total_table.setStyle(TableStyle([
+            ("LINEABOVE", (0, 0), (-1, 0), 1.2, colors.black),
+            ("LINEBELOW", (0, 0), (-1, 0), 0.8, colors.black),
+            ("ALIGN", (1, 0), (1, -1), "RIGHT"),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 0),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+            ("TOPPADDING", (0, 0), (-1, -1), 2 * mm),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 2 * mm),
+        ]))
+        story.append(total_table)
+    elif paid_amt >= total_amt and total_amt > 0:
         total_table = Table(
             [
                 [Paragraph("Total a Pagar", styles["total_label"]), Paragraph(_money(total_amt), styles["total_value"])],

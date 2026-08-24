@@ -55,12 +55,24 @@
   {% endif %}
 
   <div class="order-meta" style="display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 8px;">
-    {% if order.payment_status == "pago" or order.stage == "pagamento_confirmado" %}
+    {% if order.payment_status == "pago" %}
       <span class="badge badge-pago" style="font-size: 0.74rem;">Pago</span>
     {% elif order.payment_status == "parcial" %}
       <span class="badge badge-parcial" style="font-size: 0.74rem;" title="R$ {{ order.paid_amount|floatformat:2 }} de R$ {{ order.total_amount|floatformat:2 }}">Parcial (R$ {{ order.paid_amount|floatformat:2 }})</span>
+      <form method="post" action="{% url 'orders:mark_as_paid' pk=order.pk %}?next={{ request.get_full_path|urlencode }}" style="display: inline;" onclick="event.stopPropagation();">
+        {% csrf_token %}
+        <button type="submit" title="Alterar manualmente para Pedido Pago" style="background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.3); border-radius: 4px; padding: 1px 5px; color: #34d399; cursor: pointer; font-size: 0.70rem; font-weight: 600;">
+          <i class="fa-solid fa-check"></i> Quitar
+        </button>
+      </form>
     {% else %}
       <span class="badge badge-nao_pago" style="font-size: 0.74rem;">Não pago</span>
+      <form method="post" action="{% url 'orders:mark_as_paid' pk=order.pk %}?next={{ request.get_full_path|urlencode }}" style="display: inline;" onclick="event.stopPropagation();">
+        {% csrf_token %}
+        <button type="submit" title="Alterar manualmente para Pedido Pago" style="background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.3); border-radius: 4px; padding: 1px 5px; color: #34d399; cursor: pointer; font-size: 0.70rem; font-weight: 600;">
+          <i class="fa-solid fa-check"></i> Pagar
+        </button>
+      </form>
     {% endif %}
 
     {% if order.notified_whatsapp %}

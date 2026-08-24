@@ -280,12 +280,24 @@ def create_order(*, form, actor, files, request=None) -> Order:
         # Abatimento de saldo do Plano de Volume / Crédito do cliente se aplicável
         if order.cliente:
             dtf_m = sum(i.film_used_m for i in items if isinstance(i, Quote))
+            if dtf_m == Decimal("0.00"):
+                dtf_m = sum(
+                    Decimal(str(it.billing_quantity))
+                    for it in order.items.filter(kind=OrderItem.Kind.MATERIAL)
+                    if "metro" in (it.billing_unit or "").lower()
+                )
+            if dtf_m > Decimal("0.00") and order.cliente.metros_saldo and order.cliente.metros_saldo > Decimal("0.00"):
+                order.cliente.metros_saldo = max(Decimal("0.00"), order.cliente.metros_saldo - Decimal(str(dtf_m)))
+
             if order.payment_method == "saldo_credito" or (order.cliente.saldo_credito and order.cliente.saldo_credito >= order.total_amount):
                 if order.total_amount > Decimal("0.00"):
                     order.cliente.saldo_credito = max(Decimal("0.00"), order.cliente.saldo_credito - order.total_amount)
-                if dtf_m > 0 and order.cliente.metros_saldo:
-                    order.cliente.metros_saldo = max(Decimal("0.00"), order.cliente.metros_saldo - Decimal(str(dtf_m)))
-                order.cliente.save(update_fields=["saldo_credito", "metros_saldo", "updated_at"])
+
+            order.cliente.save(update_fields=["saldo_credito", "metros_saldo", "updated_at"])
+
+        # Baixa Automática de Estoque de Insumos (Filmes DTF e Camisetas)
+        from apps.inventory.services import deduct_order_stock
+        deduct_order_stock(order, actor)
 
         desc_criacao = f"Pedido criado.{' (Correção por Defeito)' if order.is_correction else ''}"
         OrderHistory.objects.create(order=order, user=actor, action="criacao", description=desc_criacao)

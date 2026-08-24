@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import calendar
 import csv
 from collections import defaultdict
-from datetime import datetime, time, timedelta
+from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -14,9 +15,9 @@ from django.views.generic import TemplateView
 from apps.accounts.models import User
 from apps.accounts.permissions import AdministratorRequiredMixin
 from apps.expenses.models import Expense
-from apps.orders.models import Order, OrderStageHistory
+from apps.orders.models import Order, OrderItem, OrderStageHistory
 
-from .forms import ReportFilterForm
+from .forms import ProductionReportFilterForm, ReportFilterForm
 
 
 class ReportView(LoginRequiredMixin, AdministratorRequiredMixin, TemplateView):
@@ -104,3 +105,189 @@ class ReportView(LoginRequiredMixin, AdministratorRequiredMixin, TemplateView):
             ])
         return response
 
+
+class ProductionReportView(LoginRequiredMixin, AdministratorRequiredMixin, TemplateView):
+    template_name = "reports/production.html"
+
+    def _parse_month(self, month_str: str | None) -> tuple[int, int, date, date]:
+        today = timezone.localdate()
+        year = today.year
+        month = today.month
+        if month_str:
+            try:
+                parts = month_str.strip().split("-")
+                if len(parts) == 2:
+                    y, m = int(parts[0]), int(parts[1])
+                    if 2000 <= y <= 2100 and 1 <= m <= 12:
+                        year, month = y, m
+            except (ValueError, TypeError):
+                pass
+        
+        _, num_days = calendar.monthrange(year, month)
+        start_date = date(year, month, 1)
+        end_date = date(year, month, num_days)
+        return year, month, start_date, end_date
+
+    def get(self, request, *args, **kwargs):
+        month_param = request.GET.get("month") or timezone.localdate().strftime("%Y-%m")
+        year, month, start_date, end_date = self._parse_month(month_param)
+        responsible_id = request.GET.get("responsible")
+        material_type = request.GET.get("material_type") or ""
+
+        form = ProductionReportFilterForm(initial={
+            "month": f"{year:04d}-{month:02d}",
+            "responsible": responsible_id,
+            "material_type": material_type,
+        }, data=request.GET or None)
+
+        start_dt = timezone.make_aware(datetime.combine(start_date, time.min))
+        end_dt = timezone.make_aware(datetime.combine(end_date + timedelta(days=1), time.min))
+
+        orders_qs = Order.objects.filter(
+            created_at__gte=start_dt,
+            created_at__lt=end_dt,
+        ).exclude(
+            stage=Order.Stage.CANCELLED
+        ).select_related("responsible", "created_by").prefetch_related("items")
+
+        if responsible_id:
+            try:
+                resp_pk = int(responsible_id)
+                orders_qs = orders_qs.filter(Q(responsible_id=resp_pk) | Q(created_by_id=resp_pk))
+            except (ValueError, TypeError):
+                pass
+
+        orders = list(orders_qs.order_by("created_at", "pk"))
+
+        # Daily breakdown structure for all days in month
+        days_map: dict[date, dict[str, object]] = {}
+        curr = start_date
+        while curr <= end_date:
+            days_map[curr] = {
+                "date": curr,
+                "day_num": curr.day,
+                "weekday": ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"][curr.weekday()],
+                "textil_meters": Decimal("0.00"),
+                "uv_meters": Decimal("0.00"),
+                "total_meters": Decimal("0.00"),
+                "orders_count": 0,
+                "orders_list": [],
+            }
+            curr += timedelta(days=1)
+
+        total_orders_set = set()
+
+        for order in orders:
+            order_date = timezone.localtime(order.created_at).date()
+            if order_date not in days_map:
+                continue
+
+            order_items = list(order.items.all())
+            order_has_dtf = False
+
+            for item in order_items:
+                mat_code = (item.material_code or "").lower()
+                mat_name = (item.material_name or "").lower()
+                kind = getattr(item, "kind", "")
+
+                is_uv = ("uv" in mat_code or "uv" in mat_name)
+                is_textil = (mat_code == "dtf_textil" or (kind == "material" and not is_uv))
+
+                # Check material filter
+                if material_type == "dtf_textil" and not is_textil:
+                    continue
+                if material_type == "dtf_uv" and not is_uv:
+                    continue
+
+                meters = Decimal("0.00")
+                if item.calculation_snapshot and "film_used_m" in item.calculation_snapshot:
+                    meters = Decimal(str(item.calculation_snapshot["film_used_m"]))
+                elif "metro" in (item.billing_unit or "").lower():
+                    meters = Decimal(str(item.billing_quantity))
+                elif item.used_length_cm:
+                    meters = Decimal(str(item.used_length_cm)) / Decimal("100")
+
+                if meters > Decimal("0.00"):
+                    order_has_dtf = True
+                    if is_uv:
+                        days_map[order_date]["uv_meters"] += meters
+                    else:
+                        days_map[order_date]["textil_meters"] += meters
+                    days_map[order_date]["total_meters"] += meters
+
+            if order_has_dtf:
+                days_map[order_date]["orders_count"] += 1
+                days_map[order_date]["orders_list"].append(order)
+                total_orders_set.add(order.id)
+
+        daily_rows = list(days_map.values())
+
+        # Totals and KPIs
+        total_textil = sum((r["textil_meters"] for r in daily_rows), Decimal("0.00"))
+        total_uv = sum((r["uv_meters"] for r in daily_rows), Decimal("0.00"))
+        total_meters = total_textil + total_uv
+        active_days = sum(1 for r in daily_rows if r["total_meters"] > Decimal("0.00"))
+        avg_daily = (total_meters / Decimal(str(active_days))) if active_days > 0 else Decimal("0.00")
+        
+        peak_row = max(daily_rows, key=lambda r: r["total_meters"], default=None)
+        peak_meters = peak_row["total_meters"] if peak_row else Decimal("0.00")
+        peak_date = peak_row["date"] if peak_row and peak_meters > 0 else None
+
+        if request.GET.get("export") == "csv":
+            return self._csv_export(daily_rows, year, month)
+
+        # Meses para navegação
+        prev_month_date = start_date - timedelta(days=1)
+        next_month_date = end_date + timedelta(days=1)
+        prev_month_str = prev_month_date.strftime("%Y-%m")
+        next_month_str = next_month_date.strftime("%Y-%m")
+
+        month_names = [
+            "", "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+            "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+        ]
+        month_label = f"{month_names[month]} de {year}"
+
+        context = self.get_context_data(
+            form=form,
+            year=year,
+            month=month,
+            month_label=month_label,
+            current_month_str=f"{year:04d}-{month:02d}",
+            prev_month_str=prev_month_str,
+            next_month_str=next_month_str,
+            users=User.objects.filter(is_active=True).only("id", "name").order_by("name"),
+            daily_rows=daily_rows,
+            total_textil=total_textil,
+            total_uv=total_uv,
+            total_meters=total_meters,
+            active_days=active_days,
+            avg_daily=avg_daily,
+            peak_meters=peak_meters,
+            peak_date=peak_date,
+            total_orders_count=len(total_orders_set),
+            responsible_id=responsible_id,
+            material_type=material_type,
+        )
+        return self.render_to_response(context)
+
+    @staticmethod
+    def _csv_export(daily_rows, year, month):
+        response = HttpResponse(content_type="text/csv; charset=utf-8")
+        response["Content-Disposition"] = f'attachment; filename="relatorio-producao-metros-{year:04d}{month:02d}.csv"'
+        response.write("\ufeff")
+        writer = csv.writer(response, delimiter=";")
+        writer.writerow(["Data", "Dia da Semana", "DTF Têxtil (m)", "DTF UV (m)", "Total de Metros (m)", "Qtd. Pedidos", "Números dos Pedidos"])
+        for r in daily_rows:
+            date_str = r["date"].strftime("%d/%m/%Y")
+            orders_str = ", ".join(o.number for o in r["orders_list"])
+            writer.writerow([
+                date_str,
+                r["weekday"],
+                f"{r['textil_meters']:.2f}".replace(".", ","),
+                f"{r['uv_meters']:.2f}".replace(".", ","),
+                f"{r['total_meters']:.2f}".replace(".", ","),
+                r["orders_count"],
+                orders_str,
+            ])
+        return response

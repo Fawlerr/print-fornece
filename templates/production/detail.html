@@ -170,6 +170,12 @@
               <i class="fa-solid fa-check-circle"></i> Confirmar Pagamento
             </button>
           </form>
+          <form method="post" action="{% url 'orders:mark_as_paid' pk=order.pk %}" style="margin-top: 8px;">
+            {% csrf_token %}
+            <button class="btn btn-secondary btn-small btn-block" type="submit" data-confirm="Confirmar alteração direta para Pedido Pago (Valor total R$ {{ order.total_amount|floatformat:2 }})?" style="background: rgba(16, 185, 129, 0.15); color: #34d399; border-color: rgba(16, 185, 129, 0.3); font-weight: 600;">
+              <i class="fa-solid fa-check-double"></i> Alterar para "Pedido Pago" (Total)
+            </button>
+          </form>
         </div>
       {% endif %}
 

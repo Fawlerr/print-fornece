@@ -1,0 +1,121 @@
+<!-- Modal de Changelog / Histórico de Atualizações -->
+<div class="modal-backdrop" id="changelogModal" style="display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.75); z-index: 9999; backdrop-filter: blur(4px); align-items: center; justify-content: center; padding: 16px;">
+  <div class="modal-card" style="background: var(--surface, #1e293b); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 12px; width: 100%; max-width: 640px; max-height: 85vh; display: flex; flex-direction: column; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6); animation: modalIn 0.2s ease forwards;">
+    
+    <!-- Cabeçalho -->
+    <div style="padding: 16px 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); display: flex; align-items: center; justify-content: space-between;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <span style="display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 8px; background: rgba(59, 130, 246, 0.15); color: #60a5fa; font-size: 1rem;">
+          <i class="fa-solid fa-clock-rotate-left"></i>
+        </span>
+        <div>
+          <h3 style="margin: 0; font-size: 1.1rem; color: #f8fafc; font-weight: 600;">Histórico de Atualizações (Changelog)</h3>
+          <p style="margin: 2px 0 0 0; font-size: 0.8rem; color: #94a3b8;">Confira as últimas melhorias e novidades do Print Fornece</p>
+        </div>
+      </div>
+      <button type="button" id="closeChangelogModalBtn" style="background: transparent; border: none; color: #94a3b8; font-size: 1.2rem; cursor: pointer; padding: 4px;" aria-label="Fechar">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <!-- Conteúdo / Linha do Tempo -->
+    <div style="padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 20px;">
+      
+      <!-- Entrada 24/08/2026 -->
+      <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(59, 130, 246, 0.25); border-radius: 10px; padding: 16px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="background: #2563eb; color: #ffffff; font-size: 0.75rem; font-weight: 700; padding: 3px 8px; border-radius: 6px; letter-spacing: 0.5px;">NOVO</span>
+            <strong style="color: #f8fafc; font-size: 0.95rem;">Atualizações do Sistema</strong>
+          </div>
+          <span style="font-size: 0.82rem; color: #94a3b8; font-weight: 500;"><i class="fa-regular fa-calendar" style="margin-right: 4px;"></i>24/08/2026</span>
+        </div>
+        
+        <ul style="margin: 0; padding-left: 20px; color: #cbd5e1; font-size: 0.88rem; line-height: 1.6; display: flex; flex-direction: column; gap: 8px;">
+          <li>
+            <strong style="color: #60a5fa;">Relatório de Produção Diária (Metros/Dia):</strong> Nova tela com visão de produção diária de DTF (Têxtil e UV), com filtros por mês e por colaborador (Paula, Paulo, Vinícius), estatísticas consolidadas e exportação CSV.
+          </li>
+          <li>
+            <strong style="color: #34d399;">Baixa Automática de Estoque:</strong> Ao lançar um pedido, o sistema abate automaticamente a quantidade de filmes/bobinas de DTF (Têxtil e UV em metros) e camisetas por tamanho/modelo.
+          </li>
+          <li>
+            <strong style="color: #a78bfa;">Abatimento do Pacote do Cliente:</strong> O saldo de metros contratados no Plano de Volume do cliente é debitado automaticamente ao registrar pedidos DTF.
+          </li>
+          <li>
+            <strong style="color: #f59e0b;">Controle Manual de Pedido Pago:</strong> Opção rápida com 1 clique para alterar o status para "Pedido Pago", sem forçar quitação automática antecipada para clientes com pagamento na retirada.
+          </li>
+          <li>
+            <strong style="color: #f43f5e;">Comprovante de Correção / Defeito:</strong> Ajuste na impressão térmica da nota para pedidos de reposição (R$ 0,00), exibindo status "PAGO / CORREÇÃO" sem alerta de pagamento pendente.
+          </li>
+          <li>
+            <strong style="color: #38bdf8;">Central de Changelog:</strong> Criação deste painel de histórico de atualizações integrado à barra superior.
+          </li>
+        </ul>
+      </div>
+
+      <!-- Entrada Anterior -->
+      <div style="background: rgba(15, 23, 42, 0.4); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 10px; padding: 16px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="background: rgba(148, 163, 184, 0.2); color: #cbd5e1; font-size: 0.75rem; font-weight: 600; padding: 3px 8px; border-radius: 6px;">LANÇAMENTO</span>
+            <strong style="color: #e2e8f0; font-size: 0.92rem;">Melhorias Operacionais & Feedback</strong>
+          </div>
+          <span style="font-size: 0.8rem; color: #64748b;"><i class="fa-regular fa-calendar" style="margin-right: 4px;"></i>22/08/2026</span>
+        </div>
+        <ul style="margin: 0; padding-left: 20px; color: #94a3b8; font-size: 0.84rem; line-height: 1.5; display: flex; flex-direction: column; gap: 6px;">
+          <li>Central de Relatos de Bugs e sugestões com anexos de captura de tela.</li>
+          <li>Comprovante térmico de 80mm com snapshots imutáveis de valores e dados de impressão.</li>
+          <li>Suporte a pedidos de correção/garantia com motivo e valor zerado.</li>
+          <li>Fluxo Kanban setorizado com restrições por perfil (Atendimento vs. Produção).</li>
+        </ul>
+      </div>
+
+    </div>
+
+    <!-- Rodapé -->
+    <div style="padding: 12px 20px; border-top: 1px solid rgba(255, 255, 255, 0.08); display: flex; justify-content: flex-end;">
+      <button type="button" id="closeChangelogModalFooterBtn" class="btn btn-secondary" style="font-size: 0.88rem; padding: 8px 18px;">
+        Fechar
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  const modal = document.getElementById("changelogModal");
+  const openBtns = document.querySelectorAll("[data-open-changelog]");
+  const closeBtns = [
+    document.getElementById("closeChangelogModalBtn"),
+    document.getElementById("closeChangelogModalFooterBtn")
+  ];
+
+  function openModal() {
+    if (modal) modal.style.display = "flex";
+  }
+
+  function closeModal() {
+    if (modal) modal.style.display = "none";
+  }
+
+  openBtns.forEach(btn => {
+    btn.addEventListener("click", openModal);
+  });
+
+  closeBtns.forEach(btn => {
+    if (btn) btn.addEventListener("click", closeModal);
+  });
+
+  if (modal) {
+    modal.addEventListener("click", function(e) {
+      if (e.target === modal) closeModal();
+    });
+  }
+
+  document.addEventListener("keydown", function(e) {
+    if (e.key === "Escape" && modal && modal.style.display === "flex") {
+      closeModal();
+    }
+  });
+})();
+</script>
