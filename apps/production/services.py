@@ -36,20 +36,6 @@ def move_order_stage(*, order_id: int, new_stage: str, actor, request=None) -> O
     order.stage_updated_at = timezone.now()
     update_fields = ["stage", "stage_updated_at", "updated_at"]
 
-    # Sincronização automática do status de pagamento em etapas confirmadas (exceto se for pagamento na retirada)
-    if new_stage == Order.Stage.PAYMENT_CONFIRMED:
-        if order.payment_status == Order.PaymentStatus.UNPAID and order.payment_method != Order.PaymentMethod.ON_DELIVERY and order.payment_method != "na_retirada":
-            order.payment_status = Order.PaymentStatus.PAID
-            order.paid_amount = order.total_amount
-            order.payment_confirmed_at = timezone.now()
-            order.payment_confirmed_by = actor
-            _snapshot_receipt_on_payment(order, actor)
-            update_fields.extend([
-                "payment_status", "paid_amount", "payment_confirmed_at", "payment_confirmed_by",
-                "receipt_client_name", "receipt_seller_name", "receipt_total_amount",
-                "receipt_paid_amount", "receipt_payment_method", "receipt_generated_at"
-            ])
-
     if new_stage == Order.Stage.DELIVERED:
         if not order.finished_at:
             order.finished_at = timezone.now()

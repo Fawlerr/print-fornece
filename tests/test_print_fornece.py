@@ -1025,6 +1025,23 @@ class PrintForneceTestCase(TestCase):
             stage=Order.Stage.NEW,
             created_by=self.admin,
         )
+        # Test moving to PAYMENT_CONFIRMED does not force PAID
+        unpaid_order = Order.objects.create(
+            number="PED-UNPAID-01",
+            client_name="Cliente Nao Pago",
+            client_whatsapp="11999998888",
+            total_amount=Decimal("120.00"),
+            paid_amount=Decimal("0.00"),
+            payment_status=Order.PaymentStatus.UNPAID,
+            stage=Order.Stage.NEW,
+            created_by=self.admin,
+        )
+        move_order_stage(order_id=unpaid_order.pk, new_stage=Order.Stage.PAYMENT_CONFIRMED, actor=self.admin)
+        unpaid_order.refresh_from_db()
+        self.assertEqual(unpaid_order.stage, Order.Stage.PAYMENT_CONFIRMED)
+        self.assertEqual(unpaid_order.payment_status, Order.PaymentStatus.UNPAID)
+        self.assertEqual(unpaid_order.paid_amount, Decimal("0.00"))
+
         move_order_stage(order_id=order.pk, new_stage=Order.Stage.PRE_PRESS, actor=self.admin)
         order.refresh_from_db()
         self.assertEqual(order.stage, Order.Stage.PRE_PRESS)
@@ -1036,6 +1053,33 @@ class PrintForneceTestCase(TestCase):
         self.assertEqual(order.stage, Order.Stage.PRODUCTION)
         self.assertEqual(order.payment_status, Order.PaymentStatus.PARTIAL)
         self.assertEqual(order.remaining_amount, Decimal("100.00"))
+
+    def test_whatsapp_messages_include_partial_and_pending_balance(self):
+        from apps.notifications.whatsapp import build_ready_whatsapp_message, build_quote_whatsapp_message
+        partial_order = Order.objects.create(
+            number="PED-WAPP-01",
+            client_name="Cliente Teste Zap",
+            client_whatsapp="11999997777",
+            total_amount=Decimal("100.00"),
+            paid_amount=Decimal("40.00"),
+            payment_status=Order.PaymentStatus.PARTIAL,
+            created_by=self.admin,
+        )
+        msg_ready = build_ready_whatsapp_message(partial_order)
+        self.assertIn("Entrada paga: R$ 40,00", msg_ready)
+        self.assertIn("SALDO A PAGAR NA RETIRADA: R$ 60,00", msg_ready)
+
+        unpaid_order = Order.objects.create(
+            number="PED-WAPP-02",
+            client_name="Cliente Retirada Zap",
+            client_whatsapp="11999997777",
+            total_amount=Decimal("80.00"),
+            paid_amount=Decimal("0.00"),
+            payment_status=Order.PaymentStatus.UNPAID,
+            created_by=self.admin,
+        )
+        msg_unpaid_ready = build_ready_whatsapp_message(unpaid_order)
+        self.assertIn("VALOR A PAGAR NA RETIRADA: R$ 80,00", msg_unpaid_ready)
 
     def test_combined_dtf_textil_and_uv_primary_label(self):
         order = Order.objects.create(

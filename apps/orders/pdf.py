@@ -59,16 +59,19 @@ def _receipt_snapshot(order) -> dict[str, object]:
     seller_name = ""
     if seller is not None:
         seller_name = seller.name or seller.email
+
+    is_fully_paid = getattr(order, "payment_status", "") == "pago" or getattr(order, "is_correction", False)
+    total_val = order.receipt_total_amount if (is_fully_paid and getattr(order, "receipt_total_amount", None) is not None) else order.total_amount
+    paid_val = order.receipt_paid_amount if (is_fully_paid and getattr(order, "receipt_paid_amount", None) is not None) else (getattr(order, "paid_amount", None) or Decimal("0.00"))
+
     return {
         "client_name": order.receipt_client_name or order.client_name,
         "seller_name": order.receipt_seller_name or seller_name or "Não informado",
-        "total": order.receipt_total_amount if order.receipt_total_amount is not None else order.total_amount,
-        "paid_amount": order.receipt_paid_amount if order.receipt_paid_amount is not None else order.paid_amount,
-        "payment_method": order.receipt_payment_method or order.payment_method or "",
+        "total": total_val,
+        "paid_amount": paid_val,
+        "payment_method": order.payment_method or order.receipt_payment_method or "",
         "is_correction": getattr(order, "is_correction", False),
         "correction_reason": getattr(order, "correction_reason", ""),
-        # Older paid orders did not have a confirmation timestamp.  Their
-        # existing creation time is the closest truthful value available.
         "paid_at": order.payment_confirmed_at or order.created_at,
     }
 

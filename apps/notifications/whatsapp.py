@@ -77,10 +77,31 @@ def get_service_name_and_measures(order: Order) -> tuple[str, str, str]:
     return service_name, measures, valor_metro
 
 
+def get_payment_summary_for_message(order: Order) -> str:
+    valor_total = format_money_br(order.total_amount)
+    paid_amt = order.paid_amount or Decimal("0.00")
+    remaining_amt = order.remaining_amount
+
+    if order.payment_status == Order.PaymentStatus.PAID:
+        method = order.get_payment_method_display() if order.payment_method else "Confirmado"
+        return f"TOTAL: R$ {valor_total} (Pago · {method})"
+    elif order.payment_status == Order.PaymentStatus.PARTIAL:
+        return (
+            f"TOTAL: R$ {valor_total}\n"
+            f"Entrada paga: R$ {format_money_br(paid_amt)}\n"
+            f"SALDO A PAGAR NA RETIRADA: R$ {format_money_br(remaining_amt)}"
+        )
+    else:  # UNPAID
+        return (
+            f"TOTAL: R$ {valor_total}\n"
+            f"VALOR A PAGAR NA RETIRADA: R$ {format_money_br(remaining_amt or order.total_amount)}"
+        )
+
+
 def build_quote_whatsapp_message(order: Order, public_quote_url: str = "") -> str:
     """Template 1: Orçamento Completo (sem emojis, limpo e profissional)."""
     service_name, measures, valor_metro = get_service_name_and_measures(order)
-    valor_total = format_money_br(order.total_amount)
+    payment_info = get_payment_summary_for_message(order)
 
     if order.due_at:
         prazo = timezone.localtime(order.due_at).strftime("%d/%m/%Y às %H:%M")
@@ -96,12 +117,12 @@ def build_quote_whatsapp_message(order: Order, public_quote_url: str = "") -> st
         f"━━━━━━━━━━━━━━━\n"
         f"Medida / Especificações:{measures}\n\n"
         f"Valor unitário/metro: R$ {valor_metro}\n"
-        f"TOTAL: R$ {valor_total}\n"
+        f"{payment_info}\n"
         f"━━━━━━━━━━━━━━━\n"
         f"Prazo estimado: {prazo}\n"
-        f"Pagamento: PIX ou Cartão{link_part}\n"
+        f"Formas de Pagamento: PIX, Cartão ou Pagamento na Retirada{link_part}\n"
         f"Importante:\n"
-        f"• A produção inicia após a confirmação do pagamento e aprovação da arte\n"
+        f"• A produção inicia após a confirmação do pedido e aprovação da arte\n"
         f"• Não realizamos reimpressão de arte já aprovada ou material cortado\n"
         f"• Confira todos os detalhes antes de confirmar\n\n"
         f"Estou enviando também o preview da arte para conferência. Qualquer ajuste, nos avise."
@@ -118,7 +139,7 @@ def build_ready_whatsapp_message(order: Order, public_quote_url: str = "") -> st
     else:
         resumo_itens = f"\n• {order.description[:80]}"
 
-    valor_total = format_money_br(order.total_amount)
+    payment_info = get_payment_summary_for_message(order)
     link_part = f"\nVisualize seu pedido e arte aprovada:\n{public_quote_url}\n" if public_quote_url else ""
 
     message = (
@@ -127,7 +148,7 @@ def build_ready_whatsapp_message(order: Order, public_quote_url: str = "") -> st
         f"Material no nome de: {order.client_name}\n"
         f"━━━━━━━━━━━━━━━\n"
         f"Itens:{resumo_itens}\n"
-        f"Total: R$ {valor_total}\n"
+        f"{payment_info}\n"
         f"{link_part}"
         f"━━━━━━━━━━━━━━━\n"
         f"Local de Retirada: Print Fornece\n"
@@ -150,7 +171,7 @@ def build_delivered_whatsapp_message(order: Order, public_quote_url: str = "") -
     else:
         resumo_itens = f"\n• {order.description[:80]}"
 
-    valor_total = format_money_br(order.total_amount)
+    payment_info = get_payment_summary_for_message(order)
     link_part = f"\nComprovante e arte aprovada:\n{public_quote_url}\n" if public_quote_url else ""
 
     message = (
@@ -159,7 +180,7 @@ def build_delivered_whatsapp_message(order: Order, public_quote_url: str = "") -
         f"Seu pedido #{order.number} foi entregue com sucesso.\n"
         f"━━━━━━━━━━━━━━━\n"
         f"Itens entregues:{resumo_itens}\n"
-        f"Total: R$ {valor_total}\n"
+        f"{payment_info}\n"
         f"{link_part}"
         f"━━━━━━━━━━━━━━━\n"
         f"Pode nos dar uma mãozinha? Sua opinião é muito importante para nós. Se puder, deixe uma avaliação rápida no Google contando como foi sua experiência:\n\n"

@@ -141,41 +141,65 @@
         {% endif %}
       </div>
 
-      {% if order.payment_status != "pago" and order.stage != "cancelado" and order.stage != "entregue" %}
+      {% if order.stage != "cancelado" %}
         <div style="background: rgba(245, 185, 66, 0.06); border: 1px solid rgba(245, 185, 66, 0.25); border-radius: 8px; padding: 14px; margin-bottom: 20px;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
             <strong style="font-size: 0.92rem; color: #ffd678; display: flex; align-items: center; gap: 6px;">
-              <i class="fa-solid fa-hand-holding-dollar"></i> Registrar Pagamento / Parcial
+              <i class="fa-solid fa-hand-holding-dollar"></i> Situação de Pagamento
             </strong>
-            <span style="font-size: 0.82rem; color: #f87171; font-weight: 700;">
-              Falta: R$ {{ order.remaining_amount|floatformat:2 }}
-            </span>
+            {% if order.payment_status == "pago" %}
+              <span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #34d399; font-weight: 700; border: 1px solid rgba(16, 185, 129, 0.3);">
+                <i class="fa-solid fa-check"></i> 100% Quitado (R$ {{ order.total_amount|floatformat:2 }})
+              </span>
+            {% elif order.payment_status == "parcial" %}
+              <span style="font-size: 0.82rem; color: #f87171; font-weight: 700;">
+                Pago: R$ {{ order.paid_amount|floatformat:2 }} · Restando: R$ {{ order.remaining_amount|floatformat:2 }}
+              </span>
+            {% else %}
+              <span style="font-size: 0.82rem; color: #f87171; font-weight: 700;">
+                Pendente: R$ {{ order.remaining_amount|floatformat:2 }}
+              </span>
+            {% endif %}
           </div>
-          <form method="post" action="{% url 'orders:register_payment' pk=order.pk %}">
-            {% csrf_token %}
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
-              <div>
-                <small style="display: block; color: var(--muted); margin-bottom: 2px;">Valor Pago (R$):</small>
-                {{ payment_form.paid_amount }}
-              </div>
-              <div>
-                <small style="display: block; color: var(--muted); margin-bottom: 2px;">Forma de Pagamento:</small>
-                {{ payment_form.payment_method }}
-              </div>
+
+          {% if order.payment_status == "pago" %}
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px;">
+              <small style="color: var(--muted, #9ca3af);">Forma: <b>{{ order.get_payment_method_display|default:"Não informada" }}</b>{% if order.payment_confirmed_at %} · Confirmado em {{ order.payment_confirmed_at|date:"d/m/Y H:i" }}{% endif %}</small>
+              <button type="button" class="btn btn-secondary btn-small" onclick="const b = document.getElementById('quick-payment-form-box'); b.style.display = b.style.display === 'none' ? 'block' : 'none';" style="font-size: 0.78rem; padding: 3px 8px;">
+                <i class="fa-solid fa-pen"></i> Alterar / Lançar Pagamento
+              </button>
             </div>
-            <div style="margin-bottom: 8px;">
-              {{ payment_form.notes }}
-            </div>
-            <button class="btn btn-primary btn-small btn-block" type="submit">
-              <i class="fa-solid fa-check-circle"></i> Confirmar Pagamento
-            </button>
-          </form>
-          <form method="post" action="{% url 'orders:mark_as_paid' pk=order.pk %}" style="margin-top: 8px;">
-            {% csrf_token %}
-            <button class="btn btn-secondary btn-small btn-block" type="submit" data-confirm="Confirmar alteração direta para Pedido Pago (Valor total R$ {{ order.total_amount|floatformat:2 }})?" style="background: rgba(16, 185, 129, 0.15); color: #34d399; border-color: rgba(16, 185, 129, 0.3); font-weight: 600;">
-              <i class="fa-solid fa-check-double"></i> Alterar para "Pedido Pago" (Total)
-            </button>
-          </form>
+          {% endif %}
+
+          <div id="quick-payment-form-box" style="{% if order.payment_status == 'pago' %}display: none; margin-top: 12px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 10px;{% endif %}">
+            <form method="post" action="{% url 'orders:register_payment' pk=order.pk %}">
+              {% csrf_token %}
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
+                <div>
+                  <small style="display: block; color: var(--muted); margin-bottom: 2px;">Valor a Quitar/Adicionar (R$):</small>
+                  {{ payment_form.paid_amount }}
+                </div>
+                <div>
+                  <small style="display: block; color: var(--muted); margin-bottom: 2px;">Forma de Pagamento:</small>
+                  {{ payment_form.payment_method }}
+                </div>
+              </div>
+              <div style="margin-bottom: 8px;">
+                {{ payment_form.notes }}
+              </div>
+              <button class="btn btn-primary btn-small btn-block" type="submit">
+                <i class="fa-solid fa-check-circle"></i> Confirmar Lançamento de Pagamento
+              </button>
+            </form>
+            {% if order.payment_status != "pago" %}
+              <form method="post" action="{% url 'orders:mark_as_paid' pk=order.pk %}" style="margin-top: 8px;">
+                {% csrf_token %}
+                <button class="btn btn-secondary btn-small btn-block" type="submit" data-confirm="Confirmar alteração direta para Pedido Pago (Valor total R$ {{ order.total_amount|floatformat:2 }})?" style="background: rgba(16, 185, 129, 0.15); color: #34d399; border-color: rgba(16, 185, 129, 0.3); font-weight: 600;">
+                  <i class="fa-solid fa-check-double"></i> Alterar para "Pedido Pago" (Total)
+                </button>
+              </form>
+            {% endif %}
+          </div>
         </div>
       {% endif %}
 
