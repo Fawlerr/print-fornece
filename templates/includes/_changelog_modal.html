@@ -1,16 +1,16 @@
 <!-- Modal de Changelog / Histórico de Atualizações -->
 <div class="modal-backdrop" id="changelogModal" style="display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.75); z-index: 9999; backdrop-filter: blur(4px); align-items: center; justify-content: center; padding: 16px;">
-  <div class="modal-card" style="background: var(--surface, #1e293b); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 12px; width: 100%; max-width: 640px; max-height: 85vh; display: flex; flex-direction: column; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6); animation: modalIn 0.2s ease forwards;">
+  <div class="modal-card" style="background: var(--surface, #1e293b); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 12px; width: 100%; max-width: 650px; max-height: 88vh; display: flex; flex-direction: column; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6); animation: modalIn 0.2s ease forwards;">
     
     <!-- Cabeçalho -->
     <div style="padding: 16px 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); display: flex; align-items: center; justify-content: space-between;">
       <div style="display: flex; align-items: center; gap: 10px;">
-        <span style="display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 8px; background: rgba(59, 130, 246, 0.15); color: #60a5fa; font-size: 1rem;">
+        <span style="display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 8px; background: rgba(59, 130, 246, 0.15); color: #60a5fa; font-size: 1.05rem;">
           <i class="fa-solid fa-clock-rotate-left"></i>
         </span>
         <div>
-          <h3 style="margin: 0; font-size: 1.1rem; color: #f8fafc; font-weight: 600;">Histórico de Atualizações (Changelog)</h3>
-          <p style="margin: 2px 0 0 0; font-size: 0.8rem; color: #94a3b8;">Confira as últimas melhorias e novidades do Print Fornece</p>
+          <h3 style="margin: 0; font-size: 1.1rem; color: #f8fafc; font-weight: 600;">Novidades & Atualizações</h3>
+          <p style="margin: 2px 0 0 0; font-size: 0.8rem; color: #94a3b8;">Histórico de melhorias do sistema Print Fornece</p>
         </div>
       </div>
       <button type="button" id="closeChangelogModalBtn" style="background: transparent; border: none; color: #94a3b8; font-size: 1.2rem; cursor: pointer; padding: 4px;" aria-label="Fechar">
@@ -18,8 +18,23 @@
       </button>
     </div>
 
+    <!-- Bloco de Saudação Diária -->
+    {% if user.is_authenticated %}
+    <div style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.18), rgba(59, 130, 246, 0.06)); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 10px; padding: 14px 18px; margin: 16px 20px 0 20px; display: flex; align-items: center; gap: 12px;">
+      <span style="font-size: 1.7rem; line-height: 1;">👋</span>
+      <div>
+        <h4 style="margin: 0; font-size: 1.02rem; color: #f8fafc; font-weight: 700;">
+          Olá, {{ user.name|default:user.email }}!
+        </h4>
+        <p style="margin: 3px 0 0 0; font-size: 0.84rem; color: #cbd5e1;">
+          Seja bem-vindo(a). Confira abaixo as novidades e melhorias aplicadas hoje no sistema:
+        </p>
+      </div>
+    </div>
+    {% endif %}
+
     <!-- Conteúdo / Linha do Tempo -->
-    <div style="padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 20px;">
+    <div style="padding: 16px 20px 20px 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px;">
       
       <!-- Entrada 24/08/2026 -->
       <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(59, 130, 246, 0.25); border-radius: 10px; padding: 16px;">
@@ -48,7 +63,7 @@
             <strong style="color: #f43f5e;">Comprovante de Correção / Defeito:</strong> Ajuste na impressão térmica da nota para pedidos de reposição (R$ 0,00), exibindo status "PAGO / CORREÇÃO" sem alerta de pagamento pendente.
           </li>
           <li>
-            <strong style="color: #38bdf8;">Central de Changelog:</strong> Criação deste painel de histórico de atualizações integrado à barra superior.
+            <strong style="color: #38bdf8;">Central de Changelog:</strong> Criação deste painel de histórico de atualizações integrado à barra superior e exibido no primeiro acesso do dia.
           </li>
         </ul>
       </div>
@@ -73,9 +88,10 @@
     </div>
 
     <!-- Rodapé -->
-    <div style="padding: 12px 20px; border-top: 1px solid rgba(255, 255, 255, 0.08); display: flex; justify-content: flex-end;">
-      <button type="button" id="closeChangelogModalFooterBtn" class="btn btn-secondary" style="font-size: 0.88rem; padding: 8px 18px;">
-        Fechar
+    <div style="padding: 14px 20px; border-top: 1px solid rgba(255, 255, 255, 0.08); display: flex; justify-content: space-between; align-items: center;">
+      <small style="color: #64748b; font-size: 0.78rem;">Print Fornece · Produção</small>
+      <button type="button" id="closeChangelogModalFooterBtn" class="btn btn-primary" style="font-size: 0.88rem; padding: 8px 22px; background: #2563eb; border-color: #1d4ed8; font-weight: 600;">
+        <i class="fa-solid fa-check"></i> Entendido, fechar
       </button>
     </div>
   </div>
@@ -117,5 +133,24 @@
       closeModal();
     }
   });
+
+  // Abertura automática no primeiro acesso do usuário no dia
+  try {
+    const isAuth = "{{ user.is_authenticated|yesno:'true,false' }}" === "true";
+    if (isAuth) {
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const userId = "{{ user.id|default:'guest' }}";
+      const storageKey = `pf_daily_changelog_seen_${userId}_${todayStr}`;
+      
+      if (!localStorage.getItem(storageKey)) {
+        setTimeout(function() {
+          openModal();
+          localStorage.setItem(storageKey, "1");
+        }, 600);
+      }
+    }
+  } catch (err) {
+    // Ignorar se storage estiver desabilitado
+  }
 })();
 </script>
