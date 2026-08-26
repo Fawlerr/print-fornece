@@ -20,6 +20,7 @@ services:
       - "${APP_PORT:-8080}:8000"
     volumes:
       - print_fornece_uploads:/app/media
+      - print_fornece_backups:/app/backups
     depends_on:
       db:
         condition: service_healthy
@@ -68,6 +69,7 @@ services:
 volumes:
   print_fornece_db:
   print_fornece_uploads:
+  print_fornece_backups:
 
 networks:
   print_fornece_internal:

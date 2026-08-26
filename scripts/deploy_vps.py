@@ -70,10 +70,25 @@ def main():
     execute_remote(ssh, f"sleep 8 && cd {main_dir} && docker compose ps")
     execute_remote(ssh, f"cd {main_dir} && docker compose logs app --tail 30")
 
-    # Optional reset bug reports in database
-    log("Checking bug reports count in pf_bug_reports...")
-    execute_remote(ssh, f"cd {main_dir} && docker compose exec -T app python manage.py shell -c \"from apps.bug_reports.models import BugReport; print(f'Active bug reports: {{BugReport.objects.count()}}')\"")
+    # Execute migrations and staticfiles
+    log("Applying migrations in production...")
+    execute_remote(ssh, f"cd {main_dir} && docker compose exec -T app python manage.py migrate --noinput")
+    execute_remote(ssh, f"cd {main_dir} && docker compose exec -T app python manage.py collectstatic --noinput")
 
+    # Setup automated backup cron at 03:00 AM if not already set
+    log("Configuring daily automated backup cron job at 03:00 AM...")
+    cron_cmd = "0 3 * * * cd /var/www/print-fornece && docker compose exec -T app python manage.py backup --trigger=automatic >> /var/log/print-fornece-backup.log 2>&1"
+    execute_remote(ssh, f"""
+    crontab -l 2>/dev/null | grep -v 'print-fornece.*backup' > /tmp/cron_pf || true
+    echo "{cron_cmd}" >> /tmp/cron_pf
+    crontab /tmp/cron_pf
+    rm -f /tmp/cron_pf
+    crontab -l | grep 'print-fornece'
+    """)
+
+    # Test initial backup execution
+    log("Testing backup command in production container...")
+    execute_remote(ssh, f"cd {main_dir} && docker compose exec -T app python manage.py backup --trigger=automatic")
 
     # Inspect & update host Nginx configurations on VPS
     log("Checking and updating Nginx configuration on VPS host...")

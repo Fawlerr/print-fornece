@@ -1,0 +1,340 @@
+{% extends "base.html" %}
+
+{% block title %}Gestão de Backups | Print Fornece{% endblock %}
+{% block page_heading %}Segurança & Backups{% endblock %}
+
+{% block content %}
+<div class="page-container" style="max-width: 1240px; margin: 0 auto; padding: 20px 16px;">
+  
+  <!-- Cabeçalho da Página -->
+  <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 24px;">
+    <div>
+      <h2 style="font-size: 1.4rem; font-weight: 700; margin: 0 0 4px 0; color: #f8fafc; display: flex; align-items: center; gap: 10px;">
+        <span style="display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 8px; background: rgba(59, 130, 246, 0.18); color: #60a5fa; font-size: 1.1rem;">
+          <i class="fa-solid fa-database"></i>
+        </span>
+        Gestão de Backups & Segurança
+      </h2>
+      <p style="margin: 0; color: var(--muted, #94a3b8); font-size: 0.9rem;">
+        Gere backups manuais, faça o download seguro para seu computador e acompanhe as rotinas automáticas de salvamento.
+      </p>
+    </div>
+
+    <!-- Botão de Ação para Gerar Backup -->
+    <button type="button" class="btn btn-primary" id="openBackupModalBtn" style="display: inline-flex; align-items: center; gap: 8px; background: #2563eb; border-color: #1d4ed8; font-weight: 600; padding: 10px 20px; box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);">
+      <i class="fa-solid fa-cloud-arrow-down"></i> Gerar Backup Agora
+    </button>
+  </div>
+
+  <!-- Cards de Indicadores / Estatísticas -->
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 16px; margin-bottom: 24px;">
+    
+    <div style="background: var(--surface, #1e293b); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 18px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+        <span style="font-size: 0.82rem; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Total de Backups</span>
+        <span style="width: 28px; height: 28px; border-radius: 6px; background: rgba(59, 130, 246, 0.15); color: #60a5fa; display: inline-flex; align-items: center; justify-content: center; font-size: 0.85rem;">
+          <i class="fa-solid fa-box-archive"></i>
+        </span>
+      </div>
+      <div style="font-size: 1.6rem; font-weight: 700; color: #f8fafc;">{{ total_count }}</div>
+      <div style="font-size: 0.78rem; color: #64748b; margin-top: 4px;">Arquivos gerenciados</div>
+    </div>
+
+    <div style="background: var(--surface, #1e293b); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 18px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+        <span style="font-size: 0.82rem; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Último Backup</span>
+        <span style="width: 28px; height: 28px; border-radius: 6px; background: rgba(16, 185, 129, 0.15); color: #34d399; display: inline-flex; align-items: center; justify-content: center; font-size: 0.85rem;">
+          <i class="fa-solid fa-clock-rotate-left"></i>
+        </span>
+      </div>
+      <div style="font-size: 1.15rem; font-weight: 700; color: #f8fafc;">
+        {% if last_backup %}{{ last_backup.created_at|date:"d/m/Y H:i" }}{% else %}Nenhum{% endif %}
+      </div>
+      <div style="font-size: 0.78rem; color: #34d399; margin-top: 4px;">
+        {% if last_backup %}{{ last_backup.get_trigger_type_display }}{% else %}Aguardando primeira execução{% endif %}
+      </div>
+    </div>
+
+    <div style="background: var(--surface, #1e293b); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 18px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+        <span style="font-size: 0.82rem; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Espaço em Disco</span>
+        <span style="width: 28px; height: 28px; border-radius: 6px; background: rgba(168, 85, 247, 0.15); color: #c084fc; display: inline-flex; align-items: center; justify-content: center; font-size: 0.85rem;">
+          <i class="fa-solid fa-hard-drive"></i>
+        </span>
+      </div>
+      <div style="font-size: 1.6rem; font-weight: 700; color: #f8fafc;">{{ total_disk_usage }}</div>
+      <div style="font-size: 0.78rem; color: #64748b; margin-top: 4px;">Retenção automática de 30 dias</div>
+    </div>
+
+    <div style="background: var(--surface, #1e293b); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 18px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+        <span style="font-size: 0.82rem; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Nuvem Google Drive</span>
+        <span style="width: 28px; height: 28px; border-radius: 6px; background: rgba(245, 158, 11, 0.15); color: #fbbf24; display: inline-flex; align-items: center; justify-content: center; font-size: 0.85rem;">
+          <i class="fa-brands fa-google-drive"></i>
+        </span>
+      </div>
+      <div style="font-size: 0.95rem; font-weight: 700; color: {% if gdrive_status.is_configured %}#34d399{% else %}#fbbf24{% endif %}; margin-top: 6px;">
+        {% if gdrive_status.is_configured %}
+          <i class="fa-solid fa-circle-check"></i> Conectado
+        {% else %}
+          <i class="fa-solid fa-shield-halved"></i> Pronto p/ Conexão
+        {% endif %}
+      </div>
+      <div style="font-size: 0.78rem; color: #94a3b8; margin-top: 4px;">
+        {% if gdrive_status.is_configured %}Sincronização ativa{% else %}Armazenamento local seguro ativo{% endif %}
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Bloco Informativo de Automação & Segurança -->
+  <div style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.85), rgba(15, 23, 42, 0.95)); border: 1px solid rgba(59, 130, 246, 0.25); border-radius: 12px; padding: 18px 20px; margin-bottom: 24px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px;">
+    <div style="display: flex; align-items: flex-start; gap: 14px; max-width: 800px;">
+      <span style="font-size: 1.8rem; color: #60a5fa; margin-top: 2px;">
+        <i class="fa-solid fa-shield-virus"></i>
+      </span>
+      <div>
+        <h4 style="margin: 0 0 4px 0; color: #f8fafc; font-size: 1rem; font-weight: 600;">
+          Rotina Automática & Cópia de Segurança
+        </h4>
+        <p style="margin: 0; color: #cbd5e1; font-size: 0.86rem; line-height: 1.5;">
+          • <strong>Madrugada (03:00 AM):</strong> O servidor executa automaticamente o backup diário do banco de dados compactado em gzip.<br>
+          • <strong>Download no Desktop:</strong> Recomendamos que você baixe periodicamente o arquivo mais recente no seu computador para garantir uma cópia física fora do servidor.
+        </p>
+      </div>
+    </div>
+    <div style="display: flex; gap: 8px;">
+      <a href="https://drive.google.com" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="font-size: 0.82rem; padding: 8px 14px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; background: rgba(255, 255, 255, 0.05); color: #cbd5e1; border: 1px solid rgba(255, 255, 255, 0.1);">
+        <i class="fa-brands fa-google-drive" style="color: #fbbf24;"></i> Google Drive
+      </a>
+    </div>
+  </div>
+
+  <!-- Tabela de Histórico de Backups -->
+  <div class="card" style="background: var(--surface, #1e293b); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);">
+    <div style="padding: 16px 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); display: flex; justify-content: space-between; align-items: center;">
+      <h3 style="margin: 0; font-size: 1.05rem; font-weight: 600; color: #f8fafc; display: flex; align-items: center; gap: 8px;">
+        <i class="fa-solid fa-list-check" style="color: #60a5fa;"></i> Histórico de Backups Gerados
+      </h3>
+      <span style="font-size: 0.82rem; color: #94a3b8;">Exibindo os últimos 50 registros</span>
+    </div>
+
+    <div class="table-wrap">
+      <table class="data-table" style="width: 100%; border-collapse: collapse; text-align: left;">
+        <thead>
+          <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.08); background: rgba(15, 23, 42, 0.4);">
+            <th style="padding: 12px 16px; font-size: 0.82rem; color: #94a3b8; font-weight: 600;">Arquivo</th>
+            <th style="padding: 12px 16px; font-size: 0.82rem; color: #94a3b8; font-weight: 600;">Tipo</th>
+            <th style="padding: 12px 16px; font-size: 0.82rem; color: #94a3b8; font-weight: 600;">Origem</th>
+            <th style="padding: 12px 16px; font-size: 0.82rem; color: #94a3b8; font-weight: 600;">Tamanho</th>
+            <th style="padding: 12px 16px; font-size: 0.82rem; color: #94a3b8; font-weight: 600;">Data / Hora</th>
+            <th style="padding: 12px 16px; font-size: 0.82rem; color: #94a3b8; font-weight: 600;">Situação</th>
+            <th style="padding: 12px 16px; font-size: 0.82rem; color: #94a3b8; font-weight: 600; text-align: right;">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for bkp in backups %}
+          <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.05); transition: background 0.15s ease;">
+            
+            <td style="padding: 14px 16px;">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 1.2rem; color: {% if '.zip' in bkp.filename %}#c084fc{% else %}#60a5fa{% endif %};">
+                  <i class="fa-solid {% if '.zip' in bkp.filename %}fa-file-zipper{% else %}fa-file-code{% endif %}"></i>
+                </span>
+                <div>
+                  <strong style="color: #f8fafc; font-size: 0.88rem; display: block; font-family: monospace;">{{ bkp.filename }}</strong>
+                  {% if bkp.checksum_sha256 %}
+                  <small style="color: #64748b; font-size: 0.72rem; font-family: monospace;" title="SHA-256: {{ bkp.checksum_sha256 }}">
+                    SHA: {{ bkp.checksum_sha256|slice:":16" }}...
+                  </small>
+                  {% endif %}
+                </div>
+              </div>
+            </td>
+
+            <td style="padding: 14px 16px; font-size: 0.85rem; color: #cbd5e1;">
+              {% if bkp.backup_type == 'full_with_media' %}
+                <span style="display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: 6px; background: rgba(168, 85, 247, 0.15); color: #c084fc; font-size: 0.76rem; font-weight: 600;">
+                  <i class="fa-solid fa-layer-group"></i> Banco + Mídias
+                </span>
+              {% else %}
+                <span style="display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: 6px; background: rgba(59, 130, 246, 0.15); color: #60a5fa; font-size: 0.76rem; font-weight: 600;">
+                  <i class="fa-solid fa-database"></i> Banco de Dados
+                </span>
+              {% endif %}
+            </td>
+
+            <td style="padding: 14px 16px; font-size: 0.85rem; color: #cbd5e1;">
+              {% if bkp.trigger_type == 'automatic' %}
+                <span style="display: inline-flex; align-items: center; gap: 5px; color: #34d399; font-size: 0.82rem; font-weight: 500;">
+                  <i class="fa-solid fa-robot"></i> Automático (03:00)
+                </span>
+              {% else %}
+                <span style="display: inline-flex; align-items: center; gap: 5px; color: #fbbf24; font-size: 0.82rem; font-weight: 500;">
+                  <i class="fa-solid fa-user-gear"></i> Manual ({{ bkp.created_by.name|default:bkp.created_by.email|default:"Painel" }})
+                </span>
+              {% endif %}
+            </td>
+
+            <td style="padding: 14px 16px; font-size: 0.88rem; color: #f8fafc; font-weight: 600;">
+              {{ bkp.formatted_size }}
+            </td>
+
+            <td style="padding: 14px 16px; font-size: 0.84rem; color: #94a3b8;">
+              {{ bkp.created_at|date:"d/m/Y H:i:s" }}
+            </td>
+
+            <td style="padding: 14px 16px;">
+              {% if bkp.status == 'success' %}
+                <span style="display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: 6px; background: rgba(16, 185, 129, 0.15); color: #34d399; font-size: 0.78rem; font-weight: 600;">
+                  <i class="fa-solid fa-check"></i> Sucesso
+                </span>
+              {% else %}
+                <span style="display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: 6px; background: rgba(239, 68, 68, 0.15); color: #f87171; font-size: 0.78rem; font-weight: 600;" title="{{ bkp.error_message }}">
+                  <i class="fa-solid fa-triangle-exclamation"></i> Falha
+                </span>
+              {% endif %}
+            </td>
+
+            <td style="padding: 14px 16px; text-align: right;">
+              <div style="display: inline-flex; align-items: center; gap: 8px;">
+                
+                {% if bkp.status == 'success' %}
+                <!-- Botão de Download para o Desktop com 1 clique -->
+                <a href="{% url 'backups:download' bkp.pk %}" class="btn btn-primary" style="font-size: 0.8rem; padding: 6px 14px; background: #2563eb; border-color: #1d4ed8; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; font-weight: 600; box-shadow: 0 2px 6px rgba(37, 99, 235, 0.3);" title="Baixar arquivo no computador">
+                  <i class="fa-solid fa-download"></i> Baixar no Desktop
+                </a>
+                {% endif %}
+
+                <!-- Botão de Excluir -->
+                <form method="post" action="{% url 'backups:delete' bkp.pk %}" style="display: inline;" onsubmit="return confirm('Deseja realmente remover este registro de backup do servidor?');">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-secondary" style="font-size: 0.8rem; padding: 6px 10px; background: rgba(239, 68, 68, 0.1); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.25); cursor: pointer;" title="Excluir backup">
+                    <i class="fa-solid fa-trash-can"></i>
+                  </button>
+                </form>
+
+              </div>
+            </td>
+
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="7" style="text-align: center; padding: 48px 16px; color: #94a3b8;">
+              <div style="font-size: 2.4rem; color: #475569; margin-bottom: 12px;">
+                <i class="fa-solid fa-box-open"></i>
+              </div>
+              <h4 style="margin: 0 0 6px 0; color: #e2e8f0; font-size: 1.05rem;">Nenhum backup registrado até o momento</h4>
+              <p style="margin: 0 0 16px 0; font-size: 0.88rem; color: #64748b;">
+                Clique no botão abaixo para gerar seu primeiro backup do sistema e salvá-lo no seu computador.
+              </p>
+              <button type="button" class="btn btn-primary" onclick="document.getElementById('openBackupModalBtn').click();" style="font-size: 0.88rem; padding: 8px 18px; background: #2563eb; border-color: #1d4ed8;">
+                <i class="fa-solid fa-plus"></i> Gerar Primeiro Backup
+              </button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- Modal para Gerar Backup Manual -->
+<div class="modal-backdrop" id="generateBackupModal" style="display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.75); z-index: 9999; backdrop-filter: blur(4px); align-items: center; justify-content: center; padding: 16px;">
+  <div class="modal-card" style="background: var(--surface, #1e293b); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 12px; width: 100%; max-width: 520px; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6); overflow: hidden;">
+    
+    <div style="padding: 16px 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); display: flex; align-items: center; justify-content: space-between;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <span style="display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 8px; background: rgba(59, 130, 246, 0.15); color: #60a5fa;">
+          <i class="fa-solid fa-cloud-arrow-down"></i>
+        </span>
+        <h3 style="margin: 0; font-size: 1.1rem; color: #f8fafc; font-weight: 600;">Gerar Backup Manual</h3>
+      </div>
+      <button type="button" id="closeBackupModalBtn" style="background: transparent; border: none; color: #94a3b8; font-size: 1.2rem; cursor: pointer;" aria-label="Fechar">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <form method="post" action="{% url 'backups:create' %}" id="backupForm">
+      {% csrf_token %}
+      <div style="padding: 20px; display: flex; flex-direction: column; gap: 16px;">
+        <p style="margin: 0; font-size: 0.9rem; color: #cbd5e1; line-height: 1.5;">
+          Escolha o tipo de backup que deseja gerar. O arquivo será compactado e disponibilizado para download no seu computador:
+        </p>
+
+        <label style="display: flex; align-items: flex-start; gap: 12px; padding: 14px; border-radius: 10px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(59, 130, 246, 0.3); cursor: pointer;">
+          <input type="radio" name="backup_type" value="db_only" checked style="margin-top: 4px;">
+          <div>
+            <strong style="color: #f8fafc; font-size: 0.92rem; display: block;">
+              <i class="fa-solid fa-database" style="color: #60a5fa; margin-right: 6px;"></i> Banco de Dados (.sql.gz)
+            </strong>
+            <small style="color: #94a3b8; font-size: 0.8rem; display: block; margin-top: 2px;">
+              Contém todos os pedidos, clientes, financeiro, insumos, relatórios e usuários. Rápido e leve (Recomendado).
+            </small>
+          </div>
+        </label>
+
+        <label style="display: flex; align-items: flex-start; gap: 12px; padding: 14px; border-radius: 10px; background: rgba(15, 23, 42, 0.4); border: 1px solid rgba(255, 255, 255, 0.08); cursor: pointer;">
+          <input type="radio" name="backup_type" value="full_with_media" style="margin-top: 4px;">
+          <div>
+            <strong style="color: #f8fafc; font-size: 0.92rem; display: block;">
+              <i class="fa-solid fa-layer-group" style="color: #c084fc; margin-right: 6px;"></i> Completo (Banco + Arquivos de Mídia .zip)
+            </strong>
+            <small style="color: #94a3b8; font-size: 0.8rem; display: block; margin-top: 2px;">
+              Inclui o banco de dados e todos os arquivos/prints anexados nos pedidos e chamados. Pode demorar mais.
+            </small>
+          </div>
+        </label>
+      </div>
+
+      <div style="padding: 14px 20px; border-top: 1px solid rgba(255, 255, 255, 0.08); display: flex; justify-content: flex-end; gap: 10px; background: rgba(15, 23, 42, 0.3);">
+        <button type="button" id="cancelBackupModalBtn" class="btn btn-secondary" style="font-size: 0.88rem; padding: 8px 16px;">
+          Cancelar
+        </button>
+        <button type="submit" id="submitBackupBtn" class="btn btn-primary" style="font-size: 0.88rem; padding: 8px 20px; background: #2563eb; border-color: #1d4ed8; font-weight: 600; display: inline-flex; align-items: center; gap: 8px;">
+          <i class="fa-solid fa-check"></i> Iniciar Backup
+        </button>
+      </div>
+    </form>
+
+  </div>
+</div>
+
+<script>
+(function() {
+  const modal = document.getElementById("generateBackupModal");
+  const openBtn = document.getElementById("openBackupModalBtn");
+  const closeBtn = document.getElementById("closeBackupModalBtn");
+  const cancelBtn = document.getElementById("cancelBackupModalBtn");
+  const backupForm = document.getElementById("backupForm");
+  const submitBtn = document.getElementById("submitBackupBtn");
+
+  function openModal() {
+    if (modal) modal.style.display = "flex";
+  }
+
+  function closeModal() {
+    if (modal) modal.style.display = "none";
+  }
+
+  if (openBtn) openBtn.addEventListener("click", openModal);
+  if (closeBtn) closeBtn.addEventListener("click", closeModal);
+  if (cancelBtn) cancelBtn.addEventListener("click", closeModal);
+
+  if (modal) {
+    modal.addEventListener("click", function(e) {
+      if (e.target === modal) closeModal();
+    });
+  }
+
+  if (backupForm && submitBtn) {
+    backupForm.addEventListener("submit", function() {
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Gerando Backup...';
+    });
+  }
+})();
+</script>
+{% endblock %}

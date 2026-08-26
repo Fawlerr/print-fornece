@@ -36,12 +36,35 @@
     <!-- Conteúdo / Linha do Tempo -->
     <div style="padding: 16px 20px 20px 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px;">
       
-      <!-- Entrada 24/08/2026 -->
-      <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(59, 130, 246, 0.25); border-radius: 10px; padding: 16px;">
+      <!-- Entrada 25/08/2026 -->
+      <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(59, 130, 246, 0.35); border-radius: 10px; padding: 16px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);">
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
           <div style="display: flex; align-items: center; gap: 8px;">
             <span style="background: #2563eb; color: #ffffff; font-size: 0.75rem; font-weight: 700; padding: 3px 8px; border-radius: 6px; letter-spacing: 0.5px;">NOVO</span>
-            <strong style="color: #f8fafc; font-size: 0.95rem;">Atualizações do Sistema</strong>
+            <strong style="color: #f8fafc; font-size: 0.95rem;">Backups do Sistema & Correções Operacionais</strong>
+          </div>
+          <span style="font-size: 0.82rem; color: #94a3b8; font-weight: 500;"><i class="fa-regular fa-calendar" style="margin-right: 4px;"></i>25/08/2026</span>
+        </div>
+        
+        <ul style="margin: 0; padding-left: 20px; color: #cbd5e1; font-size: 0.88rem; line-height: 1.6; display: flex; flex-direction: column; gap: 8px;">
+          <li>
+            <strong style="color: #60a5fa;">Módulo de Gestão de Backups:</strong> Nova tela administrativa (<span style="font-family: monospace; color: #93c5fd;">/backups/</span>) que permite gerar backups manuais com 1 clique e baixar o arquivo compactado (<span style="font-family: monospace; color: #93c5fd;">.sql.gz</span>) direto para o seu computador (Desktop), além de rotina automática diária na madrugada (03:00 AM) e infraestrutura pronta para sincronização com o Google Drive.
+          </li>
+          <li>
+            <strong style="color: #34d399;">Correção de Pagamentos no Kanban (Bug #23):</strong> Desacoplada a movimentação física dos pedidos na produção em relação ao status financeiro. Pedidos que avançam na produção agora preservam rigorosamente pagamentos parciais e pedidos pendentes com pagamento na retirada, sem quitar indevidamente de forma antecipada.
+          </li>
+          <li>
+            <strong style="color: #fbbf24;">Discriminação de Entrada e Saldo na Retirada (Bug #24):</strong> Os comprovantes térmicos e as mensagens de WhatsApp (Orçamento, Pronto e Entregue) agora discriminam claramente o valor de <em>Entrada Paga</em> e o <em>Saldo Restante a Pagar na Retirada</em>, além de modal de ação rápida para alteração/lançamento de pagamentos no detalhe do pedido.
+          </li>
+        </ul>
+      </div>
+
+      <!-- Entrada 24/08/2026 -->
+      <div style="background: rgba(15, 23, 42, 0.4); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 10px; padding: 16px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="background: rgba(148, 163, 184, 0.2); color: #cbd5e1; font-size: 0.75rem; font-weight: 600; padding: 3px 8px; border-radius: 6px;">ATUALIZAÇÃO</span>
+            <strong style="color: #e2e8f0; font-size: 0.92rem;">Melhorias de Produção e Estoque</strong>
           </div>
           <span style="font-size: 0.82rem; color: #94a3b8; font-weight: 500;"><i class="fa-regular fa-calendar" style="margin-right: 4px;"></i>24/08/2026</span>
         </div>

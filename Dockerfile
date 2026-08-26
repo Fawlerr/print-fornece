@@ -6,6 +6,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     default-libmysqlclient-dev \
+    default-mysql-client \
     pkg-config \
     curl \
     && rm -rf /var/lib/apt/lists/*
@@ -19,7 +20,7 @@ COPY . /app
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
-RUN mkdir -p /app/staticfiles /app/media/order_attachments
+RUN mkdir -p /app/staticfiles /app/media/order_attachments /app/backups
 
 EXPOSE 8000
 
