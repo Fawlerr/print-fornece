@@ -4,18 +4,20 @@ Todas as atualizações e correções notáveis do sistema Print Fornece são re
 
 ---
 
-## [26/08/2026] — Inventário Geral de Estoque & Baixa Inteligente por Cor
+## [26/08/2026] — Inventário Geral de Estoque, Correções Operacionais & Baixa Inteligente por Cor
 
-### ✨ Atualizações de Estoque e Insumos
-- **Inventário Geral de Estoque:**
-  - Ajuste aditivo e auditado de todos os saldos de insumos em produção conforme contagem física oficial.
-  - **DTF Têxtil:** Padronização das tintas com siglas de cor (M, C, BK, Y, WT em unidades), Pó TPU (21 kg) e Filme Têxtil (130 m).
-  - **DTF UV:** Ajuste de tintas UV e verniz em unidades, e filmes DTF UV (A e B em 400 m).
-  - **Grade Completa de Camisetas por Cor:** Reestruturação da grade de camisetas separando rigorosamente **100% Algodão** (Branca e Preta, do P ao XG) e **Dry Fit** (Branca e Preta, do P ao GG).
-- **Baixa Automática Inteligente por Cor (`deduct_order_stock`):**
-  - O algoritmo de baixa automática de estoque agora identifica automaticamente a cor selecionada no pedido (`Branca` ou `Preta`) além do tipo de malha e tamanho, debitando do insumo exato em estoque.
-- **Histórico e Auditoria:**
-  - Todos os saldos foram atualizados gerando registros formais de `Ajuste / Inventário` com rastreabilidade completa.
+### ✨ Correções e Atualizações de Estoque
+- **Inventário Geral e Correção de Saldos:**
+  - Ajuste aditivo e auditado de todos os 31 itens de insumos em produção conforme a contagem física oficial.
+  - **DTF Têxtil:** Padronização e ajuste das tintas em unidades com siglas de cor (Magenta M: 6 un, Ciano C: 6 un, Black BK: 5 un, Yellow Y: 4 un, White WT: 94 un), Pó TPU (21 kg) e Bobina de Filme Têxtil (130 m).
+  - **DTF UV:** Ajuste de tintas UV e verniz em unidades (Magenta M: 6 un, Ciano C: 6 un, Yellow Y: 6 un, Verniz V: 7 un, White WT: 8 un, Black BK: 6 un) e Filmes DTF UV A e B ajustados para 400 metros.
+  - **Grade Completa de Camisetas por Cor e Tamanho:** Reestruturação da grade de camisetas separando rigorosamente **Camisa 100% Algodão** (Branca: P, M, G, GG, XG e Preta: P, M, G, GG) e **Camisa Dry Fit** (Branca: P, M, G, GG e Preta: P, M, G, GG), eliminando cadastros legados genéricos sem separação de cor.
+- **Correção na Baixa Automática de Estoque (`deduct_order_stock`):**
+  - O algoritmo de baixa automática de estoque agora identifica com precisão a cor do produto (`product_color`), tipo de malha e tamanho (com suporte a XG), debitando o insumo exato no estoque ao lançar pedidos.
+- **Correção na Renderização de Movimentações de Sistema:**
+  - Tratada a renderização de logs de auditoria quando o responsável é o próprio sistema (`mov.user` nulo), assegurando exibição limpa e estável.
+- **Histórico e Auditoria de Inventário:**
+  - Todas as correções foram aplicadas com criação de registros formais de `Ajuste / Inventário` com rastreabilidade completa.
 
 ---
 
