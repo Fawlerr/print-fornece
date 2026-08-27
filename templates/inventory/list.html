@@ -187,7 +187,7 @@
                 {{ mov.previous_quantity|floatformat:2 }} → <strong>{{ mov.new_quantity|floatformat:2 }}</strong>
               </td>
               <td style="padding: 10px 12px; color: var(--muted, #94a3b8);">{{ mov.description|default:"-" }}</td>
-              <td style="padding: 10px 12px; color: #cbd5e1;">{{ mov.user.name|default:mov.user.email|default:"Sistema" }}</td>
+              <td style="padding: 10px 12px; color: #cbd5e1;">{% if mov.user %}{{ mov.user.name|default:mov.user.email }}{% else %}Sistema{% endif %}</td>
             </tr>
           {% empty %}
             <tr>
