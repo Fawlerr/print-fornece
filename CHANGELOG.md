@@ -4,6 +4,21 @@ Todas as atualizações e correções notáveis do sistema Print Fornece são re
 
 ---
 
+## [26/08/2026] — Inventário Geral de Estoque & Baixa Inteligente por Cor
+
+### ✨ Atualizações de Estoque e Insumos
+- **Inventário Geral de Estoque:**
+  - Ajuste aditivo e auditado de todos os saldos de insumos em produção conforme contagem física oficial.
+  - **DTF Têxtil:** Padronização das tintas com siglas de cor (M, C, BK, Y, WT em unidades), Pó TPU (21 kg) e Filme Têxtil (130 m).
+  - **DTF UV:** Ajuste de tintas UV e verniz em unidades, e filmes DTF UV (A e B em 400 m).
+  - **Grade Completa de Camisetas por Cor:** Reestruturação da grade de camisetas separando rigorosamente **100% Algodão** (Branca e Preta, do P ao XG) e **Dry Fit** (Branca e Preta, do P ao GG).
+- **Baixa Automática Inteligente por Cor (`deduct_order_stock`):**
+  - O algoritmo de baixa automática de estoque agora identifica automaticamente a cor selecionada no pedido (`Branca` ou `Preta`) além do tipo de malha e tamanho, debitando do insumo exato em estoque.
+- **Histórico e Auditoria:**
+  - Todos os saldos foram atualizados gerando registros formais de `Ajuste / Inventário` com rastreabilidade completa.
+
+---
+
 ## [25/08/2026] — Módulo de Backups & Correção de Bugs #23 e #24
 
 ### ✨ Novas Funcionalidades

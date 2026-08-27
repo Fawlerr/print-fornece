@@ -11,37 +11,50 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         initial_supplies = [
             # DTF Têxtil - Tintas
-            {"category": SupplyItem.Category.DTF_TEXTIL, "name": "Tinta DTF Têxtil - Preto", "unit": SupplyItem.Unit.LITER, "min_qty": Decimal("2.00")},
-            {"category": SupplyItem.Category.DTF_TEXTIL, "name": "Tinta DTF Têxtil - Branco", "unit": SupplyItem.Unit.LITER, "min_qty": Decimal("4.00")},
-            {"category": SupplyItem.Category.DTF_TEXTIL, "name": "Tinta DTF Têxtil - Azul (Ciano)", "unit": SupplyItem.Unit.LITER, "min_qty": Decimal("2.00")},
-            {"category": SupplyItem.Category.DTF_TEXTIL, "name": "Tinta DTF Têxtil - Amarelo", "unit": SupplyItem.Unit.LITER, "min_qty": Decimal("2.00")},
-            {"category": SupplyItem.Category.DTF_TEXTIL, "name": "Tinta DTF Têxtil - Magenta", "unit": SupplyItem.Unit.LITER, "min_qty": Decimal("2.00")},
+            {"category": SupplyItem.Category.DTF_TEXTIL, "name": "Tinta DTF Têxtil - Black (BK)", "unit": SupplyItem.Unit.UNIT, "min_qty": Decimal("2.00")},
+            {"category": SupplyItem.Category.DTF_TEXTIL, "name": "Tinta DTF Têxtil - White (WT)", "unit": SupplyItem.Unit.UNIT, "min_qty": Decimal("10.00")},
+            {"category": SupplyItem.Category.DTF_TEXTIL, "name": "Tinta DTF Têxtil - Ciano (C)", "unit": SupplyItem.Unit.UNIT, "min_qty": Decimal("2.00")},
+            {"category": SupplyItem.Category.DTF_TEXTIL, "name": "Tinta DTF Têxtil - Yellow (Y)", "unit": SupplyItem.Unit.UNIT, "min_qty": Decimal("2.00")},
+            {"category": SupplyItem.Category.DTF_TEXTIL, "name": "Tinta DTF Têxtil - Magenta (M)", "unit": SupplyItem.Unit.UNIT, "min_qty": Decimal("2.00")},
             # DTF Têxtil - Consumíveis
             {"category": SupplyItem.Category.DTF_TEXTIL, "name": "Pó TPU DTF Têxtil", "unit": SupplyItem.Unit.KG, "min_qty": Decimal("5.00")},
             {"category": SupplyItem.Category.DTF_TEXTIL, "name": "Filme DTF Têxtil (Bobina 60cm)", "unit": SupplyItem.Unit.METER, "min_qty": Decimal("50.00")},
 
-            # DTF UV - Tintas
-            {"category": SupplyItem.Category.DTF_UV, "name": "Tinta DTF UV - Preto", "unit": SupplyItem.Unit.LITER, "min_qty": Decimal("1.00")},
-            {"category": SupplyItem.Category.DTF_UV, "name": "Tinta DTF UV - Branco", "unit": SupplyItem.Unit.LITER, "min_qty": Decimal("2.00")},
-            {"category": SupplyItem.Category.DTF_UV, "name": "Tinta DTF UV - Azul (Ciano)", "unit": SupplyItem.Unit.LITER, "min_qty": Decimal("1.00")},
-            {"category": SupplyItem.Category.DTF_UV, "name": "Tinta DTF UV - Amarelo", "unit": SupplyItem.Unit.LITER, "min_qty": Decimal("1.00")},
-            {"category": SupplyItem.Category.DTF_UV, "name": "Tinta DTF UV - Magenta", "unit": SupplyItem.Unit.LITER, "min_qty": Decimal("1.00")},
-            {"category": SupplyItem.Category.DTF_UV, "name": "Verniz DTF UV", "unit": SupplyItem.Unit.LITER, "min_qty": Decimal("1.00")},
+            # DTF UV - Tintas e Verniz
+            {"category": SupplyItem.Category.DTF_UV, "name": "Tinta DTF UV - Black (BK)", "unit": SupplyItem.Unit.UNIT, "min_qty": Decimal("2.00")},
+            {"category": SupplyItem.Category.DTF_UV, "name": "Tinta DTF UV - White (WT)", "unit": SupplyItem.Unit.UNIT, "min_qty": Decimal("2.00")},
+            {"category": SupplyItem.Category.DTF_UV, "name": "Tinta DTF UV - Ciano (C)", "unit": SupplyItem.Unit.UNIT, "min_qty": Decimal("2.00")},
+            {"category": SupplyItem.Category.DTF_UV, "name": "Tinta DTF UV - Yellow (Y)", "unit": SupplyItem.Unit.UNIT, "min_qty": Decimal("2.00")},
+            {"category": SupplyItem.Category.DTF_UV, "name": "Tinta DTF UV - Magenta (M)", "unit": SupplyItem.Unit.UNIT, "min_qty": Decimal("2.00")},
+            {"category": SupplyItem.Category.DTF_UV, "name": "Verniz DTF UV - Verniz (V)", "unit": SupplyItem.Unit.UNIT, "min_qty": Decimal("2.00")},
             # DTF UV - Consumíveis
-            {"category": SupplyItem.Category.DTF_UV, "name": "Filme A - DTF UV", "unit": SupplyItem.Unit.ROLL, "min_qty": Decimal("2.00")},
-            {"category": SupplyItem.Category.DTF_UV, "name": "Filme B - DTF UV (Transfer)", "unit": SupplyItem.Unit.ROLL, "min_qty": Decimal("2.00")},
+            {"category": SupplyItem.Category.DTF_UV, "name": "Filme A - DTF UV", "unit": SupplyItem.Unit.METER, "min_qty": Decimal("50.00")},
+            {"category": SupplyItem.Category.DTF_UV, "name": "Filme B - DTF UV (Transfer)", "unit": SupplyItem.Unit.METER, "min_qty": Decimal("50.00")},
 
-            # Camisetas - Dry Fit
-            {"category": SupplyItem.Category.SHIRTS, "name": "Camiseta Dry Fit - Tam. P", "unit": SupplyItem.Unit.UNIT, "min_qty": Decimal("10.00")},
-            {"category": SupplyItem.Category.SHIRTS, "name": "Camiseta Dry Fit - Tam. M", "unit": SupplyItem.Unit.UNIT, "min_qty": Decimal("15.00")},
-            {"category": SupplyItem.Category.SHIRTS, "name": "Camiseta Dry Fit - Tam. G", "unit": SupplyItem.Unit.UNIT, "min_qty": Decimal("15.00")},
-            {"category": SupplyItem.Category.SHIRTS, "name": "Camiseta Dry Fit - Tam. GG", "unit": SupplyItem.Unit.UNIT, "min_qty": Decimal("10.00")},
+            # Camisetas - Algodão Branca
+            {"category": SupplyItem.Category.SHIRTS, "name": "Camiseta Algodão - Branca Tam. P", "unit": SupplyItem.Unit.UNIT, "min_qty": Decimal("5.00")},
+            {"category": SupplyItem.Category.SHIRTS, "name": "Camiseta Algodão - Branca Tam. M", "unit": SupplyItem.Unit.UNIT, "min_qty": Decimal("5.00")},
+            {"category": SupplyItem.Category.SHIRTS, "name": "Camiseta Algodão - Branca Tam. G", "unit": SupplyItem.Unit.UNIT, "min_qty": Decimal("5.00")},
+            {"category": SupplyItem.Category.SHIRTS, "name": "Camiseta Algodão - Branca Tam. GG", "unit": SupplyItem.Unit.UNIT, "min_qty": Decimal("5.00")},
+            {"category": SupplyItem.Category.SHIRTS, "name": "Camiseta Algodão - Branca Tam. XG", "unit": SupplyItem.Unit.UNIT, "min_qty": Decimal("2.00")},
 
-            # Camisetas - Algodão
-            {"category": SupplyItem.Category.SHIRTS, "name": "Camiseta Algodão - Tam. P", "unit": SupplyItem.Unit.UNIT, "min_qty": Decimal("10.00")},
-            {"category": SupplyItem.Category.SHIRTS, "name": "Camiseta Algodão - Tam. M", "unit": SupplyItem.Unit.UNIT, "min_qty": Decimal("15.00")},
-            {"category": SupplyItem.Category.SHIRTS, "name": "Camiseta Algodão - Tam. G", "unit": SupplyItem.Unit.UNIT, "min_qty": Decimal("15.00")},
-            {"category": SupplyItem.Category.SHIRTS, "name": "Camiseta Algodão - Tam. GG", "unit": SupplyItem.Unit.UNIT, "min_qty": Decimal("10.00")},
+            # Camisetas - Algodão Preta
+            {"category": SupplyItem.Category.SHIRTS, "name": "Camiseta Algodão - Preta Tam. P", "unit": SupplyItem.Unit.UNIT, "min_qty": Decimal("5.00")},
+            {"category": SupplyItem.Category.SHIRTS, "name": "Camiseta Algodão - Preta Tam. M", "unit": SupplyItem.Unit.UNIT, "min_qty": Decimal("5.00")},
+            {"category": SupplyItem.Category.SHIRTS, "name": "Camiseta Algodão - Preta Tam. G", "unit": SupplyItem.Unit.UNIT, "min_qty": Decimal("5.00")},
+            {"category": SupplyItem.Category.SHIRTS, "name": "Camiseta Algodão - Preta Tam. GG", "unit": SupplyItem.Unit.UNIT, "min_qty": Decimal("5.00")},
+
+            # Camisetas - Dry Fit Preta
+            {"category": SupplyItem.Category.SHIRTS, "name": "Camiseta Dry Fit - Preta Tam. P", "unit": SupplyItem.Unit.UNIT, "min_qty": Decimal("5.00")},
+            {"category": SupplyItem.Category.SHIRTS, "name": "Camiseta Dry Fit - Preta Tam. M", "unit": SupplyItem.Unit.UNIT, "min_qty": Decimal("5.00")},
+            {"category": SupplyItem.Category.SHIRTS, "name": "Camiseta Dry Fit - Preta Tam. G", "unit": SupplyItem.Unit.UNIT, "min_qty": Decimal("5.00")},
+            {"category": SupplyItem.Category.SHIRTS, "name": "Camiseta Dry Fit - Preta Tam. GG", "unit": SupplyItem.Unit.UNIT, "min_qty": Decimal("5.00")},
+
+            # Camisetas - Dry Fit Branca
+            {"category": SupplyItem.Category.SHIRTS, "name": "Camiseta Dry Fit - Branca Tam. P", "unit": SupplyItem.Unit.UNIT, "min_qty": Decimal("5.00")},
+            {"category": SupplyItem.Category.SHIRTS, "name": "Camiseta Dry Fit - Branca Tam. M", "unit": SupplyItem.Unit.UNIT, "min_qty": Decimal("5.00")},
+            {"category": SupplyItem.Category.SHIRTS, "name": "Camiseta Dry Fit - Branca Tam. G", "unit": SupplyItem.Unit.UNIT, "min_qty": Decimal("5.00")},
+            {"category": SupplyItem.Category.SHIRTS, "name": "Camiseta Dry Fit - Branca Tam. GG", "unit": SupplyItem.Unit.UNIT, "min_qty": Decimal("5.00")},
         ]
 
         created_count = 0

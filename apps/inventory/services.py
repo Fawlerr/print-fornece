@@ -22,7 +22,7 @@ def deduct_order_stock(order, actor=None) -> list[SupplyMovement]:
 
     textil_meters = Decimal("0.00")
     uv_meters = Decimal("0.00")
-    shirts_to_deduct: list[tuple[str, str, Decimal]] = []  # (shirt_type, size, quantity)
+    shirts_to_deduct: list[tuple[str, str, str, Decimal]] = []  # (shirt_type, color, size, quantity)
 
     for item in items:
         mat_code = (item.material_code or "").lower()
@@ -55,8 +55,14 @@ def deduct_order_stock(order, actor=None) -> list[SupplyMovement]:
         elif kind == "produto" or mat_code.startswith("camisa_") or "camisa" in mat_name or "camiseta" in mat_name:
             qty = Decimal(str(item.art_quantity if item.art_quantity else item.billing_quantity or 1))
             size = (item.product_size or "M").strip().upper()
+            raw_color = (item.product_color or "").strip().lower()
+            if "branc" in raw_color or "branc" in mat_name or "branc" in mat_code:
+                color = "branca"
+            else:
+                color = "preta"
+
             shirt_type = "algodao" if "algodao" in mat_code or "algodão" in mat_name else "dry_fit"
-            shirts_to_deduct.append((shirt_type, size, qty))
+            shirts_to_deduct.append((shirt_type, color, size, qty))
 
     with transaction.atomic():
         # 1. Abater Filme DTF Têxtil
@@ -115,16 +121,34 @@ def deduct_order_stock(order, actor=None) -> list[SupplyMovement]:
                 movements.append(mov)
 
         # 3. Abater Camisetas
-        for shirt_type, size, qty in shirts_to_deduct:
-            keyword = "Algodão" if shirt_type == "algodao" else "Dry Fit"
+        for shirt_type, color, size, qty in shirts_to_deduct:
+            type_keyword = "Algodão" if shirt_type == "algodao" else "Dry Fit"
+            color_keyword = "Branca" if color == "branca" else "Preta"
+
             shirt_item = SupplyItem.objects.filter(
                 category=SupplyItem.Category.SHIRTS,
-                name__icontains=keyword,
-            ).filter(name__icontains=size).first()
+                name__icontains=type_keyword,
+            ).filter(
+                name__icontains=color_keyword,
+            ).filter(
+                name__icontains=f"Tam. {size}",
+            ).first()
 
             if not shirt_item:
                 shirt_item = SupplyItem.objects.filter(
                     category=SupplyItem.Category.SHIRTS,
+                    name__icontains=type_keyword,
+                ).filter(
+                    name__icontains=color_keyword,
+                ).filter(
+                    name__icontains=size,
+                ).first()
+
+            if not shirt_item:
+                shirt_item = SupplyItem.objects.filter(
+                    category=SupplyItem.Category.SHIRTS,
+                    name__icontains=type_keyword,
+                ).filter(
                     name__icontains=size,
                 ).first()
 
@@ -139,7 +163,7 @@ def deduct_order_stock(order, actor=None) -> list[SupplyMovement]:
                     quantity=qty,
                     previous_quantity=prev_qty,
                     new_quantity=shirt_item.quantity,
-                    description=f"Consumo Pedido #{order.number} ({int(qty)} un - Tam. {size})",
+                    description=f"Consumo Pedido #{order.number} ({int(qty)} un - {shirt_item.name})",
                     user=actor,
                 )
                 movements.append(mov)
