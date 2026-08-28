@@ -28,7 +28,7 @@ def _date_value(value, default):
         return default
 
 
-class ExpenseListView(LoginRequiredMixin, ListView):
+class ExpenseListView(LoginRequiredMixin, AdministratorRequiredMixin, ListView):
     def get(self, request, *args, **kwargs):
         return redirect("reports:cash_register")
 
