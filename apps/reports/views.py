@@ -393,6 +393,7 @@ class CashRegisterReportView(LoginRequiredMixin, TemplateView):
             total_revenue=total_revenue,
             total_expenses=total_expenses,
             cash_in=cash_in,
+            cash_drawer_net=cash_in,
             digital_in=digital_in,
             net_balance=net_balance,
         )

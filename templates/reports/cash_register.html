@@ -93,10 +93,10 @@
       <span style="font-size: 0.8rem; text-transform: uppercase; font-weight: 700; color: #38bdf8; display: block; margin-bottom: 4px;">
         <i class="fa-solid fa-money-bill-wave"></i> Gaveta Física (Dinheiro)
       </span>
-      <div style="font-size: 1.5rem; font-weight: 800; color: {% if cash_drawer_net >= 0 %}#38bdf8{% else %}#ef4444{% endif %};">
-        R$ {{ cash_drawer_net|floatformat:2 }}
+      <div style="font-size: 1.5rem; font-weight: 800; color: #38bdf8;">
+        R$ {{ cash_in|floatformat:2 }}
       </div>
-      <small style="color: #94a3b8; font-size: 0.78rem;">+R$ {{ cash_in|floatformat:2 }} ent. / -R$ {{ cash_out|floatformat:2 }} despesas</small>
+      <small style="color: #94a3b8; font-size: 0.78rem;">{{ methods_summary.dinheiro.count }} recebimento(s) em espécie</small>
     </div>
 
     <!-- Total PIX -->
@@ -244,37 +244,37 @@
 
       <div style="background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 14px; margin-bottom: 16px;">
         <strong style="color: #38bdf8; font-size: 0.9rem; display: block; margin-bottom: 8px;">
-          <i class="fa-solid fa-cash-register"></i> Movimentação da Gaveta Física (Espécie)
+          <i class="fa-solid fa-cash-register"></i> Dinheiro Físico / Espécie (Gaveta)
         </strong>
         <div style="display: flex; justify-content: space-between; font-size: 0.88rem; color: #cbd5e1; margin-bottom: 4px;">
           <span>(+) Entradas em Dinheiro:</span>
           <strong style="color: #22c55e;">R$ {{ cash_in|floatformat:2 }}</strong>
         </div>
-        <div style="display: flex; justify-content: space-between; font-size: 0.88rem; color: #cbd5e1; margin-bottom: 8px;">
-          <span>(-) Sangrias / Despesas em Dinheiro:</span>
-          <strong style="color: #ef4444;">R$ {{ cash_out|floatformat:2 }}</strong>
+        <div style="display: flex; justify-content: space-between; font-size: 0.88rem; color: #94a3b8; margin-bottom: 6px;">
+          <span>Qtd. de pagamentos em espécie:</span>
+          <strong>{{ methods_summary.dinheiro.count }}</strong>
         </div>
         <div style="display: flex; justify-content: space-between; font-size: 1rem; color: #fff; border-top: 1px solid rgba(255,255,255,0.15); padding-top: 8px;">
-          <strong>(=) Saldo Esperado na Gaveta:</strong>
-          <strong style="color: {% if cash_drawer_net >= 0 %}#38bdf8{% else %}#ef4444{% endif %};">R$ {{ cash_drawer_net|floatformat:2 }}</strong>
+          <strong>(=) Total a Conferir na Gaveta:</strong>
+          <strong style="color: #38bdf8;">R$ {{ cash_in|floatformat:2 }}</strong>
         </div>
       </div>
 
       <div style="background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 14px;">
         <strong style="color: #c084fc; font-size: 0.9rem; display: block; margin-bottom: 8px;">
-          <i class="fa-solid fa-building-columns"></i> Movimentação Bancária / Digital (PIX + Cartões + TED)
+          <i class="fa-solid fa-building-columns"></i> Contas Digitais & Cartões (PIX + Crédito + Débito + TED)
         </strong>
         <div style="display: flex; justify-content: space-between; font-size: 0.88rem; color: #cbd5e1; margin-bottom: 4px;">
-          <span>(+) Entradas Digitais:</span>
+          <span>(+) Entradas Digitais (Contas/Bancos):</span>
           <strong style="color: #22c55e;">R$ {{ digital_in|floatformat:2 }}</strong>
         </div>
-        <div style="display: flex; justify-content: space-between; font-size: 0.88rem; color: #cbd5e1; margin-bottom: 8px;">
-          <span>(-) Despesas Bancárias / PIX:</span>
-          <strong style="color: #ef4444;">R$ {{ digital_out|floatformat:2 }}</strong>
+        <div style="display: flex; justify-content: space-between; font-size: 0.88rem; color: #94a3b8; margin-bottom: 6px;">
+          <span>Qtd. de transações digitais:</span>
+          <strong>{{ total_orders_count }}</strong>
         </div>
         <div style="display: flex; justify-content: space-between; font-size: 1rem; color: #fff; border-top: 1px solid rgba(255,255,255,0.15); padding-top: 8px;">
-          <strong>(=) Saldo Líquido Digital:</strong>
-          <strong style="color: #c084fc;">R$ {{ digital_net|floatformat:2 }}</strong>
+          <strong>(=) Total Entrado em Contas/Cartões:</strong>
+          <strong style="color: #c084fc;">R$ {{ digital_in|floatformat:2 }}</strong>
         </div>
       </div>
 
