@@ -1468,10 +1468,15 @@ class PrintForneceTestCase(TestCase):
         self.assertIn(b"FECHAMENTO DE CAIXA", response_csv.content)
         self.assertIn(b"PIX", response_csv.content)
 
-    def test_cash_register_view_restricted_for_employee(self):
+    def test_cash_register_view_accessible_for_employee(self):
         self.client.force_login(self.employee)
         response = self.client.get(reverse("reports:cash_register"))
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 200)
+
+    def test_cash_register_view_unauthenticated_redirects(self):
+        self.client.logout()
+        response = self.client.get(reverse("reports:cash_register"))
+        self.assertEqual(response.status_code, 302)
 
 
 

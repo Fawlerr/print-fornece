@@ -293,7 +293,7 @@ class ProductionReportView(LoginRequiredMixin, AdministratorRequiredMixin, Templ
         return response
 
 
-class CashRegisterReportView(LoginRequiredMixin, AdministratorRequiredMixin, TemplateView):
+class CashRegisterReportView(LoginRequiredMixin, TemplateView):
     template_name = "reports/cash_register.html"
 
     def get_target_date(self) -> date:

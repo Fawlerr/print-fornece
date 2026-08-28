@@ -10,9 +10,14 @@
       <h2>Quadro de Produção</h2>
       <p>Acompanhe e movimente os pedidos pelas etapas de produção. Toque nas setas ou arraste para atualizar.</p>
     </div>
-    <a class="btn btn-primary no-print" href="{% url 'orders:create' %}">
-      <i class="fa-solid fa-plus" aria-hidden="true"></i> Novo pedido
-    </a>
+    <div style="display: flex; gap: 8px; align-items: center;" class="no-print">
+      <a class="btn btn-secondary" href="{% url 'reports:cash_register' %}" title="Fechamento de Caixa Diário">
+        <i class="fa-solid fa-cash-register" aria-hidden="true"></i> Fechamento de Caixa
+      </a>
+      <a class="btn btn-primary" href="{% url 'orders:create' %}">
+        <i class="fa-solid fa-plus" aria-hidden="true"></i> Novo pedido
+      </a>
+    </div>
   </div>
 
   {% if daily_capacity %}
