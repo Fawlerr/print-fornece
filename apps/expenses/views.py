@@ -28,29 +28,9 @@ def _date_value(value, default):
         return default
 
 
-class ExpenseListView(LoginRequiredMixin, AdministratorRequiredMixin, ListView):
-    template_name = "expenses/list.html"
-    context_object_name = "expenses"
-
-    def get_queryset(self):
-        self.start = _date_value(self.request.GET.get("start"), timezone.localdate().replace(day=1))
-        self.end = _date_value(self.request.GET.get("end"), timezone.localdate())
-        self.category = self.request.GET.get("category", "")
-        queryset = Expense.objects.select_related("created_by").filter(expense_date__range=(self.start, self.end))
-        if self.category in Expense.Category.values:
-            queryset = queryset.filter(category=self.category)
-        return queryset
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context.update({
-            "start": self.start,
-            "end": self.end,
-            "category": self.category,
-            "categories": Expense.Category.choices,
-            "total": self.object_list.filter(status=Expense.Status.ACTIVE).aggregate(total=Sum("amount"))["total"] or 0,
-        })
-        return context
+class ExpenseListView(LoginRequiredMixin, ListView):
+    def get(self, request, *args, **kwargs):
+        return redirect("reports:cash_register")
 
 
 class ExpenseCreateView(LoginRequiredMixin, AdministratorRequiredMixin, CreateView):
