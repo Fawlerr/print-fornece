@@ -29,7 +29,10 @@
       <a href="{% url 'expenses:list' %}"{% if request.resolver_match.namespace == 'expenses' %} class="active" aria-current="page"{% endif %}>
         <i class="fa-solid fa-wallet" aria-hidden="true"></i><span>Despesas</span>
       </a>
-      <a href="{% url 'reports:index' %}"{% if request.resolver_match.namespace == 'reports' %} class="active" aria-current="page"{% endif %}>
+      <a href="{% url 'reports:cash_register' %}"{% if request.resolver_match.namespace == 'reports' and request.resolver_match.url_name == 'cash_register' %} class="active" aria-current="page"{% endif %}>
+        <i class="fa-solid fa-cash-register" aria-hidden="true"></i><span>Fechamento de Caixa</span>
+      </a>
+      <a href="{% url 'reports:index' %}"{% if request.resolver_match.namespace == 'reports' and request.resolver_match.url_name != 'cash_register' %} class="active" aria-current="page"{% endif %}>
         <i class="fa-solid fa-chart-pie" aria-hidden="true"></i><span>Relatórios</span>
       </a>
       <a href="{% url 'accounts:user_list' %}"{% if request.resolver_match.namespace == 'accounts' and request.resolver_match.url_name in 'user_list user_create user_edit' %} class="active" aria-current="page"{% endif %}>

@@ -27,8 +27,10 @@ class Order(models.Model):
 
     class PaymentMethod(models.TextChoices):
         PIX = "pix", "PIX"
-        CARD = "cartao", "Cartão"
-        CASH = "dinheiro", "Dinheiro"
+        CREDIT_CARD = "cartao_credito", "Cartão de Crédito"
+        DEBIT_CARD = "cartao_debito", "Cartão de Débito"
+        CARD = "cartao", "Cartão (Geral)"
+        CASH = "dinheiro", "Dinheiro (À Vista)"
         TRANSFER = "transferencia", "Transferência"
         ON_DELIVERY = "na_retirada", "Pagamento na Retirada"
         CREDIT_BALANCE = "saldo_credito", "Saldo do Plano / Crédito"

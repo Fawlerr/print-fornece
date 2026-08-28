@@ -18,8 +18,10 @@ RECEIPT_WIDTH = 80 * mm
 RECEIPT_MARGIN = 4 * mm
 PAYMENT_METHOD_LABELS = {
     "pix": "PIX",
+    "cartao_credito": "Cartão de Crédito",
+    "cartao_debito": "Cartão de Débito",
     "cartao": "Cartão",
-    "dinheiro": "Dinheiro",
+    "dinheiro": "Dinheiro (À Vista)",
     "transferencia": "Transferência",
     "na_retirada": "Pagamento na Retirada",
     "saldo_credito": "Saldo do Plano / Crédito",

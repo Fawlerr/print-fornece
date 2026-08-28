@@ -1381,6 +1381,98 @@ class PrintForneceTestCase(TestCase):
         self.assertTrue(res_json["success"])
         self.assertIn("anexo(s) adicionado(s)", res_json["message"])
 
+    def test_cash_register_view_admin_access_and_totals(self):
+        from apps.expenses.models import Expense
+        today = timezone.localdate()
+
+        # Criar pedidos com formas de pagamento distintas pagos hoje
+        Order.objects.create(
+            number="PED-PIX-1",
+            client_name="Cliente PIX",
+            client_whatsapp="84999991111",
+            total_amount=Decimal("100.00"),
+            paid_amount=Decimal("100.00"),
+            payment_status=Order.PaymentStatus.PAID,
+            payment_method=Order.PaymentMethod.PIX,
+            payment_confirmed_at=timezone.now(),
+            stage=Order.Stage.PRODUCTION,
+            created_by=self.admin,
+        )
+        Order.objects.create(
+            number="PED-CRED-1",
+            client_name="Cliente Credito",
+            client_whatsapp="84999992222",
+            total_amount=Decimal("200.00"),
+            paid_amount=Decimal("200.00"),
+            payment_status=Order.PaymentStatus.PAID,
+            payment_method=Order.PaymentMethod.CREDIT_CARD,
+            payment_confirmed_at=timezone.now(),
+            stage=Order.Stage.PRODUCTION,
+            created_by=self.admin,
+        )
+        Order.objects.create(
+            number="PED-DEB-1",
+            client_name="Cliente Debito",
+            client_whatsapp="84999993333",
+            total_amount=Decimal("150.00"),
+            paid_amount=Decimal("150.00"),
+            payment_status=Order.PaymentStatus.PAID,
+            payment_method=Order.PaymentMethod.DEBIT_CARD,
+            payment_confirmed_at=timezone.now(),
+            stage=Order.Stage.PRODUCTION,
+            created_by=self.admin,
+        )
+        Order.objects.create(
+            number="PED-CASH-1",
+            client_name="Cliente Dinheiro",
+            client_whatsapp="84999994444",
+            total_amount=Decimal("80.00"),
+            paid_amount=Decimal("80.00"),
+            payment_status=Order.PaymentStatus.PAID,
+            payment_method=Order.PaymentMethod.CASH,
+            payment_confirmed_at=timezone.now(),
+            stage=Order.Stage.PRODUCTION,
+            created_by=self.admin,
+        )
+        # Despesa registrada no dia
+        Expense.objects.create(
+            description="Café e lanche",
+            category="outros",
+            amount=Decimal("30.00"),
+            expense_date=today,
+            status=Expense.Status.ACTIVE,
+            created_by=self.admin,
+        )
+
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse("reports:cash_register"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Fechamento de Caixa")
+        self.assertContains(response, "Dinheiro (À Vista / Gaveta)")
+        self.assertContains(response, "Termo de Conferência de Caixa")
+
+        # Verificar contexto financeiro
+        ctx = response.context
+        self.assertEqual(ctx["methods_summary"]["pix"]["total"], Decimal("100.00"))
+        self.assertEqual(ctx["methods_summary"]["cartao_credito"]["total"], Decimal("200.00"))
+        self.assertEqual(ctx["methods_summary"]["cartao_debito"]["total"], Decimal("150.00"))
+        self.assertEqual(ctx["methods_summary"]["dinheiro"]["total"], Decimal("80.00"))
+        self.assertEqual(ctx["cash_in"], Decimal("80.00"))
+        self.assertEqual(ctx["total_expenses"], Decimal("30.00"))
+        self.assertEqual(ctx["net_balance"], Decimal("500.00"))  # 100+200+150+80=530 - 30 = 500
+
+        # Testar exportação CSV
+        response_csv = self.client.get(f"{reverse('reports:cash_register')}?export=csv")
+        self.assertEqual(response_csv.status_code, 200)
+        self.assertEqual(response_csv["Content-Type"], "text/csv; charset=utf-8")
+        self.assertIn(b"FECHAMENTO DE CAIXA", response_csv.content)
+        self.assertIn(b"PIX", response_csv.content)
+
+    def test_cash_register_view_restricted_for_employee(self):
+        self.client.force_login(self.employee)
+        response = self.client.get(reverse("reports:cash_register"))
+        self.assertEqual(response.status_code, 403)
+
 
 
 

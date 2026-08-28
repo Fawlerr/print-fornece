@@ -291,3 +291,157 @@ class ProductionReportView(LoginRequiredMixin, AdministratorRequiredMixin, Templ
                 orders_str,
             ])
         return response
+
+
+class CashRegisterReportView(LoginRequiredMixin, AdministratorRequiredMixin, TemplateView):
+    template_name = "reports/cash_register.html"
+
+    def get_target_date(self) -> date:
+        date_str = self.request.GET.get("date", "").strip()
+        if date_str:
+            try:
+                return datetime.strptime(date_str, "%Y-%m-%d").date()
+            except ValueError:
+                pass
+        return timezone.localdate()
+
+    def get(self, request, *args, **kwargs):
+        target_date = self.get_target_date()
+        today = timezone.localdate()
+
+        start_dt = timezone.make_aware(datetime.combine(target_date, time.min))
+        end_dt = timezone.make_aware(datetime.combine(target_date, time.max))
+
+        # Pedidos com recebimento na data selecionada
+        orders = Order.objects.filter(
+            (
+                Q(payment_confirmed_at__gte=start_dt, payment_confirmed_at__lte=end_dt) |
+                Q(payment_confirmed_at__isnull=True, created_at__gte=start_dt, created_at__lte=end_dt, paid_amount__gt=Decimal("0.00"))
+            ) & ~Q(stage=Order.Stage.CANCELLED)
+        ).select_related("responsible", "created_by", "payment_confirmed_by").order_by("-payment_confirmed_at", "-created_at")
+
+        # Despesas na data selecionada
+        expenses = Expense.objects.filter(
+            status=Expense.Status.ACTIVE,
+            expense_date=target_date
+        ).select_related("created_by").order_by("-amount")
+
+        # Agrupamento de recebimentos por método de pagamento
+        methods_summary = {
+            "pix": {"label": "PIX", "total": Decimal("0.00"), "count": 0, "icon": "fa-brands fa-pix", "color": "#22c55e"},
+            "cartao_credito": {"label": "Cartão de Crédito", "total": Decimal("0.00"), "count": 0, "icon": "fa-solid fa-credit-card", "color": "#38bdf8"},
+            "cartao_debito": {"label": "Cartão de Débito", "total": Decimal("0.00"), "count": 0, "icon": "fa-solid fa-id-card", "color": "#818cf8"},
+            "cartao": {"label": "Cartão (Geral)", "total": Decimal("0.00"), "count": 0, "icon": "fa-solid fa-credit-card", "color": "#60a5fa"},
+            "dinheiro": {"label": "Dinheiro (À Vista / Gaveta)", "total": Decimal("0.00"), "count": 0, "icon": "fa-solid fa-money-bill-wave", "color": "#34d399"},
+            "transferencia": {"label": "Transferência / TED", "total": Decimal("0.00"), "count": 0, "icon": "fa-solid fa-building-columns", "color": "#fbbf24"},
+            "saldo_credito": {"label": "Saldo do Plano / Crédito", "total": Decimal("0.00"), "count": 0, "icon": "fa-solid fa-wallet", "color": "#c084fc"},
+            "outro": {"label": "Outros", "total": Decimal("0.00"), "count": 0, "icon": "fa-solid fa-circle-question", "color": "#9ca3af"},
+        }
+
+        total_revenue = Decimal("0.00")
+
+        for o in orders:
+            method = o.payment_method or "outro"
+            if method not in methods_summary:
+                method = "outro"
+            paid = o.paid_amount or Decimal("0.00")
+            methods_summary[method]["total"] += paid
+            methods_summary[method]["count"] += 1
+            total_revenue += paid
+
+        # Agrupamento de despesas
+        total_expenses = Decimal("0.00")
+        for exp in expenses:
+            total_expenses += exp.amount
+
+        # Balanço da Gaveta Física (Dinheiro em Espécie)
+        cash_in = methods_summary["dinheiro"]["total"]
+
+        # Balanço Digital (PIX + Cartões + TED)
+        digital_in = (
+            methods_summary["pix"]["total"] +
+            methods_summary["cartao_credito"]["total"] +
+            methods_summary["cartao_debito"]["total"] +
+            methods_summary["cartao"]["total"] +
+            methods_summary["transferencia"]["total"]
+        )
+
+        # Saldo Geral
+        net_balance = total_revenue - total_expenses
+
+        if request.GET.get("export") == "csv":
+            return self._csv_export(target_date, orders, expenses, methods_summary, total_revenue, total_expenses, cash_in, net_balance)
+
+        prev_day = target_date - timedelta(days=1)
+        next_day = target_date + timedelta(days=1)
+
+        weekday_names = ["Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado", "Domingo"]
+        weekday_label = weekday_names[target_date.weekday()]
+
+        context = self.get_context_data(
+            target_date=target_date,
+            target_date_str=target_date.strftime("%Y-%m-%d"),
+            target_date_display=target_date.strftime("%d/%m/%Y"),
+            weekday_label=weekday_label,
+            is_today=target_date == today,
+            prev_day_str=prev_day.strftime("%Y-%m-%d"),
+            next_day_str=next_day.strftime("%Y-%m-%d"),
+            orders=orders,
+            total_orders_count=len(orders),
+            expenses=expenses,
+            methods_summary=methods_summary,
+            total_revenue=total_revenue,
+            total_expenses=total_expenses,
+            cash_in=cash_in,
+            digital_in=digital_in,
+            net_balance=net_balance,
+        )
+        return self.render_to_response(context)
+
+    @staticmethod
+    def _csv_export(target_date, orders, expenses, methods_summary, total_revenue, total_expenses, cash_in, net_balance):
+        response = HttpResponse(content_type="text/csv; charset=utf-8")
+        response["Content-Disposition"] = f'attachment; filename="fechamento-caixa-{target_date:%Y%m%d}.csv"'
+        response.write("\ufeff")
+        writer = csv.writer(response, delimiter=";")
+
+        writer.writerow(["PRINT FORNECE - FECHAMENTO DE CAIXA DIÁRIO", target_date.strftime("%d/%m/%Y")])
+        writer.writerow([])
+        writer.writerow(["RESUMO POR FORMA DE PAGAMENTO"])
+        writer.writerow(["Forma de Pagamento", "Qtd. Pedidos", "Total Recebido (R$)"])
+        for k, v in methods_summary.items():
+            if v["count"] > 0 or v["total"] > Decimal("0.00"):
+                writer.writerow([v["label"], v["count"], f"{v['total']:.2f}".replace(".", ",")])
+        writer.writerow(["TOTAL GERAL DE ENTRADAS", len(orders), f"{total_revenue:.2f}".replace(".", ",")])
+        writer.writerow(["TOTAL DE DESPESAS / SAÍDAS", len(expenses), f"{total_expenses:.2f}".replace(".", ",")])
+        writer.writerow(["TOTAL EM DINHEIRO / GAVETA", "", f"{cash_in:.2f}".replace(".", ",")])
+        writer.writerow(["SALDO LÍQUIDO DO DIA", "", f"{net_balance:.2f}".replace(".", ",")])
+        writer.writerow([])
+        writer.writerow(["RECEBIMENTOS DO DIA"])
+        writer.writerow(["Número", "Cliente", "Forma de Pagamento", "Valor Pago (R$)", "Situação", "Responsável", "Horário"])
+        for o in orders:
+            paid_dt = o.payment_confirmed_at or o.created_at
+            time_str = timezone.localtime(paid_dt).strftime("%H:%M") if paid_dt else ""
+            resp_name = o.responsible.name if o.responsible else (o.created_by.name if o.created_by else "")
+            writer.writerow([
+                o.number,
+                o.client_name,
+                o.get_payment_method_display(),
+                f"{o.paid_amount:.2f}".replace(".", ","),
+                o.get_payment_status_display(),
+                resp_name,
+                time_str
+            ])
+        writer.writerow([])
+        writer.writerow(["DESPESAS / SAÍDAS DO DIA"])
+        writer.writerow(["Descrição", "Categoria", "Observação", "Valor (R$)", "Responsável"])
+        for exp in expenses:
+            resp_name = exp.created_by.name if exp.created_by else ""
+            writer.writerow([
+                exp.description,
+                exp.get_category_display() if hasattr(exp, "get_category_display") else exp.category,
+                exp.note or "",
+                f"{exp.amount:.2f}".replace(".", ","),
+                resp_name
+            ])
+        return response
