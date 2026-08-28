@@ -345,14 +345,52 @@
         {% endfor %}
       </div>
 
-      <form method="post" action="{% url 'production:add_attachment' pk=order.pk %}" enctype="multipart/form-data" class="no-print" style="margin-top: 16px; border-top: 1px solid var(--border-color); padding-top: 14px;">
+      <form id="detailAddAttachmentForm" method="post" action="{% url 'production:add_attachment' pk=order.pk %}" enctype="multipart/form-data" class="no-print" style="margin-top: 16px; border-top: 1px solid var(--border-color); padding-top: 14px;">
         {% csrf_token %}
         <label for="id_detail_attachments" style="display: block; font-size: 0.9rem; margin-bottom: 8px;"><strong>Anexar novo arquivo ou comprovante:</strong></label>
         <input id="id_detail_attachments" type="file" name="attachments" multiple accept=".pdf,.png,.jpg,.jpeg,.webp,.svg,.cdr,.ai,.eps,.psd,.tif,.tiff,.zip" style="width: 100%; margin-bottom: 6px;">
-        <span class="help" style="display: block; margin-bottom: 12px;">PDF, imagens (PNG, JPG, WEBP), SVG, CDR, AI, EPS, PSD, TIFF ou ZIP. Máximo de 6 GB por arquivo.</span>
-        <button class="btn btn-secondary btn-small" type="submit"><i class="fa-solid fa-paperclip"></i> Adicionar anexo</button>
+        <span class="help" style="display: block; margin-bottom: 10px;">PDF, imagens (PNG, JPG, WEBP), SVG, CDR, AI, EPS, PSD, TIFF ou ZIP. Máximo de 6 GB por arquivo.</span>
+        
+        <!-- Preview de Arquivos Selecionados no Detalhe -->
+        <div id="detailFileSelectionPreview" style="display: none; margin-bottom: 12px; background: rgba(56, 189, 248, 0.05); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 8px; padding: 10px 12px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <strong style="color: #38bdf8; font-size: 0.82rem; display: flex; align-items: center; gap: 6px;">
+              <i class="fa-solid fa-paperclip"></i> <span id="detailFileSelectionSummary">Arquivos Selecionados</span>
+            </strong>
+            <button type="button" id="detailClearFileSelectionBtn" class="btn btn-secondary btn-small" style="font-size: 0.72rem; padding: 2px 6px; color: #f87171;">
+              <i class="fa-solid fa-xmark"></i> Limpar
+            </button>
+          </div>
+          <div id="detailFileSelectionList" style="display: flex; flex-direction: column; gap: 4px;"></div>
+        </div>
+
+        <button class="btn btn-secondary btn-small" type="submit" id="detailSubmitAttachmentBtn"><i class="fa-solid fa-paperclip"></i> Adicionar anexo</button>
       </form>
     </section>
+  </div>
+
+  <!-- Modal de Progresso de Upload no Detalhe -->
+  <div id="detailUploadProgressModal" style="display: none; position: fixed; inset: 0; z-index: 9999; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(8px); align-items: center; justify-content: center; padding: 20px;">
+    <div style="background: #111827; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 16px; width: 100%; max-width: 480px; padding: 24px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7); text-align: center;">
+      <div id="detailUploadProgressIconBox" style="margin-bottom: 12px;">
+        <div style="width: 48px; height: 48px; margin: 0 auto; border: 4px solid rgba(56, 189, 248, 0.2); border-top-color: #38bdf8; border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+      </div>
+      <h3 id="detailUploadProgressTitle" style="font-size: 1.15rem; font-weight: 700; color: #fff; margin-bottom: 6px;">Enviando anexo(s)...</h3>
+      <p id="detailUploadProgressSubtitle" style="font-size: 0.85rem; color: #94a3b8; margin-bottom: 16px;">Transferindo arquivos com segurança...</p>
+      
+      <div style="background: rgba(255, 255, 255, 0.08); border-radius: 999px; height: 14px; overflow: hidden; margin-bottom: 10px; border: 1px solid rgba(255, 255, 255, 0.1);">
+        <div id="detailUploadProgressBar" style="background: linear-gradient(90deg, #0284c7, #38bdf8, #34d399); height: 100%; width: 0%; border-radius: 999px; transition: width 0.15s ease;"></div>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.82rem; color: #cbd5e1; margin-bottom: 12px;">
+        <span id="detailUploadProgressPercent" style="font-weight: 700; color: #38bdf8; font-size: 1rem;">0%</span>
+        <span id="detailUploadProgressBytes">0 MB de 0 MB</span>
+        <span id="detailUploadProgressSpeed" style="color: #94a3b8;">Calculando...</span>
+      </div>
+
+      <div id="detailUploadProgressError" style="display: none; margin-top: 12px; padding: 10px; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 8px; color: #fca5a5; font-size: 0.85rem; text-align: left;"></div>
+      <button id="detailUploadProgressCancelBtn" type="button" class="btn btn-secondary btn-small" style="display: none; margin-top: 12px; width: 100%;">Fechar</button>
+    </div>
   </div>
 
   <div class="grid two-col">
@@ -379,13 +417,14 @@
     <section class="card card-pad">
       <div class="section-heading"><h2>Histórico completo</h2></div>
       <div class="timeline">
-        {% for item in order.history.all %}
+        {% for event in order.history.all %}
           <div class="timeline-item">
-            <strong>{{ item.description }}</strong>
-            <p>{% if item.user.is_dev and not user.is_dev %}Sistema{% else %}{{ item.user.name|default:"Sistema / Cliente" }}{% endif %} · {{ item.created_at|date:"d/m/Y H:i" }}</p>
+            <strong>{% if event.user.is_dev and not user.is_dev %}Sistema Interno{% else %}{{ event.user.name|default:"Sistema" }}{% endif %}</strong>
+            <p>{{ event.description }}</p>
+            <small class="text-muted">{{ event.created_at|date:"d/m/Y H:i" }}</small>
           </div>
         {% empty %}
-          <div class="empty-state">Nenhuma movimentação registrada.</div>
+          <p class="text-muted">Nenhum evento registrado no histórico.</p>
         {% endfor %}
       </div>
     </section>
@@ -432,5 +471,169 @@
       btn.style.backgroundColor = 'rgba(16, 185, 129, 0.15)';
     }
   }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    const detailFileInput = document.getElementById("id_detail_attachments");
+    const detailPreviewBox = document.getElementById("detailFileSelectionPreview");
+    const detailSummarySpan = document.getElementById("detailFileSelectionSummary");
+    const detailListDiv = document.getElementById("detailFileSelectionList");
+    const detailClearBtn = document.getElementById("detailClearFileSelectionBtn");
+
+    const formatBytes = (bytes) => {
+      if (!bytes || bytes === 0) return "0 B";
+      const k = 1024;
+      const sizes = ["B", "KB", "MB", "GB"];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
+    };
+
+    const updateDetailPreview = () => {
+      if (!detailFileInput || !detailPreviewBox) return;
+      const files = detailFileInput.files;
+      if (!files || files.length === 0) {
+        detailPreviewBox.style.display = "none";
+        detailListDiv.innerHTML = "";
+        return;
+      }
+
+      let totalSize = 0;
+      let html = "";
+      for (let i = 0; i < files.length; i++) {
+        const f = files[i];
+        totalSize += f.size;
+        const ext = f.name.split('.').pop().toUpperCase();
+        html += `
+          <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.25); padding: 4px 8px; border-radius: 4px; font-size: 0.78rem;">
+            <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 80%; color: #f8fafc;">
+              <span class="badge" style="background: rgba(56, 189, 248, 0.2); color: #38bdf8; font-size: 0.68rem; padding: 1px 4px; margin-right: 4px;">${ext}</span>
+              ${f.name}
+            </span>
+            <strong style="color: #94a3b8; font-size: 0.76rem;">${formatBytes(f.size)}</strong>
+          </div>
+        `;
+      }
+
+      detailSummarySpan.textContent = `${files.length} arquivo(s) · ${formatBytes(totalSize)}`;
+      detailListDiv.innerHTML = html;
+      detailPreviewBox.style.display = "block";
+    };
+
+    if (detailFileInput) {
+      detailFileInput.addEventListener("change", updateDetailPreview);
+    }
+    if (detailClearBtn && detailFileInput) {
+      detailClearBtn.addEventListener("click", () => {
+        detailFileInput.value = "";
+        updateDetailPreview();
+      });
+    }
+
+    const detailForm = document.getElementById("detailAddAttachmentForm");
+    const detailSubmitBtn = document.getElementById("detailSubmitAttachmentBtn");
+    const detailModal = document.getElementById("detailUploadProgressModal");
+    const detailProgressBar = document.getElementById("detailUploadProgressBar");
+    const detailPercentLabel = document.getElementById("detailUploadProgressPercent");
+    const detailBytesLabel = document.getElementById("detailUploadProgressBytes");
+    const detailSpeedLabel = document.getElementById("detailUploadProgressSpeed");
+    const detailErrorBox = document.getElementById("detailUploadProgressError");
+    const detailCancelBtn = document.getElementById("detailUploadProgressCancelBtn");
+    const detailTitleLabel = document.getElementById("detailUploadProgressTitle");
+    const detailSubtitleLabel = document.getElementById("detailUploadProgressSubtitle");
+    const detailIconBox = document.getElementById("detailUploadProgressIconBox");
+
+    if (detailForm) {
+      detailForm.addEventListener("submit", (e) => {
+        const files = detailFileInput ? detailFileInput.files : null;
+        if (!files || files.length === 0) return true;
+
+        e.preventDefault();
+        if (detailSubmitBtn) detailSubmitBtn.disabled = true;
+        detailModal.style.display = "flex";
+        detailErrorBox.style.display = "none";
+        detailCancelBtn.style.display = "none";
+        detailProgressBar.style.width = "0%";
+        detailPercentLabel.textContent = "0%";
+        detailSpeedLabel.textContent = "Iniciando upload...";
+        detailTitleLabel.textContent = "Enviando anexo(s)...";
+        detailSubtitleLabel.textContent = "Transferindo arquivos com segurança...";
+        detailIconBox.innerHTML = '<div style="width: 48px; height: 48px; margin: 0 auto; border: 4px solid rgba(56, 189, 248, 0.2); border-top-color: #38bdf8; border-radius: 50%; animation: spin 0.8s linear infinite;"></div>';
+
+        let totalBytes = 0;
+        for (let i = 0; i < files.length; i++) totalBytes += files[i].size;
+        detailBytesLabel.textContent = `0 MB de ${formatBytes(totalBytes)}`;
+
+        const formData = new FormData(detailForm);
+        const xhr = new XMLHttpRequest();
+        const startTime = Date.now();
+
+        xhr.upload.addEventListener("progress", (event) => {
+          if (event.lengthComputable) {
+            const percent = Math.min(99, Math.round((event.loaded / event.total) * 100));
+            detailProgressBar.style.width = `${percent}%`;
+            detailPercentLabel.textContent = `${percent}%`;
+            detailBytesLabel.textContent = `${formatBytes(event.loaded)} de ${formatBytes(event.total)}`;
+
+            const elapsedSec = (Date.now() - startTime) / 1000;
+            if (elapsedSec > 0.3) {
+              const speedBytesPerSec = event.loaded / elapsedSec;
+              detailSpeedLabel.textContent = `${formatBytes(speedBytesPerSec)}/s`;
+            }
+
+            if (percent >= 99) {
+              detailTitleLabel.textContent = "Processando e salvando anexo...";
+              detailSubtitleLabel.textContent = "Gravando arquivos no servidor...";
+            }
+          }
+        });
+
+        xhr.addEventListener("load", () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            detailProgressBar.style.width = "100%";
+            detailPercentLabel.textContent = "100%";
+            detailTitleLabel.textContent = "Anexo adicionado com sucesso!";
+            detailSubtitleLabel.textContent = "Atualizando página...";
+            detailIconBox.innerHTML = '<div style="width: 48px; height: 48px; margin: 0 auto; background: rgba(34, 197, 94, 0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #22c55e; font-size: 1.4rem;"><i class="fa-solid fa-check"></i></div>';
+            setTimeout(() => {
+              window.location.reload();
+            }, 400);
+          } else {
+            if (detailSubmitBtn) detailSubmitBtn.disabled = false;
+            let errText = "Erro ao enviar anexo.";
+            try {
+              const res = JSON.parse(xhr.responseText);
+              if (res.errors && res.errors.length > 0) errText = res.errors.join("<br>");
+            } catch (e) {
+              errText = `Erro ${xhr.status}: Não foi possível concluir o envio.`;
+            }
+            detailTitleLabel.textContent = "Erro ao enviar anexo";
+            detailSubtitleLabel.textContent = "Verifique o arquivo e tente novamente.";
+            detailIconBox.innerHTML = '<div style="width: 48px; height: 48px; margin: 0 auto; background: rgba(239, 68, 68, 0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #ef4444; font-size: 1.4rem;"><i class="fa-solid fa-circle-exclamation"></i></div>';
+            detailErrorBox.innerHTML = errText;
+            detailErrorBox.style.display = "block";
+            detailCancelBtn.style.display = "block";
+          }
+        });
+
+        xhr.addEventListener("error", () => {
+          if (detailSubmitBtn) detailSubmitBtn.disabled = false;
+          detailTitleLabel.textContent = "Falha de Conexão";
+          detailSubtitleLabel.textContent = "A conexão com o servidor foi interrompida.";
+          detailIconBox.innerHTML = '<div style="width: 48px; height: 48px; margin: 0 auto; background: rgba(239, 68, 68, 0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #ef4444; font-size: 1.4rem;"><i class="fa-solid fa-wifi"></i></div>';
+          detailErrorBox.innerHTML = "Não foi possível transferir o arquivo. Verifique sua conexão de internet.";
+          detailErrorBox.style.display = "block";
+          detailCancelBtn.style.display = "block";
+        });
+
+        detailCancelBtn.onclick = () => {
+          detailModal.style.display = "none";
+        };
+
+        xhr.open(detailForm.method || "POST", detailForm.action || window.location.href);
+        xhr.setRequestHeader("X-Requested-With", "XMLHttpRequest");
+        xhr.setRequestHeader("Accept", "application/json");
+        xhr.send(formData);
+      });
+    }
+  });
 </script>
 {% endblock %}

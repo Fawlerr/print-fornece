@@ -218,14 +218,22 @@ def add_note(request, pk: int):
 def add_attachment(request, pk: int):
     order = _order_for_request(request, pk)
     files = request.FILES.getlist("attachments")
+    is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.headers.get("Accept") == "application/json"
     if not files:
+        if is_ajax:
+            return JsonResponse({"success": False, "errors": ["Selecione ao menos um arquivo para anexar."]}, status=400)
         messages.error(request, "Selecione ao menos um arquivo para anexar.")
         return redirect("production:detail", pk=pk)
     try:
         from apps.orders.services import save_order_attachments
         count = save_order_attachments(order=order, files=files, actor=request.user, request=request)
-        messages.success(request, f"{count} anexo(s) adicionado(s) com sucesso ao pedido.")
+        msg = f"{count} anexo(s) adicionado(s) com sucesso ao pedido."
+        messages.success(request, msg)
+        if is_ajax:
+            return JsonResponse({"success": True, "redirect_url": reverse("production:detail", kwargs={"pk": pk}), "message": msg})
     except ValidationError as exc:
+        if is_ajax:
+            return JsonResponse({"success": False, "errors": [exc.messages[0]]}, status=400)
         messages.error(request, exc.messages[0])
     return redirect("production:detail", pk=pk)
 

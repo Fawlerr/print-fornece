@@ -1322,6 +1322,65 @@ class PrintForneceTestCase(TestCase):
         self.assertEqual(response_csv["Content-Type"], "text/csv; charset=utf-8")
         self.assertIn(b"DTF", response_csv.content)
 
+    def test_ajax_order_creation_with_attachment_returns_json(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        self.client.force_login(self.admin)
+        fake_file = SimpleUploadedFile("arte_teste.png", b"\x89PNG\r\n\x1a\nfakeimagecontent", content_type="image/png")
+        data = {
+            "client_name": "Cliente Upload AJAX",
+            "client_whatsapp": "84999990000",
+            "description": "Pedido com anexo via AJAX",
+            "total_amount": "50,00",
+            "paid_amount": "50,00",
+            "payment_status": Order.PaymentStatus.PAID,
+            "payment_method": "pix",
+            "priority": Order.Priority.NORMAL,
+            "attachments": [fake_file],
+        }
+        response = self.client.post(
+            reverse("orders:create"),
+            data,
+            headers={"x-requested-with": "XMLHttpRequest"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "application/json")
+        res_json = response.json()
+        self.assertTrue(res_json["success"])
+        self.assertTrue(res_json["redirect_url"].startswith("/production/"))
+
+    def test_ajax_order_creation_invalid_returns_json_errors(self):
+        self.client.force_login(self.admin)
+        data = {
+            "client_name": "",  # Campo obrigatório vazio
+            "client_whatsapp": "84999990000",
+            "total_amount": "50,00",
+        }
+        response = self.client.post(
+            reverse("orders:create"),
+            data,
+            headers={"x-requested-with": "XMLHttpRequest"},
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response["Content-Type"], "application/json")
+        res_json = response.json()
+        self.assertFalse(res_json["success"])
+        self.assertTrue(len(res_json["errors"]) > 0)
+
+    def test_ajax_add_attachment_in_production_returns_json(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        self.client.force_login(self.admin)
+        fake_file = SimpleUploadedFile("extra_arte.png", b"\x89PNG\r\n\x1a\nfakeimagecontent", content_type="image/png")
+        response = self.client.post(
+            reverse("production:add_attachment", args=[self.order.pk]),
+            {"attachments": [fake_file]},
+            headers={"x-requested-with": "XMLHttpRequest"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "application/json")
+        res_json = response.json()
+        self.assertTrue(res_json["success"])
+        self.assertIn("anexo(s) adicionado(s)", res_json["message"])
+
 
 
 

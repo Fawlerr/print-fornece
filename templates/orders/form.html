@@ -247,15 +247,66 @@
       <span class="help">PDF, imagens (PNG, JPG, WEBP), SVG, CDR, AI, EPS, PSD, TIF/TIFF ou ZIP. Máximo de 6 GB por arquivo.</span>
     </label>
 
+    <!-- Card de Pré-visualização de Arquivos Selecionados -->
+    <div id="fileSelectionPreview" style="display: none; margin-top: 10px; background: rgba(56, 189, 248, 0.05); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 8px; padding: 12px 14px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+        <strong style="color: #38bdf8; font-size: 0.88rem; display: flex; align-items: center; gap: 6px;">
+          <i class="fa-solid fa-paperclip"></i> <span id="fileSelectionSummary">Arquivos Selecionados</span>
+        </strong>
+        <button type="button" id="clearFileSelectionBtn" class="btn btn-secondary btn-small" style="font-size: 0.75rem; padding: 2px 8px; color: #f87171; border-color: rgba(248, 113, 113, 0.3);">
+          <i class="fa-solid fa-xmark"></i> Limpar seleção
+        </button>
+      </div>
+      <div id="fileSelectionList" style="display: flex; flex-direction: column; gap: 6px;"></div>
+    </div>
+
     <div class="form-actions">
       {% if object %}
         <a class="btn btn-secondary" href="{% url 'production:detail' pk=object.pk %}">Cancelar</a>
       {% else %}
         <a class="btn btn-secondary" href="{% url 'production:kanban' %}">Cancelar</a>
       {% endif %}
-      <button class="btn btn-primary" type="submit"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> {% if object %}Salvar alterações{% else %}Salvar pedido{% endif %}</button>
+      <button class="btn btn-primary" type="submit" id="submitOrderBtn"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> {% if object %}Salvar alterações{% else %}Salvar pedido{% endif %}</button>
     </div>
   </form>
+</div>
+
+<!-- Modal de Progresso de Upload em Tempo Real -->
+<div id="uploadProgressModal" style="display: none; position: fixed; inset: 0; z-index: 9999; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(8px); align-items: center; justify-content: center; padding: 20px;">
+  <div style="background: #111827; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 16px; width: 100%; max-width: 500px; padding: 26px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7); text-align: center;">
+    
+    <div id="uploadProgressIconBox" style="margin-bottom: 14px;">
+      <div style="width: 52px; height: 52px; margin: 0 auto; border: 4px solid rgba(56, 189, 248, 0.2); border-top-color: #38bdf8; border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+    </div>
+
+    <h3 id="uploadProgressTitle" style="font-size: 1.25rem; font-weight: 700; color: #fff; margin-bottom: 6px;">
+      Enviando arquivo(s)...
+    </h3>
+    
+    <p id="uploadProgressSubtitle" style="font-size: 0.88rem; color: #94a3b8; margin-bottom: 18px;">
+      Por favor, aguarde enquanto seus arquivos de arte são transferidos com segurança.
+    </p>
+
+    <!-- Barra de Progresso Animada -->
+    <div style="background: rgba(255, 255, 255, 0.08); border-radius: 999px; height: 16px; overflow: hidden; margin-bottom: 12px; position: relative; border: 1px solid rgba(255, 255, 255, 0.1);">
+      <div id="uploadProgressBar" style="background: linear-gradient(90deg, #0284c7, #38bdf8, #34d399); height: 100%; width: 0%; border-radius: 999px; transition: width 0.15s ease;"></div>
+    </div>
+
+    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; color: #cbd5e1; margin-bottom: 14px;">
+      <span id="uploadProgressPercent" style="font-weight: 700; color: #38bdf8; font-size: 1.05rem;">0%</span>
+      <span id="uploadProgressBytes" style="font-weight: 600;">0 MB de 0 MB</span>
+      <span id="uploadProgressSpeed" style="color: #94a3b8;">Calculando...</span>
+    </div>
+
+    <div id="uploadProgressDetail" style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 8px; padding: 10px 14px; font-size: 0.82rem; color: #94a3b8; display: flex; align-items: center; justify-content: space-between;">
+      <span id="uploadProgressEta"><i class="fa-solid fa-clock"></i> Tempo restante: calculando...</span>
+      <span id="uploadProgressCount"><i class="fa-solid fa-file"></i> 1 arquivo</span>
+    </div>
+
+    <div id="uploadProgressError" style="display: none; margin-top: 14px; padding: 12px; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 8px; color: #fca5a5; font-size: 0.88rem; text-align: left;">
+    </div>
+    <button id="uploadProgressCancelBtn" type="button" class="btn btn-secondary" style="display: none; margin-top: 14px; width: 100%;">Fechar e corrigir</button>
+  </div>
 </div>
 
 {% if existing_items %}
@@ -267,6 +318,206 @@
   <script src="{% static 'js/order-calculator.js' %}" defer></script>
   <script>
     document.addEventListener("DOMContentLoaded", () => {
+      // Formatação e preview dos arquivos selecionados
+      const attachmentInput = document.getElementById("id_attachments");
+      const filePreviewBox = document.getElementById("fileSelectionPreview");
+      const fileSummarySpan = document.getElementById("fileSelectionSummary");
+      const fileListDiv = document.getElementById("fileSelectionList");
+      const clearFilesBtn = document.getElementById("clearFileSelectionBtn");
+
+      const formatBytes = (bytes) => {
+        if (!bytes || bytes === 0) return "0 B";
+        const k = 1024;
+        const sizes = ["B", "KB", "MB", "GB"];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
+      };
+
+      const updateFilePreview = () => {
+        if (!attachmentInput || !filePreviewBox) return;
+        const files = attachmentInput.files;
+        if (!files || files.length === 0) {
+          filePreviewBox.style.display = "none";
+          fileListDiv.innerHTML = "";
+          return;
+        }
+
+        let totalSize = 0;
+        let html = "";
+        for (let i = 0; i < files.length; i++) {
+          const f = files[i];
+          totalSize += f.size;
+          const ext = f.name.split('.').pop().toUpperCase();
+          html += `
+            <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.25); padding: 6px 10px; border-radius: 6px; font-size: 0.82rem;">
+              <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 80%; color: #f8fafc;">
+                <span class="badge" style="background: rgba(56, 189, 248, 0.2); color: #38bdf8; font-size: 0.72rem; padding: 2px 5px; margin-right: 6px;">${ext}</span>
+                ${f.name}
+              </span>
+              <strong style="color: #94a3b8; font-size: 0.8rem;">${formatBytes(f.size)}</strong>
+            </div>
+          `;
+        }
+
+        fileSummarySpan.textContent = `${files.length} arquivo(s) selecionado(s) · Total: ${formatBytes(totalSize)}`;
+        fileListDiv.innerHTML = html;
+        filePreviewBox.style.display = "block";
+      };
+
+      if (attachmentInput) {
+        attachmentInput.addEventListener("change", updateFilePreview);
+      }
+
+      if (clearFilesBtn && attachmentInput) {
+        clearFilesBtn.addEventListener("click", () => {
+          attachmentInput.value = "";
+          updateFilePreview();
+        });
+      }
+
+      // Envio de formulário com Barra de Progresso AJAX
+      const orderForm = document.querySelector(".order-form");
+      const submitBtn = document.getElementById("submitOrderBtn");
+      const modal = document.getElementById("uploadProgressModal");
+      const progressBar = document.getElementById("uploadProgressBar");
+      const percentLabel = document.getElementById("uploadProgressPercent");
+      const bytesLabel = document.getElementById("uploadProgressBytes");
+      const speedLabel = document.getElementById("uploadProgressSpeed");
+      const etaLabel = document.getElementById("uploadProgressEta");
+      const countLabel = document.getElementById("uploadProgressCount");
+      const errorBox = document.getElementById("uploadProgressError");
+      const cancelBtn = document.getElementById("uploadProgressCancelBtn");
+      const titleLabel = document.getElementById("uploadProgressTitle");
+      const subtitleLabel = document.getElementById("uploadProgressSubtitle");
+      const iconBox = document.getElementById("uploadProgressIconBox");
+
+      if (orderForm) {
+        orderForm.addEventListener("submit", (e) => {
+          const files = attachmentInput ? attachmentInput.files : null;
+          const hasFiles = files && files.length > 0;
+
+          // Se não há arquivos, apenas previne duplo clique e deixa o submit padrão acontecer
+          if (!hasFiles) {
+            if (submitBtn) {
+              submitBtn.disabled = true;
+              submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Salvando...';
+            }
+            return true;
+          }
+
+          // Se há arquivos pesados anexados, faz o upload via XMLHttpRequest para mostrar a barra de progresso
+          e.preventDefault();
+
+          if (submitBtn) submitBtn.disabled = true;
+          modal.style.display = "flex";
+          errorBox.style.display = "none";
+          cancelBtn.style.display = "none";
+          progressBar.style.width = "0%";
+          percentLabel.textContent = "0%";
+          speedLabel.textContent = "Iniciando upload...";
+          titleLabel.textContent = "Enviando arquivo(s)...";
+          subtitleLabel.textContent = "Por favor, aguarde enquanto seus arquivos de arte são transferidos com segurança.";
+          iconBox.innerHTML = '<div style="width: 52px; height: 52px; margin: 0 auto; border: 4px solid rgba(56, 189, 248, 0.2); border-top-color: #38bdf8; border-radius: 50%; animation: spin 0.8s linear infinite;"></div>';
+
+          let totalBytes = 0;
+          for (let i = 0; i < files.length; i++) totalBytes += files[i].size;
+          bytesLabel.textContent = `0 MB de ${formatBytes(totalBytes)}`;
+          countLabel.innerHTML = `<i class="fa-solid fa-file"></i> ${files.length} arquivo(s)`;
+
+          const formData = new FormData(orderForm);
+          const xhr = new XMLHttpRequest();
+          const startTime = Date.now();
+
+          xhr.upload.addEventListener("progress", (event) => {
+            if (event.lengthComputable) {
+              const percent = Math.min(99, Math.round((event.loaded / event.total) * 100));
+              progressBar.style.width = `${percent}%`;
+              percentLabel.textContent = `${percent}%`;
+              bytesLabel.textContent = `${formatBytes(event.loaded)} de ${formatBytes(event.total)}`;
+
+              const elapsedSec = (Date.now() - startTime) / 1000;
+              if (elapsedSec > 0.3) {
+                const speedBytesPerSec = event.loaded / elapsedSec;
+                speedLabel.textContent = `${formatBytes(speedBytesPerSec)}/s`;
+
+                const remainingBytes = event.total - event.loaded;
+                const etaSec = Math.round(remainingBytes / (speedBytesPerSec || 1));
+                if (etaSec <= 1) {
+                  etaLabel.innerHTML = `<i class="fa-solid fa-clock"></i> Quase pronto...`;
+                } else if (etaSec < 60) {
+                  etaLabel.innerHTML = `<i class="fa-solid fa-clock"></i> Tempo restante: ~${etaSec}s`;
+                } else {
+                  const etaMin = Math.ceil(etaSec / 60);
+                  etaLabel.innerHTML = `<i class="fa-solid fa-clock"></i> Tempo restante: ~${etaMin} min`;
+                }
+              }
+
+              if (percent >= 99) {
+                titleLabel.textContent = "Processando arte e registrando pedido...";
+                subtitleLabel.textContent = "Upload concluído! O servidor está gravando as informações no banco de dados.";
+                etaLabel.innerHTML = '<i class="fa-solid fa-gear fa-spin"></i> Finalizando gravação...';
+              }
+            }
+          });
+
+          xhr.addEventListener("load", () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              progressBar.style.width = "100%";
+              percentLabel.textContent = "100%";
+              titleLabel.textContent = "Pedido salvo com sucesso!";
+              subtitleLabel.textContent = "Redirecionando...";
+              iconBox.innerHTML = '<div style="width: 52px; height: 52px; margin: 0 auto; background: rgba(34, 197, 94, 0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #22c55e; font-size: 1.6rem;"><i class="fa-solid fa-check"></i></div>';
+              
+              let redirectUrl = "{% if object %}{% url 'production:detail' pk=object.pk %}{% else %}{% url 'production:kanban' %}{% endif %}";
+              try {
+                const res = JSON.parse(xhr.responseText);
+                if (res.redirect_url) redirectUrl = res.redirect_url;
+              } catch (e) {}
+
+              setTimeout(() => {
+                window.location.href = redirectUrl;
+              }, 400);
+            } else {
+              if (submitBtn) submitBtn.disabled = false;
+              let errText = "Ocorreu um erro ao salvar o pedido.";
+              try {
+                const res = JSON.parse(xhr.responseText);
+                if (res.errors && res.errors.length > 0) {
+                  errText = res.errors.join("<br>");
+                }
+              } catch (e) {
+                errText = `Erro ${xhr.status}: Não foi possível concluir o envio. Verifique o tamanho do arquivo.`;
+              }
+              titleLabel.textContent = "Erro ao enviar pedido";
+              subtitleLabel.textContent = "Corrija os dados e tente novamente.";
+              iconBox.innerHTML = '<div style="width: 52px; height: 52px; margin: 0 auto; background: rgba(239, 68, 68, 0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #ef4444; font-size: 1.6rem;"><i class="fa-solid fa-circle-exclamation"></i></div>';
+              errorBox.innerHTML = errText;
+              errorBox.style.display = "block";
+              cancelBtn.style.display = "block";
+            }
+          });
+
+          xhr.addEventListener("error", () => {
+            if (submitBtn) submitBtn.disabled = false;
+            titleLabel.textContent = "Falha de Conexão";
+            subtitleLabel.textContent = "A conexão com o servidor foi interrompida.";
+            iconBox.innerHTML = '<div style="width: 52px; height: 52px; margin: 0 auto; background: rgba(239, 68, 68, 0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #ef4444; font-size: 1.6rem;"><i class="fa-solid fa-wifi"></i></div>';
+            errorBox.innerHTML = "Não foi possível transferir o arquivo. Verifique sua conexão de internet e tente novamente.";
+            errorBox.style.display = "block";
+            cancelBtn.style.display = "block";
+          });
+
+          cancelBtn.onclick = () => {
+            modal.style.display = "none";
+          };
+
+          xhr.open(orderForm.method || "POST", orderForm.action || window.location.href);
+          xhr.setRequestHeader("X-Requested-With", "XMLHttpRequest");
+          xhr.setRequestHeader("Accept", "application/json");
+          xhr.send(formData);
+        });
+      }
+
       // Toggle de Pedido de Correção
       const isCorrectionCheckbox = document.getElementById("id_is_correction");
       const correctionReasonBox = document.getElementById("correction_reason_box");

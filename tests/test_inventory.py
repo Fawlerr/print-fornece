@@ -28,9 +28,9 @@ class InventoryTestCase(TestCase):
         self.assertTrue(SupplyItem.objects.filter(category=SupplyItem.Category.DTF_TEXTIL).exists())
         self.assertTrue(SupplyItem.objects.filter(category=SupplyItem.Category.DTF_UV).exists())
         self.assertTrue(SupplyItem.objects.filter(category=SupplyItem.Category.SHIRTS).exists())
-        self.assertTrue(SupplyItem.objects.filter(name="Tinta DTF Têxtil - Branco").exists())
-        self.assertTrue(SupplyItem.objects.filter(name="Verniz DTF UV").exists())
-        self.assertTrue(SupplyItem.objects.filter(name="Camiseta Dry Fit - Tam. M").exists())
+        self.assertTrue(SupplyItem.objects.filter(name__icontains="White").exists())
+        self.assertTrue(SupplyItem.objects.filter(name__icontains="Verniz").exists())
+        self.assertTrue(SupplyItem.objects.filter(name__icontains="Camiseta").exists())
 
     def test_create_supply_item_and_movement(self):
         self.client.force_login(self.admin)

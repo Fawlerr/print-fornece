@@ -60,16 +60,36 @@ class OrderCreateView(LoginRequiredMixin, CreateView):
         return context
 
     def form_valid(self, form):
+        is_ajax = self.request.headers.get("X-Requested-With") == "XMLHttpRequest" or self.request.headers.get("Accept") == "application/json"
         try:
             self.object = create_order(form=form, actor=self.request.user, files=self.request.FILES.getlist("attachments"), request=self.request)
         except ValidationError as exc:
+            if is_ajax:
+                return JsonResponse({"success": False, "errors": [exc.messages[0]]}, status=400)
             form.add_error(None, exc.messages[0])
             return self.form_invalid(form)
+
         messages.success(self.request, f"Pedido {self.object.number} criado com sucesso.")
         if self.object.payment_status == Order.PaymentStatus.PAID:
             messages.info(self.request, "Pagamento confirmado. Gere o comprovante no detalhe do pedido.")
-            return redirect("production:detail", pk=self.object.pk)
-        return redirect("production:kanban")
+            redirect_url = reverse("production:detail", kwargs={"pk": self.object.pk})
+        else:
+            redirect_url = reverse("production:kanban")
+
+        if is_ajax:
+            return JsonResponse({"success": True, "redirect_url": redirect_url, "order_number": self.object.number})
+        return redirect(redirect_url)
+
+    def form_invalid(self, form):
+        is_ajax = self.request.headers.get("X-Requested-With") == "XMLHttpRequest" or self.request.headers.get("Accept") == "application/json"
+        if is_ajax:
+            errors = []
+            for field, err_list in form.errors.items():
+                for err in err_list:
+                    prefix = f"{form.fields[field].label}: " if field in form.fields and form.fields[field].label else ""
+                    errors.append(f"{prefix}{err}")
+            return JsonResponse({"success": False, "errors": errors}, status=400)
+        return super().form_invalid(form)
 
 
 class OrderUpdateView(LoginRequiredMixin, UpdateView):
@@ -130,6 +150,7 @@ class OrderUpdateView(LoginRequiredMixin, UpdateView):
         return context
 
     def form_valid(self, form):
+        is_ajax = self.request.headers.get("X-Requested-With") == "XMLHttpRequest" or self.request.headers.get("Accept") == "application/json"
         try:
             self.object = update_order(
                 order=self.object,
@@ -140,10 +161,27 @@ class OrderUpdateView(LoginRequiredMixin, UpdateView):
                 previous_state=getattr(self, "_previous_order_state", None),
             )
         except ValidationError as exc:
+            if is_ajax:
+                return JsonResponse({"success": False, "errors": [exc.messages[0]]}, status=400)
             form.add_error(None, exc.messages[0])
             return self.form_invalid(form)
+
         messages.success(self.request, "Pedido atualizado.")
-        return redirect("production:detail", pk=self.object.pk)
+        redirect_url = reverse("production:detail", kwargs={"pk": self.object.pk})
+        if is_ajax:
+            return JsonResponse({"success": True, "redirect_url": redirect_url, "order_number": self.object.number})
+        return redirect(redirect_url)
+
+    def form_invalid(self, form):
+        is_ajax = self.request.headers.get("X-Requested-With") == "XMLHttpRequest" or self.request.headers.get("Accept") == "application/json"
+        if is_ajax:
+            errors = []
+            for field, err_list in form.errors.items():
+                for err in err_list:
+                    prefix = f"{form.fields[field].label}: " if field in form.fields and form.fields[field].label else ""
+                    errors.append(f"{prefix}{err}")
+            return JsonResponse({"success": False, "errors": errors}, status=400)
+        return super().form_invalid(form)
 
 
 @login_required
