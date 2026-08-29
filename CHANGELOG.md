@@ -4,6 +4,32 @@ Todas as atualizações e correções notáveis do sistema Print Fornece são re
 
 ---
 
+## [29/08/2026] — Módulo de Fechamento de Caixa, Uploads em Tempo Real & Monitoramento de Usuários Online
+
+### ✨ Novas Funcionalidades
+- **Sistema de Fechamento e Conciliação de Caixa Diário (`/reports/caixa/`):**
+  - Módulo completo de fechamento financeiro com apuração de faturamento bruto, entradas e saídas/despesas operacionais.
+  - Discriminação detalhada por métodos de pagamento: Dinheiro, PIX, Cartão de Crédito, Cartão de Débito, Boleto e Faturado / A Prazo.
+  - Conferência de gaveta (dinheiro físico), apuração automática de sobras ou quebras de caixa e emissão de termo de conferência de fechamento diário.
+  - Integração de rotas diretas com ícone de Caixa no menu lateral, atalhos na visão geral de relatórios e botão de acesso rápido na tela de Produção Kanban.
+- **Upload Inteligente de Arquivos com Barra de Progresso e Pré-visualização:**
+  - Barra de progresso animada com indicador de porcentagem em tempo real durante o envio de arquivos de artes e comprovantes.
+  - Pré-visualização instantânea (preview) no navegador de arquivos de imagem e PDFs antes e após a gravação do pedido.
+  - Suporte otimizado a requisições assíncronas via AJAX para anexos adicionais sem recarregar a página.
+- **Monitoramento de Usuários Online & Sessões em Tempo Real:**
+  - Ferramenta interativa de monitoramento de colaboradores conectados posicionada na barra lateral diretamente acima do botão de Sair.
+  - **Cronômetro ao Vivo (Stopwatch):** Contagem progressiva segundo a segundo do tempo que cada usuário está ativo na sessão atual.
+  - **Histórico de Atividade:** Registro da última ação realizada com tempo decorrido ("Há 15 segundos", "Hoje às 21:30"), tela em que o operador se encontra e tipo de dispositivo (Desktop / Mobile).
+  - Cronômetro pessoal na barra lateral inferior exibindo a duração da sessão do próprio usuário logado.
+
+### 🐛 Correções de Bugs & Melhorias
+- **Compatibilidade de Métodos de Pagamento:**
+  - Aplicação de migration `0012_alter_order_payment_method` expandindo as escolhas de pagamento para total compatibilidade com o relatório de caixa.
+- **Ajuste de Permissões em Despesas:**
+  - Refinamento das regras de acesso ao módulo de despesas vinculadas ao fechamento diário.
+
+---
+
 ## [26/08/2026] — Inventário Geral de Estoque, Correções Operacionais & Baixa Inteligente por Cor
 
 ### ✨ Correções e Atualizações de Estoque

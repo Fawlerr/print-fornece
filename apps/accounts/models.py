@@ -3,6 +3,7 @@ from __future__ import annotations
 from django.contrib.auth.base_user import AbstractBaseUser, BaseUserManager
 from django.contrib.auth.models import PermissionsMixin
 from django.db import models
+from django.utils import timezone
 
 
 class UserManager(BaseUserManager):
@@ -50,6 +51,10 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_active = models.BooleanField("ativo", default=True)
     is_staff = models.BooleanField("acesso ao admin", default=False)
     force_password_change = models.BooleanField("forçar troca de senha", default=False)
+    last_activity = models.DateTimeField("última atividade", null=True, blank=True, db_index=True)
+    current_login_at = models.DateTimeField("início da sessão atual", null=True, blank=True)
+    last_seen_page = models.CharField("última página acessada", max_length=255, blank=True, default="")
+    last_seen_device = models.CharField("dispositivo", max_length=100, blank=True, default="")
     date_joined = models.DateTimeField("criado em", auto_now_add=True)
     updated_at = models.DateTimeField("atualizado em", auto_now=True)
 
@@ -89,6 +94,37 @@ class User(AbstractBaseUser, PermissionsMixin):
             return False
         name_lower = (self.name or "").lower()
         return self.sector == self.Sector.ATENDIMENTO or "rats" in name_lower or "meno" in name_lower
+
+    @property
+    def is_online(self) -> bool:
+        if not self.last_activity:
+            return False
+        return (timezone.now() - self.last_activity).total_seconds() <= 300
+
+    @property
+    def is_idle(self) -> bool:
+        if not self.last_activity:
+            return False
+        diff = (timezone.now() - self.last_activity).total_seconds()
+        return 300 < diff <= 900
+
+    @property
+    def online_status(self) -> str:
+        if self.is_online:
+            return "online"
+        if self.is_idle:
+            return "idle"
+        return "offline"
+
+    @property
+    def online_duration_seconds(self) -> int:
+        if not self.is_online and not self.is_idle:
+            return 0
+        start = self.current_login_at or self.last_login or self.last_activity
+        if not start:
+            return 0
+        diff = (timezone.now() - start).total_seconds()
+        return max(0, int(diff))
 
     def save(self, *args, **kwargs):
         if self.role in {self.Role.ADMINISTRATOR, self.Role.DEV}:

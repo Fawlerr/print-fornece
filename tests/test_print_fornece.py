@@ -1478,6 +1478,51 @@ class PrintForneceTestCase(TestCase):
         response = self.client.get(reverse("reports:cash_register"))
         self.assertEqual(response.status_code, 302)
 
+    def test_online_users_api_and_middleware_tracking(self):
+        self.client.force_login(self.admin)
+        # Visitar a página do kanban para disparar o middleware de atividade
+        resp_kanban = self.client.get(reverse("production:kanban"), HTTP_USER_AGENT="Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
+        self.assertEqual(resp_kanban.status_code, 200)
+
+        self.admin.refresh_from_db()
+        self.assertIsNotNone(self.admin.last_activity)
+        self.assertIsNotNone(self.admin.current_login_at)
+        self.assertEqual(self.admin.last_seen_page, "Produção Kanban")
+        self.assertTrue(self.admin.is_online)
+        self.assertEqual(self.admin.online_status, "online")
+
+        # Consultar endpoint de usuários online
+        resp = self.client.get(reverse("accounts:online_users"))
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertIn("online_count", data)
+        self.assertIn("users", data)
+        self.assertGreaterEqual(data["online_count"], 1)
+
+        user_item = next((u for u in data["users"] if u["id"] == self.admin.pk), None)
+        self.assertIsNotNone(user_item)
+        self.assertTrue(user_item["is_online"])
+        self.assertTrue(user_item["is_self"])
+        self.assertEqual(user_item["last_seen_page"], "Produção Kanban")
+        self.assertIn("Desktop", user_item["last_seen_device"])
+        self.assertIn("last_activity_relative", user_item)
+        self.assertIn("online_seconds", user_item)
+
+    def test_logout_clears_current_session_tracking(self):
+        self.client.force_login(self.employee)
+        self.client.get(reverse("orders:create"))
+        self.employee.refresh_from_db()
+        self.assertIsNotNone(self.employee.current_login_at)
+
+        # Efetuar logout
+        logout_resp = self.client.post(reverse("accounts:logout"))
+        self.assertEqual(logout_resp.status_code, 302)
+
+        self.employee.refresh_from_db()
+        self.assertIsNone(self.employee.current_login_at)
+        self.assertEqual(self.employee.online_duration_seconds, 0)
+
+
 
 
 

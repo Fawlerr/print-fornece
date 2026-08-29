@@ -48,6 +48,18 @@
     <a href="{% url 'accounts:profile' %}"{% if request.resolver_match.namespace == 'accounts' and request.resolver_match.url_name == 'profile' %} class="active" aria-current="page"{% endif %}>
       <i class="fa-solid fa-user-gear" aria-hidden="true"></i><span>Meu perfil</span>
     </a>
+
+    <!-- Ferramenta de Usuários Online (posicionado onde estava o botão de sair) -->
+    <button class="sidebar-nav-button sidebar-online-users-btn" type="button" data-open-online-users id="sidebarOnlineUsersBtn" title="Ver quem está online agora">
+      <i class="fa-solid fa-users-viewfinder" aria-hidden="true"></i>
+      <span>Usuários Online</span>
+      <span class="sidebar-online-badge" id="sidebarOnlineBadge" title="Usuários conectados">
+        <span class="online-indicator-dot"></span>
+        <span id="sidebarOnlineCount">1</span>
+      </span>
+    </button>
+
+    <!-- Botão de Sair (posicionado em baixo) -->
     <form class="sidebar-logout-form" method="post" action="{% url 'accounts:logout' %}">
       {% csrf_token %}
       <button class="sidebar-nav-button" type="submit">
@@ -58,8 +70,14 @@
 
   {% if user.is_authenticated %}
   <div class="sidebar-user">
-    <strong>{{ user.name|default:user.email }}</strong>
-    <small>{% if user.is_dev %}Desenvolvedor{% elif user.is_administrator %}Administrador{% else %}Funcionário{% endif %}</small>
+    <div class="sidebar-user-info">
+      <strong>{{ user.name|default:user.email }}</strong>
+      <small>{% if user.is_dev %}Desenvolvedor{% elif user.is_administrator %}Administrador{% else %}Funcionário{% endif %}</small>
+    </div>
+    <div class="sidebar-user-session" id="sidebarSelfSessionTimer" title="Tempo da sua sessão ativa">
+      <i class="fa-solid fa-stopwatch" style="color: #24d366; font-size: 0.75rem;"></i>
+      <span>Online: <strong id="selfLiveTimer" data-self-start="{{ user.current_login_at.isoformat|default:user.last_login.isoformat|default:'' }}">00:00:00</strong></span>
+    </div>
   </div>
   {% endif %}
 </aside>

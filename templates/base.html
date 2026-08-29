@@ -26,6 +26,7 @@
       data-kanban-order-field="{{ kanban_order_field|default:'order_id' }}"
       data-kanban-stage-field="{{ kanban_stage_field|default:'stage' }}"
       data-notifications-poll-endpoint="{% url 'notifications:poll' %}"
+      {% if user.is_authenticated %}data-online-users-endpoint="{% url 'accounts:online_users' %}"{% endif %}
       {% block body_attributes %}{% endblock %}>
   {% block page_layout %}
     <div class="app-shell">
@@ -182,6 +183,7 @@
     {% if user.is_authenticated %}
       {% include "bug_reports/_modal.html" %}
       {% include "includes/_changelog_modal.html" %}
+      {% include "accounts/_online_users_modal.html" %}
     {% endif %}
   {% endblock %}
 

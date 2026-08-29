@@ -1,0 +1,82 @@
+<!-- Modal de Usuários Online & Monitoramento de Sessões -->
+<div class="modal-backdrop" id="onlineUsersModal" style="display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.78); z-index: 9999; backdrop-filter: blur(5px); align-items: center; justify-content: center; padding: 16px;">
+  <div class="modal-card online-users-modal-card" style="background: #131815; border: 1px solid #2a382e; border-radius: 16px; width: 100%; max-width: 820px; max-height: 90vh; display: flex; flex-direction: column; box-shadow: 0 24px 50px rgba(0, 0, 0, 0.7); animation: modalIn 0.2s ease forwards;">
+    
+    <!-- Cabeçalho do Modal -->
+    <div style="padding: 18px 24px; border-bottom: 1px solid #222d26; display: flex; align-items: center; justify-content: space-between; gap: 16px;">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <span style="display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 10px; background: rgba(36, 211, 102, 0.15); color: #24d366; font-size: 1.2rem;">
+          <i class="fa-solid fa-users-viewfinder"></i>
+        </span>
+        <div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <h3 style="margin: 0; font-size: 1.15rem; color: #f5f7f5; font-weight: 700;">Usuários & Sessões Online</h3>
+            <span class="live-pulse-chip">
+              <span class="pulse-dot-live"></span>
+              <span id="modalOnlinePillText">Carregando...</span>
+            </span>
+          </div>
+          <p style="margin: 3px 0 0 0; font-size: 0.82rem; color: #9da69f;">
+            Acompanhe quem está conectado, tempo de sessão e última atividade em tempo real
+          </p>
+        </div>
+      </div>
+      
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <button type="button" id="refreshOnlineUsersBtn" class="icon-action-btn" title="Atualizar agora" aria-label="Atualizar agora">
+          <i class="fa-solid fa-arrows-rotate" id="refreshOnlineUsersIcon"></i>
+        </button>
+        <button type="button" id="closeOnlineUsersModalBtn" class="icon-action-btn" title="Fechar" aria-label="Fechar">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Barra de Filtros & Busca -->
+    <div style="padding: 14px 24px; border-bottom: 1px solid #1c2620; background: #0e1210; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px;">
+      <div class="online-filter-tabs" role="tablist">
+        <button type="button" class="online-filter-tab active" data-filter="all">
+          Todos <span class="tab-badge" id="tabBadgeAll">0</span>
+        </button>
+        <button type="button" class="online-filter-tab" data-filter="online">
+          <span class="status-indicator-dot online"></span> Online <span class="tab-badge" id="tabBadgeOnline">0</span>
+        </button>
+        <button type="button" class="online-filter-tab" data-filter="idle">
+          <span class="status-indicator-dot idle"></span> Ausente <span class="tab-badge" id="tabBadgeIdle">0</span>
+        </button>
+        <button type="button" class="online-filter-tab" data-filter="offline">
+          <span class="status-indicator-dot offline"></span> Desconectado <span class="tab-badge" id="tabBadgeOffline">0</span>
+        </button>
+      </div>
+
+      <div style="position: relative; min-width: 220px; flex: 1; max-width: 280px;">
+        <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #6e7a71; font-size: 0.8rem;"></i>
+        <input type="text" id="searchOnlineUsersInput" placeholder="Buscar colaborador..." style="padding: 6px 10px 6px 30px; font-size: 0.84rem; background: #151b17; border: 1px solid #2b382f; border-radius: 8px; color: #f5f7f5; width: 100%;">
+      </div>
+    </div>
+
+    <!-- Lista de Usuários Conectados / Inativos -->
+    <div id="onlineUsersListContainer" style="padding: 18px 24px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 12px;">
+      <div class="online-loading-state" id="onlineUsersLoading">
+        <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 1.8rem; color: #24d366;"></i>
+        <p style="margin-top: 10px; color: #9da69f; font-size: 0.9rem;">Consultando colaboradores conectados...</p>
+      </div>
+      <div id="onlineUsersList" style="display: flex; flex-direction: column; gap: 12px;"></div>
+      <div id="onlineUsersEmpty" style="display: none; text-align: center; padding: 40px 20px; color: #9da69f;">
+        <i class="fa-regular fa-user" style="font-size: 2rem; margin-bottom: 8px; display: block; color: #566359;"></i>
+        <p style="margin: 0; font-size: 0.92rem;">Nenhum usuário encontrado para este filtro.</p>
+      </div>
+    </div>
+
+    <!-- Rodapé -->
+    <div style="padding: 12px 24px; border-top: 1px solid #222d26; background: #0e1210; border-bottom-left-radius: 16px; border-bottom-right-radius: 16px; display: flex; justify-content: space-between; align-items: center;">
+      <div style="display: flex; align-items: center; gap: 8px; color: #7f8e82; font-size: 0.78rem;">
+        <span class="pulse-indicator-small"></span>
+        <span>Sincronização automática a cada 20 segundos</span>
+      </div>
+      <button type="button" id="closeOnlineUsersFooterBtn" class="btn btn-secondary" style="font-size: 0.85rem; padding: 6px 18px;">
+        Fechar
+      </button>
+    </div>
+  </div>
+</div>

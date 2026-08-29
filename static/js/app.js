@@ -453,4 +453,279 @@
   if (body.dataset.notificationsPollEndpoint && document.querySelector("[data-unread-count]")) {
     window.setInterval(pollNotifications, 30000);
   }
+
+  // --- Real-time Online Users & Live Stopwatch Manager ---
+  (() => {
+    const onlineEndpoint = body.dataset.onlineUsersEndpoint;
+    const modal = document.querySelector("#onlineUsersModal");
+    const openBtns = document.querySelectorAll("[data-open-online-users]");
+    const closeBtns = [
+      document.querySelector("#closeOnlineUsersModalBtn"),
+      document.querySelector("#closeOnlineUsersFooterBtn"),
+    ];
+    const refreshBtn = document.querySelector("#refreshOnlineUsersBtn");
+    const refreshIcon = document.querySelector("#refreshOnlineUsersIcon");
+    const listEl = document.querySelector("#onlineUsersList");
+    const emptyEl = document.querySelector("#onlineUsersEmpty");
+    const loadingEl = document.querySelector("#onlineUsersLoading");
+    const searchInput = document.querySelector("#searchOnlineUsersInput");
+    const filterTabs = document.querySelectorAll(".online-filter-tab");
+    const sidebarCountEl = document.querySelector("#sidebarOnlineCount");
+    const modalPillText = document.querySelector("#modalOnlinePillText");
+    const selfTimerEl = document.querySelector("#selfLiveTimer");
+
+    let cachedUsers = [];
+    const userTimers = new Map();
+    let activeFilter = "all";
+    let activeSearch = "";
+    let isFetching = false;
+
+    function formatTime(totalSec) {
+      const s = Math.max(0, Math.floor(Number(totalSec) || 0));
+      const hours = String(Math.floor(s / 3600)).padStart(2, "0");
+      const minutes = String(Math.floor((s % 3600) / 60)).padStart(2, "0");
+      const seconds = String(s % 60).padStart(2, "0");
+      return `${hours}:${minutes}:${seconds}`;
+    }
+
+    function updateSelfSessionTimer() {
+      if (!selfTimerEl) return;
+      const startIso = selfTimerEl.dataset.selfStart;
+      if (!startIso) return;
+      const startTime = new Date(startIso).getTime();
+      if (isNaN(startTime)) return;
+      const now = Date.now();
+      const elapsedSec = Math.max(0, Math.floor((now - startTime) / 1000));
+      selfTimerEl.textContent = formatTime(elapsedSec);
+    }
+
+    function tickAllLiveTimers() {
+      updateSelfSessionTimer();
+      userTimers.forEach((sec, userId) => {
+        const nextSec = sec + 1;
+        userTimers.set(userId, nextSec);
+        const timerDoms = document.querySelectorAll(`[data-user-timer-id="${userId}"]`);
+        timerDoms.forEach((el) => {
+          el.textContent = formatTime(nextSec);
+        });
+      });
+    }
+
+    // 1-second live clock ticker
+    window.setInterval(tickAllLiveTimers, 1000);
+    updateSelfSessionTimer();
+
+    function renderUsers() {
+      if (!listEl) return;
+
+      const filtered = cachedUsers.filter((u) => {
+        const matchesFilter =
+          activeFilter === "all" ||
+          (activeFilter === "online" && u.status === "online") ||
+          (activeFilter === "idle" && u.status === "idle") ||
+          (activeFilter === "offline" && u.status === "offline");
+
+        const q = activeSearch.toLowerCase().trim();
+        const matchesSearch =
+          !q ||
+          (u.name && u.name.toLowerCase().includes(q)) ||
+          (u.email && u.email.toLowerCase().includes(q)) ||
+          (u.role_label && u.role_label.toLowerCase().includes(q)) ||
+          (u.sector_label && u.sector_label.toLowerCase().includes(q));
+
+        return matchesFilter && matchesSearch;
+      });
+
+      if (loadingEl) loadingEl.style.display = "none";
+
+      if (filtered.length === 0) {
+        listEl.innerHTML = "";
+        if (emptyEl) emptyEl.style.display = "block";
+        return;
+      }
+
+      if (emptyEl) emptyEl.style.display = "none";
+
+      const html = filtered
+        .map((u) => {
+          const initial = (u.name || u.email || "?").charAt(0).toUpperCase();
+          const selfBadge = u.is_self
+            ? `<span class="badge" style="background: rgba(59, 130, 246, 0.2); color: #93c5fd; border: 1px solid rgba(59, 130, 246, 0.4); padding: 2px 7px; font-size: 0.72rem;">Você</span>`
+            : "";
+          const roleBadge = `<span class="badge" style="background: #202823; color: #a9b7ad; font-size: 0.74rem;">${u.role_label}</span>`;
+          const sectorBadge = `<span class="badge" style="background: #19221d; color: #7f8e82; font-size: 0.72rem;">${u.sector_label}</span>`;
+
+          const timerBox =
+            u.status === "online" || u.status === "idle"
+              ? `
+            <div class="stopwatch-digital-clock ${u.status}" title="Tempo ativo na sessão atual">
+              <i class="fa-solid fa-stopwatch" aria-hidden="true"></i>
+              <span data-user-timer-id="${u.id}">${formatTime(userTimers.get(u.id) || u.online_seconds)}</span>
+            </div>
+            <span class="stopwatch-label">Online desde ${u.last_login_formatted || "—"}</span>
+          `
+              : `
+            <div class="stopwatch-digital-clock offline" title="Usuário desconectado">
+              <i class="fa-regular fa-circle-stop" aria-hidden="true"></i>
+              <span>Desconectado</span>
+            </div>
+            <span class="stopwatch-label">Último acesso: ${u.last_login_formatted || "—"}</span>
+          `;
+
+          return `
+          <div class="online-user-card ${u.is_self ? "is-self" : ""}">
+            <div class="online-avatar-wrap">
+              <span>${initial}</span>
+              <span class="online-avatar-status ${u.status}" title="${u.status_label}"></span>
+            </div>
+
+            <div class="online-user-main">
+              <div class="online-user-name-row">
+                <strong class="online-user-name">${u.name}</strong>
+                ${selfBadge}
+                <div class="online-user-badges">
+                  ${roleBadge}
+                  ${sectorBadge}
+                </div>
+              </div>
+
+              <div class="online-user-details-row">
+                <span title="Última atividade registrada: ${u.last_activity_formatted || ""}">
+                  <i class="fa-regular fa-clock" style="color: #24d366;"></i>
+                  Última ação: <strong style="color: #f5f7f5;">${u.last_activity_relative}</strong>
+                </span>
+                <span title="Tela que o colaborador está visualizando">
+                  <i class="fa-regular fa-compass" style="color: #60a5fa;"></i>
+                  ${u.last_seen_page}
+                </span>
+                <span title="Dispositivo de acesso">
+                  <i class="fa-solid fa-laptop" style="color: #9da69f;"></i>
+                  ${u.last_seen_device}
+                </span>
+              </div>
+            </div>
+
+            <div class="online-user-timer-box">
+              ${timerBox}
+            </div>
+          </div>
+        `;
+        })
+        .join("");
+
+      listEl.innerHTML = html;
+    }
+
+    function updateCounts(data) {
+      if (!data) return;
+      const onlineCount = data.online_count || 0;
+      const idleCount = data.idle_count || 0;
+      const totalUsers = data.total_users || (data.users ? data.users.length : 0);
+      const offlineCount = Math.max(0, totalUsers - onlineCount - idleCount);
+
+      if (sidebarCountEl) sidebarCountEl.textContent = String(onlineCount);
+      if (modalPillText) modalPillText.textContent = `${onlineCount} online agora`;
+
+      const bAll = document.querySelector("#tabBadgeAll");
+      const bOnline = document.querySelector("#tabBadgeOnline");
+      const bIdle = document.querySelector("#tabBadgeIdle");
+      const bOffline = document.querySelector("#tabBadgeOffline");
+
+      if (bAll) bAll.textContent = String(totalUsers);
+      if (bOnline) bOnline.textContent = String(onlineCount);
+      if (bIdle) bIdle.textContent = String(idleCount);
+      if (bOffline) bOffline.textContent = String(offlineCount);
+    }
+
+    async function fetchOnlineUsers(isManual = false) {
+      if (!onlineEndpoint || isFetching) return;
+      isFetching = true;
+
+      if (isManual && refreshIcon) {
+        refreshIcon.classList.add("fa-spin");
+      }
+
+      try {
+        const url = `${onlineEndpoint}${isManual ? "?heartbeat=1" : ""}`;
+        const response = await fetch(url, {
+          credentials: "same-origin",
+          headers: { Accept: "application/json", "X-Requested-With": "XMLHttpRequest" },
+        });
+
+        if (!response.ok) return;
+        const data = await response.json();
+
+        cachedUsers = data.users || [];
+        cachedUsers.forEach((u) => {
+          userTimers.set(u.id, u.online_seconds || 0);
+        });
+
+        updateCounts(data);
+        renderUsers();
+      } catch (err) {
+        console.warn("Erro ao sincronizar usuários online:", err);
+      } finally {
+        isFetching = false;
+        if (refreshIcon) {
+          setTimeout(() => refreshIcon.classList.remove("fa-spin"), 400);
+        }
+      }
+    }
+
+    function openModal() {
+      if (modal) {
+        modal.style.display = "flex";
+        if (loadingEl && cachedUsers.length === 0) loadingEl.style.display = "block";
+        fetchOnlineUsers(true);
+      }
+    }
+
+    function closeModal() {
+      if (modal) modal.style.display = "none";
+    }
+
+    openBtns.forEach((btn) => btn.addEventListener("click", openModal));
+    closeBtns.forEach((btn) => {
+      if (btn) btn.addEventListener("click", closeModal);
+    });
+
+    if (modal) {
+      modal.addEventListener("click", (e) => {
+        if (e.target === modal) closeModal();
+      });
+    }
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && modal && modal.style.display === "flex") {
+        closeModal();
+      }
+    });
+
+    if (refreshBtn) {
+      refreshBtn.addEventListener("click", () => fetchOnlineUsers(true));
+    }
+
+    if (searchInput) {
+      searchInput.addEventListener("input", (e) => {
+        activeSearch = e.target.value;
+        renderUsers();
+      });
+    }
+
+    filterTabs.forEach((tab) => {
+      tab.addEventListener("click", () => {
+        filterTabs.forEach((t) => t.classList.remove("active"));
+        tab.classList.add("active");
+        activeFilter = tab.dataset.filter || "all";
+        renderUsers();
+      });
+    });
+
+    // Polling contínuo de usuários online
+    if (onlineEndpoint) {
+      fetchOnlineUsers(false);
+      window.setInterval(() => fetchOnlineUsers(false), 20000);
+    }
+  })();
 })();
+
