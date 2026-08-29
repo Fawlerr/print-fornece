@@ -19,6 +19,8 @@ Todas as atualizações e correções notáveis do sistema Print Fornece são re
 - **Monitoramento de Usuários Online & Sessões em Tempo Real:**
   - Ferramenta interativa de monitoramento de colaboradores conectados posicionada na barra lateral diretamente acima do botão de Sair.
   - **Cronômetro ao Vivo (Stopwatch):** Contagem progressiva segundo a segundo do tempo que cada usuário está ativo na sessão atual.
+  - **Desconexão Instantânea ao Fechar Aba:** Disparo de Web Beacon para encerrar imediatamente a sessão online no banco ao fechar a aba/navegador.
+  - **Modo Stealth para Desenvolvedores:** Usuários com perfil Dev são 100% invisíveis na contagem e na listagem de usuários online para funcionários e administradores, ficando visíveis apenas para o próprio Dev.
   - **Histórico de Atividade:** Registro da última ação realizada com tempo decorrido ("Há 15 segundos", "Hoje às 21:30"), tela em que o operador se encontra e tipo de dispositivo (Desktop / Mobile).
   - Cronômetro pessoal na barra lateral inferior exibindo a duração da sessão do próprio usuário logado.
 
