@@ -74,10 +74,12 @@
       <strong>{{ user.name|default:user.email }}</strong>
       <small>{% if user.is_dev %}Desenvolvedor{% elif user.is_administrator %}Administrador{% else %}Funcionário{% endif %}</small>
     </div>
+    {% if user.is_administrator or user.is_dev %}
     <div class="sidebar-user-session" id="sidebarSelfSessionTimer" title="Tempo da sua sessão ativa">
       <i class="fa-solid fa-stopwatch" style="color: #24d366; font-size: 0.75rem;"></i>
-      <span>Online: <strong id="selfLiveTimer" data-self-start="{{ user.current_login_at.isoformat|default:user.last_login.isoformat|default:'' }}">00:00:00</strong></span>
+      <span>Online: <strong id="selfLiveTimer" data-self-start="{{ user.current_login_at.isoformat|default:'' }}">00:00:00</strong></span>
     </div>
+    {% endif %}
   </div>
   {% endif %}
 </aside>

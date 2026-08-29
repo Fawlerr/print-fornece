@@ -235,16 +235,20 @@ class OnlineUsersApiView(LoginRequiredMixin, View):
 
     def get(self, request: HttpRequest, *args, **kwargs) -> JsonResponse:
         now = timezone.now()
+        can_view_timers = bool(request.user.is_administrator or request.user.is_dev)
 
         # Heartbeat mantém sessão ativa
         if request.user.is_authenticated:
+            last_act = getattr(request.user, "last_activity", None)
+            cur_login = getattr(request.user, "current_login_at", None)
+            is_new_session = not cur_login or not last_act or (now - last_act).total_seconds() > 900
+
             update_kw = {"last_activity": now}
-            if not request.user.current_login_at:
-                update_kw["current_login_at"] = getattr(request.user, "last_login", None) or now
+            if is_new_session:
+                update_kw["current_login_at"] = now
+                request.user.current_login_at = now
             User.objects.filter(pk=request.user.pk).update(**update_kw)
             request.user.last_activity = now
-            if not request.user.current_login_at:
-                request.user.current_login_at = update_kw.get("current_login_at")
 
         # Stealth Mode: apenas o próprio Dev pode ver usuários Dev online
         is_dev = getattr(request.user, "is_dev", False)
@@ -289,8 +293,7 @@ class OnlineUsersApiView(LoginRequiredMixin, View):
                 "status_label": status_label,
                 "online_seconds": online_sec,
                 "current_login_at": u.current_login_at.isoformat() if u.current_login_at else None,
-                "last_login": u.last_login.isoformat() if u.last_login else None,
-                "last_login_formatted": _format_datetime(u.last_login or u.current_login_at),
+                "current_session_started_formatted": _format_datetime(u.current_login_at) if u.current_login_at else "—",
                 "last_activity": u.last_activity.isoformat() if u.last_activity else None,
                 "last_activity_formatted": _format_datetime(u.last_activity),
                 "last_activity_relative": _format_relative_time(u.last_activity, now),
@@ -306,6 +309,7 @@ class OnlineUsersApiView(LoginRequiredMixin, View):
         users_data.sort(key=sort_key)
 
         return JsonResponse({
+            "can_view_timers": can_view_timers,
             "online_count": online_count,
             "idle_count": idle_count,
             "total_users": len(users_data),
@@ -325,7 +329,7 @@ class BeaconOfflineView(View):
             now = timezone.now()
             User.objects.filter(pk=request.user.pk).update(
                 current_login_at=None,
-                last_activity=now,
+                last_activity=now - timezone.timedelta(minutes=10),
             )
         return HttpResponse(status=204)
 

@@ -88,8 +88,11 @@ class UserActivityMiddleware:
                 last_act = getattr(user, "last_activity", None)
                 cur_login = getattr(user, "current_login_at", None)
 
-                # Atualizar a cada 25 segundos ou se ainda não tiver registro de atividade/sessão
-                if not last_act or not cur_login or (now - last_act).total_seconds() >= 25:
+                # Inicia nova sessão se não houver registro ou se o usuário ficou inativo por mais de 15 minutos (900s)
+                is_new_session = not cur_login or not last_act or (now - last_act).total_seconds() > 900
+
+                # Atualizar a cada 20 segundos ou na mudança/início de sessão
+                if is_new_session or (now - last_act).total_seconds() >= 20:
                     from apps.accounts.models import User
                     device = _detect_device(request.META.get("HTTP_USER_AGENT", ""))
                     page = _get_page_name(path)
@@ -99,13 +102,13 @@ class UserActivityMiddleware:
                         "last_seen_page": page,
                         "last_seen_device": device,
                     }
-                    if not cur_login:
-                        update_fields["current_login_at"] = getattr(user, "last_login", None) or now
+                    if is_new_session:
+                        update_fields["current_login_at"] = now
                     
                     User.objects.filter(pk=user.pk).update(**update_fields)
                     user.last_activity = now
-                    if not cur_login:
-                        user.current_login_at = update_fields.get("current_login_at")
+                    if is_new_session:
+                        user.current_login_at = now
                     user.last_seen_page = page
                     user.last_seen_device = device
 

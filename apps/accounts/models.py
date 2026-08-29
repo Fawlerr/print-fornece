@@ -97,13 +97,13 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     @property
     def is_online(self) -> bool:
-        if not self.last_activity or not self.current_login_at:
+        if not self.last_activity:
             return False
         return (timezone.now() - self.last_activity).total_seconds() <= 60
 
     @property
     def is_idle(self) -> bool:
-        if not self.last_activity or not self.current_login_at:
+        if not self.last_activity:
             return False
         diff = (timezone.now() - self.last_activity).total_seconds()
         return 60 < diff <= 300
@@ -120,7 +120,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     def online_duration_seconds(self) -> int:
         if not self.is_online and not self.is_idle:
             return 0
-        start = self.current_login_at or self.last_login or self.last_activity
+        start = self.current_login_at or self.last_activity
         if not start:
             return 0
         diff = (timezone.now() - start).total_seconds()

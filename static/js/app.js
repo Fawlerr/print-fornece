@@ -476,6 +476,7 @@
 
     let cachedUsers = [];
     const userTimers = new Map();
+    let canViewTimers = false;
     let activeFilter = "all";
     let activeSearch = "";
     let isFetching = false;
@@ -555,22 +556,44 @@
           const roleBadge = `<span class="badge" style="background: #202823; color: #a9b7ad; font-size: 0.74rem;">${u.role_label}</span>`;
           const sectorBadge = `<span class="badge" style="background: #19221d; color: #7f8e82; font-size: 0.72rem;">${u.sector_label}</span>`;
 
-          const timerBox =
-            u.status === "online" || u.status === "idle"
-              ? `
-            <div class="stopwatch-digital-clock ${u.status}" title="Tempo ativo na sessão atual">
-              <i class="fa-solid fa-stopwatch" aria-hidden="true"></i>
-              <span data-user-timer-id="${u.id}">${formatTime(userTimers.get(u.id) || u.online_seconds)}</span>
-            </div>
-            <span class="stopwatch-label">Online desde ${u.last_login_formatted || "—"}</span>
-          `
-              : `
-            <div class="stopwatch-digital-clock offline" title="Usuário desconectado">
-              <i class="fa-regular fa-circle-stop" aria-hidden="true"></i>
-              <span>Desconectado</span>
-            </div>
-            <span class="stopwatch-label">Último acesso: ${u.last_login_formatted || "—"}</span>
-          `;
+          let timerBox = "";
+          if (canViewTimers) {
+            if (u.status === "online" || u.status === "idle") {
+              timerBox = `
+                <div class="stopwatch-digital-clock ${u.status}" title="Tempo ativo na sessão atual">
+                  <i class="fa-solid fa-stopwatch" aria-hidden="true"></i>
+                  <span data-user-timer-id="${u.id}">${formatTime(userTimers.get(u.id) || u.online_seconds)}</span>
+                </div>
+                <span class="stopwatch-label">Sessão: ${u.current_session_started_formatted || "—"}</span>
+              `;
+            } else {
+              timerBox = `
+                <div class="stopwatch-digital-clock offline" title="Usuário desconectado">
+                  <i class="fa-regular fa-circle-stop" aria-hidden="true"></i>
+                  <span>Desconectado</span>
+                </div>
+                <span class="stopwatch-label">Último acesso: ${u.last_activity_formatted || "Nunca acessou"}</span>
+              `;
+            }
+          } else {
+            if (u.status === "online" || u.status === "idle") {
+              timerBox = `
+                <div class="stopwatch-digital-clock ${u.status}" title="${u.status_label}">
+                  <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
+                  <span>${u.status_label}</span>
+                </div>
+                <span class="stopwatch-label">Conectado</span>
+              `;
+            } else {
+              timerBox = `
+                <div class="stopwatch-digital-clock offline" title="Usuário desconectado">
+                  <i class="fa-regular fa-circle-stop" aria-hidden="true"></i>
+                  <span>Desconectado</span>
+                </div>
+                <span class="stopwatch-label">Último acesso: ${u.last_activity_formatted || "Nunca acessou"}</span>
+              `;
+            }
+          }
 
           return `
           <div class="online-user-card ${u.is_self ? "is-self" : ""}">
@@ -655,10 +678,17 @@
         if (!response.ok) return;
         const data = await response.json();
 
+        canViewTimers = Boolean(data.can_view_timers);
         cachedUsers = data.users || [];
         cachedUsers.forEach((u) => {
           userTimers.set(u.id, u.online_seconds || 0);
         });
+
+        const selfUser = cachedUsers.find((u) => u.is_self);
+        if (selfUser && selfTimerEl && selfUser.current_login_at) {
+          selfTimerEl.dataset.selfStart = selfUser.current_login_at;
+          updateSelfSessionTimer();
+        }
 
         updateCounts(data);
         renderUsers();
@@ -725,31 +755,6 @@
     if (onlineEndpoint) {
       fetchOnlineUsers(true);
       window.setInterval(() => fetchOnlineUsers(true), 20000);
-    }
-
-    // Desconexão imediata ao fechar a aba/navegador (Web Beacon / Pagehide)
-    const beaconEndpoint = body.dataset.beaconOfflineEndpoint;
-    if (beaconEndpoint) {
-      const sendOfflineBeacon = () => {
-        try {
-          const token = csrfToken();
-          const formData = new FormData();
-          if (token) formData.append("csrfmiddlewaretoken", token);
-          if (navigator.sendBeacon) {
-            navigator.sendBeacon(beaconEndpoint, formData);
-          } else {
-            fetch(beaconEndpoint, {
-              method: "POST",
-              body: formData,
-              keepalive: true,
-              credentials: "same-origin",
-            });
-          }
-        } catch (_) {}
-      };
-
-      window.addEventListener("pagehide", sendOfflineBeacon);
-      window.addEventListener("beforeunload", sendOfflineBeacon);
     }
   })();
 })();
