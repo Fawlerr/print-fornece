@@ -17,6 +17,16 @@ from apps.backups.services.providers.local import LocalBackupProvider
 
 
 @pytest.fixture
+def dev_user(db):
+    return User.objects.create_user(
+        email="dev@test.com",
+        name="Dev Test",
+        password="password123",
+        role=User.Role.DEV,
+    )
+
+
+@pytest.fixture
 def admin_user(db):
     return User.objects.create_user(
         email="admin@test.com",
@@ -72,7 +82,7 @@ def test_backup_management_command(tmp_path, settings):
 
 
 @pytest.mark.django_db
-def test_backup_views_access_control(client, admin_user, employee_user, tmp_path, settings):
+def test_backup_views_access_control(client, dev_user, admin_user, employee_user, tmp_path, settings):
     settings.BACKUP_ROOT = tmp_path
     url = reverse("backups:list")
 
@@ -86,20 +96,25 @@ def test_backup_views_access_control(client, admin_user, employee_user, tmp_path
     resp = client.get(url)
     assert resp.status_code == 403
 
-    # 3. Administrador -> 200 OK
+    # 3. Administrador comum (não-dev) -> 403 Proibido
     client.force_login(admin_user)
+    resp = client.get(url)
+    assert resp.status_code == 403
+
+    # 4. Desenvolvedor -> 200 OK
+    client.force_login(dev_user)
     resp = client.get(url)
     assert resp.status_code == 200
     assert "Gestão de Backups" in resp.content.decode("utf-8")
 
 
 @pytest.mark.django_db
-def test_backup_download_view(client, admin_user, tmp_path):
+def test_backup_download_view(client, dev_user, tmp_path):
     local_provider = LocalBackupProvider(backup_dir=tmp_path)
     service = BackupService(local_provider=local_provider)
     record = service.create_backup(backup_type=BackupRecord.BackupType.DATABASE_ONLY)
 
-    client.force_login(admin_user)
+    client.force_login(dev_user)
     download_url = reverse("backups:download", kwargs={"pk": record.pk})
     resp = client.get(download_url)
 
@@ -109,7 +124,7 @@ def test_backup_download_view(client, admin_user, tmp_path):
 
 
 @pytest.mark.django_db
-def test_backup_delete_view(client, admin_user, tmp_path):
+def test_backup_delete_view(client, dev_user, tmp_path):
     local_provider = LocalBackupProvider(backup_dir=tmp_path)
     service = BackupService(local_provider=local_provider)
     record = service.create_backup(backup_type=BackupRecord.BackupType.DATABASE_ONLY)
@@ -117,7 +132,7 @@ def test_backup_delete_view(client, admin_user, tmp_path):
     file_path = Path(record.file_path)
     assert file_path.exists()
 
-    client.force_login(admin_user)
+    client.force_login(dev_user)
     delete_url = reverse("backups:delete", kwargs={"pk": record.pk})
     resp = client.post(delete_url)
 

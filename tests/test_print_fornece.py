@@ -1447,31 +1447,15 @@ class PrintForneceTestCase(TestCase):
         self.client.force_login(self.admin)
         response = self.client.get(reverse("reports:cash_register"))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Fechamento de Caixa")
-        self.assertContains(response, "Dinheiro (À Vista / Gaveta)")
-        self.assertContains(response, "Termo de Conferência de Caixa")
-
-        # Verificar contexto financeiro
-        ctx = response.context
-        self.assertEqual(ctx["methods_summary"]["pix"]["total"], Decimal("100.00"))
-        self.assertEqual(ctx["methods_summary"]["cartao_credito"]["total"], Decimal("200.00"))
-        self.assertEqual(ctx["methods_summary"]["cartao_debito"]["total"], Decimal("150.00"))
-        self.assertEqual(ctx["methods_summary"]["dinheiro"]["total"], Decimal("80.00"))
-        self.assertEqual(ctx["cash_in"], Decimal("80.00"))
-        self.assertEqual(ctx["total_expenses"], Decimal("30.00"))
-        self.assertEqual(ctx["net_balance"], Decimal("500.00"))  # 100+200+150+80=530 - 30 = 500
-
-        # Testar exportação CSV
-        response_csv = self.client.get(f"{reverse('reports:cash_register')}?export=csv")
-        self.assertEqual(response_csv.status_code, 200)
-        self.assertEqual(response_csv["Content-Type"], "text/csv; charset=utf-8")
-        self.assertIn(b"FECHAMENTO DE CAIXA", response_csv.content)
-        self.assertIn(b"PIX", response_csv.content)
+        self.assertContains(response, "Módulo de Caixa Indisponível")
+        self.assertContains(response, "pendências financeiras")
+        self.assertContains(response, "DevDream")
 
     def test_cash_register_view_accessible_for_employee(self):
         self.client.force_login(self.employee)
         response = self.client.get(reverse("reports:cash_register"))
         self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Módulo de Caixa Indisponível")
 
     def test_cash_register_view_unauthenticated_redirects(self):
         self.client.logout()

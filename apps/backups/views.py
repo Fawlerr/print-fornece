@@ -12,7 +12,7 @@ from django.urls import reverse
 from django.views import View
 from django.views.generic import TemplateView
 
-from apps.accounts.permissions import AdministratorRequiredMixin
+from apps.accounts.permissions import DevRequiredMixin
 from apps.backups.models import BackupRecord
 from apps.backups.services.backup_service import BackupService
 from apps.backups.services.providers.google_drive import GoogleDriveBackupProvider
@@ -29,7 +29,7 @@ def format_bytes(size_in_bytes: int) -> str:
     return f"{s} {units[i]}"
 
 
-class BackupListView(LoginRequiredMixin, AdministratorRequiredMixin, TemplateView):
+class BackupListView(LoginRequiredMixin, DevRequiredMixin, TemplateView):
     template_name = "backups/index.html"
 
     def get_context_data(self, **kwargs):
@@ -53,7 +53,7 @@ class BackupListView(LoginRequiredMixin, AdministratorRequiredMixin, TemplateVie
         return context
 
 
-class BackupCreateView(LoginRequiredMixin, AdministratorRequiredMixin, View):
+class BackupCreateView(LoginRequiredMixin, DevRequiredMixin, View):
     def post(self, request: HttpRequest, *args, **kwargs) -> HttpResponseRedirect:
         backup_type = request.POST.get("backup_type", BackupRecord.BackupType.DATABASE_ONLY)
         if backup_type not in BackupRecord.BackupType.values:
@@ -76,7 +76,7 @@ class BackupCreateView(LoginRequiredMixin, AdministratorRequiredMixin, View):
         return redirect("backups:list")
 
 
-class BackupDownloadView(LoginRequiredMixin, AdministratorRequiredMixin, View):
+class BackupDownloadView(LoginRequiredMixin, DevRequiredMixin, View):
     def get(self, request: HttpRequest, pk: int, *args, **kwargs) -> HttpResponse:
         record = get_object_or_404(BackupRecord, pk=pk)
         local_provider = LocalBackupProvider()
@@ -98,7 +98,7 @@ class BackupDownloadView(LoginRequiredMixin, AdministratorRequiredMixin, View):
         return response
 
 
-class BackupDeleteView(LoginRequiredMixin, AdministratorRequiredMixin, View):
+class BackupDeleteView(LoginRequiredMixin, DevRequiredMixin, View):
     def post(self, request: HttpRequest, pk: int, *args, **kwargs) -> HttpResponseRedirect:
         record = get_object_or_404(BackupRecord, pk=pk)
         

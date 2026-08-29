@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Módulo de Caixa Indisponível | Print Fornece{% endblock %}
+{% block body_class %}cash-locked-body{% endblock %}
+
+{% block extra_head %}
+<style>
+  html, body.cash-locked-body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    background-color: #f1f5f9 !important;
+    color: #1e293b !important;
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    overflow-x: hidden;
+  }
+
+  .cash-locked-container {
+    min-height: 100vh;
+    min-height: 100dvh;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 16px;
+    box-sizing: border-box;
+    background-color: #f1f5f9;
+  }
+
+  .cash-locked-card {
+    width: 100%;
+    max-width: 520px;
+    background: #ffffff;
+    border-radius: 14px;
+    border: 1px solid #e2e8f0;
+    border-top: 4px solid #ef4444;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+    padding: 32px 28px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    animation: fadeInLock 0.3s ease-out;
+  }
+
+  @keyframes fadeInLock {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .cash-locked-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .cash-locked-icon-wrapper {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    background: #fee2e2;
+    color: #dc2626;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+  }
+
+  .cash-locked-header h2 {
+    margin: 0;
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: #0f172a;
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+  }
+
+  .cash-locked-body-text {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .cash-locked-body-text p {
+    margin: 0;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: #475569;
+    text-align: left;
+  }
+
+  .cash-locked-body-text p strong {
+    color: #1e293b;
+    font-weight: 700;
+  }
+
+  .cash-locked-footer-box {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 8px;
+    padding: 14px 16px;
+    font-size: 0.88rem;
+    line-height: 1.5;
+    color: #991b1b;
+    text-align: left;
+  }
+
+  .cash-locked-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 4px;
+  }
+
+  .cash-locked-btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 12px 18px;
+    border-radius: 8px;
+    background: #0f172a;
+    color: #ffffff !important;
+    font-weight: 600;
+    font-size: 0.92rem;
+    text-decoration: none;
+    transition: background-color 0.15s ease, transform 0.15s ease;
+    border: none;
+    box-sizing: border-box;
+    cursor: pointer;
+  }
+
+  .cash-locked-btn-primary:hover {
+    background: #1e293b;
+    color: #ffffff !important;
+  }
+
+  .cash-locked-btn-primary:active {
+    transform: scale(0.99);
+  }
+
+  @media (max-width: 640px) {
+    .cash-locked-card {
+      padding: 24px 20px;
+      border-radius: 12px;
+      gap: 18px;
+    }
+
+    .cash-locked-header h2 {
+      font-size: 1.2rem;
+    }
+
+    .cash-locked-icon-wrapper {
+      width: 40px;
+      height: 40px;
+      font-size: 1.15rem;
+    }
+
+    .cash-locked-body-text p {
+      font-size: 0.91rem;
+    }
+
+    .cash-locked-footer-box {
+      font-size: 0.84rem;
+      padding: 12px 14px;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block page_layout %}
+<div class="cash-locked-container">
+  <div class="cash-locked-card">
+    
+    <!-- Cabeçalho -->
+    <div class="cash-locked-header">
+      <div class="cash-locked-icon-wrapper" aria-hidden="true">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+      </div>
+      <h2>Módulo de Caixa Indisponível</h2>
+    </div>
+
+    <!-- Corpo do Texto -->
+    <div class="cash-locked-body-text">
+      <p>O acesso à ferramenta de Fechamento de Caixa encontra-se temporariamente restrito devido a pendências financeiras referentes à conclusão da etapa anterior de implantação.</p>
+      <p><strong>As funções de produção e o Kanban continuam operando normalmente.</strong> Para liberar o acesso integral ao módulo financeiro, o acerto pendente deve ser regularizado.</p>
+    </div>
+
+    <!-- Rodapé do Card -->
+    <div class="cash-locked-footer-box">
+      Aviso: O administrador da Print deve entrar em contato com o suporte da DevDream para a liberação da licença.
+    </div>
+
+    <!-- Ação de Retorno -->
+    <div class="cash-locked-actions">
+      <a href="{% url 'production:kanban' %}" class="cash-locked-btn-primary">
+        <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
+        <span>Voltar para Produção &amp; Kanban</span>
+      </a>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

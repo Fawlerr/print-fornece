@@ -20,3 +20,21 @@ def require_administrator(user) -> None:
     if not user.is_authenticated or not user.is_administrator:
         raise PermissionDenied("Esta ação exige perfil de administrador.")
 
+
+class DevRequiredMixin(UserPassesTestMixin):
+    """Return a proper 403 instead of silently redirecting unauthorized users."""
+
+    def test_func(self):
+        return bool(self.request.user.is_authenticated and self.request.user.is_dev)
+
+    def handle_no_permission(self):
+        if self.request.user.is_authenticated:
+            raise PermissionDenied("Esta área é restrita aos desenvolvedores.")
+        return super().handle_no_permission()
+
+
+def require_dev(user) -> None:
+    if not user.is_authenticated or not user.is_dev:
+        raise PermissionDenied("Esta ação exige perfil de desenvolvedor.")
+
+

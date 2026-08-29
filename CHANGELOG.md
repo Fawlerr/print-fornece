@@ -4,6 +4,19 @@ Todas as atualizações e correções notáveis do sistema Print Fornece são re
 
 ---
 
+## [29/08/2026] — Bloqueio de Acesso ao Caixa & Restrição Exclusiva de Backups
+
+### 🔒 Segurança & Controle de Acesso
+- **Bloqueio Temporário do Módulo de Fechamento de Caixa:**
+  - Implementação da tela/componente corporativo de bloqueio de acesso ao módulo financeiro de caixa (`/reports/caixa/`, `/reports/cash-register/`, `/reports/fechamento-caixa/`).
+  - Layout corporativo SaaS com fundo contrastante, card centralizado, alertas institucionais claros e aviso de contato de suporte DevDream.
+  - Operação dos módulos de Produção, Pedidos e Kanban 100% mantida e ativa.
+- **Restrição de Acesso ao Módulo de Backups (`/backups/`):**
+  - Permissão e menu lateral de Backups configurados para exibição e execução estritamente exclusivas do perfil **Desenvolvedor** (`is_dev` / `DevRequiredMixin`).
+  - Proteção e bloqueio 403 para administradores não-devs e funcionários operacionais.
+
+---
+
 ## [29/08/2026] — Módulo de Fechamento de Caixa, Uploads em Tempo Real & Monitoramento de Usuários Online
 
 ### ✨ Novas Funcionalidades
