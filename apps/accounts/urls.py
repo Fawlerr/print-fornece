@@ -11,6 +11,7 @@ urlpatterns = [
     path("profile/", views.ProfileView.as_view(), name="profile"),
     path("profile/password/", views.ChangePasswordView.as_view(), name="change_password"),
     path("online-users/", views.OnlineUsersApiView.as_view(), name="online_users"),
+    path("beacon-offline/", views.BeaconOfflineView.as_view(), name="beacon_offline"),
     path("users/", views.UserListView.as_view(), name="user_list"),
     path("users/new/", views.UserCreateView.as_view(), name="user_create"),
     path("users/<int:pk>/edit/", views.UserUpdateView.as_view(), name="user_edit"),

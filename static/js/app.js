@@ -721,10 +721,35 @@
       });
     });
 
-    // Polling contínuo de usuários online
+    // Polling contínuo de usuários online com heartbeat
     if (onlineEndpoint) {
-      fetchOnlineUsers(false);
-      window.setInterval(() => fetchOnlineUsers(false), 20000);
+      fetchOnlineUsers(true);
+      window.setInterval(() => fetchOnlineUsers(true), 20000);
+    }
+
+    // Desconexão imediata ao fechar a aba/navegador (Web Beacon / Pagehide)
+    const beaconEndpoint = body.dataset.beaconOfflineEndpoint;
+    if (beaconEndpoint) {
+      const sendOfflineBeacon = () => {
+        try {
+          const token = csrfToken();
+          const formData = new FormData();
+          if (token) formData.append("csrfmiddlewaretoken", token);
+          if (navigator.sendBeacon) {
+            navigator.sendBeacon(beaconEndpoint, formData);
+          } else {
+            fetch(beaconEndpoint, {
+              method: "POST",
+              body: formData,
+              keepalive: true,
+              credentials: "same-origin",
+            });
+          }
+        } catch (_) {}
+      };
+
+      window.addEventListener("pagehide", sendOfflineBeacon);
+      window.addEventListener("beforeunload", sendOfflineBeacon);
     }
   })();
 })();

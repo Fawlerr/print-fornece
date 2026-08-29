@@ -24,9 +24,11 @@
 <body class="{% block body_class %}{% endblock %}"
       data-kanban-endpoint="{{ kanban_move_url|default:'' }}"
       data-kanban-order-field="{{ kanban_order_field|default:'order_id' }}"
-      data-kanban-stage-field="{{ kanban_stage_field|default:'stage' }}"
       data-notifications-poll-endpoint="{% url 'notifications:poll' %}"
-      {% if user.is_authenticated %}data-online-users-endpoint="{% url 'accounts:online_users' %}"{% endif %}
+      {% if user.is_authenticated %}
+        data-online-users-endpoint="{% url 'accounts:online_users' %}"
+        data-beacon-offline-endpoint="{% url 'accounts:beacon_offline' %}"
+      {% endif %}
       {% block body_attributes %}{% endblock %}>
   {% block page_layout %}
     <div class="app-shell">

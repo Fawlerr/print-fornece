@@ -1522,6 +1522,55 @@ class PrintForneceTestCase(TestCase):
         self.assertIsNone(self.employee.current_login_at)
         self.assertEqual(self.employee.online_duration_seconds, 0)
 
+    def test_beacon_offline_endpoint_clears_online_status_immediately(self):
+        self.client.force_login(self.employee)
+        self.client.get(reverse("production:kanban"))
+        self.employee.refresh_from_db()
+        self.assertTrue(self.employee.is_online)
+
+        # Fechamento de aba envia beacon POST
+        beacon_resp = self.client.post(reverse("accounts:beacon_offline"))
+        self.assertEqual(beacon_resp.status_code, 204)
+
+        self.employee.refresh_from_db()
+        self.assertIsNone(self.employee.current_login_at)
+        self.assertFalse(self.employee.is_online)
+        self.assertEqual(self.employee.online_status, "offline")
+
+    def test_dev_stealth_mode_hidden_from_non_devs(self):
+        dev_user = User.objects.create_user(
+            email="dev_stealth@example.com",
+            name="Desenvolvedor Mestre",
+            password="strong-password",
+            role=User.Role.DEV,
+        )
+        # Ativar sessão do dev
+        self.client.force_login(dev_user)
+        self.client.get(reverse("dashboard:index"))
+        dev_user.refresh_from_db()
+        self.assertTrue(dev_user.is_online)
+
+        # Login como administrador comum: NÃO pode ver o dev na contagem nem na lista
+        self.client.force_login(self.admin)
+        self.client.get(reverse("dashboard:index"))
+        resp = self.client.get(reverse("accounts:online_users"))
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+
+        dev_in_list = any(u["id"] == dev_user.pk for u in data["users"])
+        self.assertFalse(dev_in_list, "Usuário Dev não deve aparecer para administradores ou funcionários")
+
+        # Login como o próprio Dev: consegue ver a si mesmo
+        self.client.force_login(dev_user)
+        resp_dev = self.client.get(reverse("accounts:online_users"))
+        self.assertEqual(resp_dev.status_code, 200)
+        data_dev = resp_dev.json()
+
+        dev_self_item = next((u for u in data_dev["users"] if u["id"] == dev_user.pk), None)
+        self.assertIsNotNone(dev_self_item, "O próprio Dev deve conseguir ver seu status")
+        self.assertTrue(dev_self_item["is_self"])
+
+
 
 
 

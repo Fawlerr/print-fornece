@@ -236,12 +236,20 @@ class OnlineUsersApiView(LoginRequiredMixin, View):
     def get(self, request: HttpRequest, *args, **kwargs) -> JsonResponse:
         now = timezone.now()
 
-        if request.GET.get("heartbeat") == "1":
-            User.objects.filter(pk=request.user.pk).update(last_activity=now)
+        # Heartbeat mantém sessão ativa
+        if request.user.is_authenticated:
+            update_kw = {"last_activity": now}
+            if not request.user.current_login_at:
+                update_kw["current_login_at"] = getattr(request.user, "last_login", None) or now
+            User.objects.filter(pk=request.user.pk).update(**update_kw)
             request.user.last_activity = now
+            if not request.user.current_login_at:
+                request.user.current_login_at = update_kw.get("current_login_at")
 
+        # Stealth Mode: apenas o próprio Dev pode ver usuários Dev online
+        is_dev = getattr(request.user, "is_dev", False)
         users_qs = User.objects.filter(is_active=True).order_by("name")
-        if not getattr(request.user, "is_dev", False):
+        if not is_dev:
             users_qs = users_qs.exclude(role=User.Role.DEV)
 
         users_list = list(users_qs)
@@ -307,4 +315,18 @@ class OnlineUsersApiView(LoginRequiredMixin, View):
 
     def post(self, request: HttpRequest, *args, **kwargs) -> JsonResponse:
         return self.get(request, *args, **kwargs)
+
+
+class BeaconOfflineView(View):
+    """Endpoint triggered by sendBeacon when browser tab is closed/unloaded."""
+
+    def post(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
+        if request.user.is_authenticated:
+            now = timezone.now()
+            User.objects.filter(pk=request.user.pk).update(
+                current_login_at=None,
+                last_activity=now,
+            )
+        return HttpResponse(status=204)
+
 
