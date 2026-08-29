@@ -154,24 +154,24 @@
 
             <td style="padding: 14px 16px; font-size: 0.85rem; color: #cbd5e1;">
               {% if bkp.backup_type == 'full_with_media' %}
-                <span style="display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: 6px; background: rgba(168, 85, 247, 0.15); color: #c084fc; font-size: 0.76rem; font-weight: 600;">
-                  <i class="fa-solid fa-layer-group"></i> Banco + Mídias
+                <span class="badge" style="display: inline-flex; align-items: center; gap: 7px; padding: 4px 9px; border-radius: 6px; background: rgba(168, 85, 247, 0.15); color: #c084fc; font-size: 0.76rem; font-weight: 600; border: 1px solid rgba(168, 85, 247, 0.3);">
+                  <i class="fa-solid fa-layer-group"></i> <span>Banco + Mídias</span>
                 </span>
               {% else %}
-                <span style="display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: 6px; background: rgba(59, 130, 246, 0.15); color: #60a5fa; font-size: 0.76rem; font-weight: 600;">
-                  <i class="fa-solid fa-database"></i> Banco de Dados
+                <span class="badge" style="display: inline-flex; align-items: center; gap: 7px; padding: 4px 9px; border-radius: 6px; background: rgba(59, 130, 246, 0.15); color: #60a5fa; font-size: 0.76rem; font-weight: 600; border: 1px solid rgba(59, 130, 246, 0.3);">
+                  <i class="fa-solid fa-database"></i> <span>Banco de Dados</span>
                 </span>
               {% endif %}
             </td>
 
             <td style="padding: 14px 16px; font-size: 0.85rem; color: #cbd5e1;">
               {% if bkp.trigger_type == 'automatic' %}
-                <span style="display: inline-flex; align-items: center; gap: 5px; color: #34d399; font-size: 0.82rem; font-weight: 500;">
-                  <i class="fa-solid fa-robot"></i> Automático (03:00)
+                <span style="display: inline-flex; align-items: center; gap: 7px; color: #34d399; font-size: 0.82rem; font-weight: 500;">
+                  <i class="fa-solid fa-robot"></i> <span>Automático (03:00)</span>
                 </span>
               {% else %}
-                <span style="display: inline-flex; align-items: center; gap: 5px; color: #fbbf24; font-size: 0.82rem; font-weight: 500;">
-                  <i class="fa-solid fa-user-gear"></i> Manual ({{ bkp.created_by.name|default:bkp.created_by.email|default:"Painel" }})
+                <span style="display: inline-flex; align-items: center; gap: 7px; color: #fbbf24; font-size: 0.82rem; font-weight: 500;">
+                  <i class="fa-solid fa-user-gear"></i> <span>Manual ({{ bkp.created_by.name|default:bkp.created_by.email|default:"Painel" }})</span>
                 </span>
               {% endif %}
             </td>
@@ -186,12 +186,12 @@
 
             <td style="padding: 14px 16px;">
               {% if bkp.status == 'success' %}
-                <span style="display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: 6px; background: rgba(16, 185, 129, 0.15); color: #34d399; font-size: 0.78rem; font-weight: 600;">
-                  <i class="fa-solid fa-check"></i> Sucesso
+                <span class="badge" style="display: inline-flex; align-items: center; gap: 7px; padding: 4px 9px; border-radius: 6px; background: rgba(16, 185, 129, 0.15); color: #34d399; font-size: 0.78rem; font-weight: 600; border: 1px solid rgba(16, 185, 129, 0.3);">
+                  <i class="fa-solid fa-check"></i> <span>Sucesso</span>
                 </span>
               {% else %}
-                <span style="display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: 6px; background: rgba(239, 68, 68, 0.15); color: #f87171; font-size: 0.78rem; font-weight: 600;" title="{{ bkp.error_message }}">
-                  <i class="fa-solid fa-triangle-exclamation"></i> Falha
+                <span class="badge" style="display: inline-flex; align-items: center; gap: 7px; padding: 4px 9px; border-radius: 6px; background: rgba(239, 68, 68, 0.15); color: #f87171; font-size: 0.78rem; font-weight: 600; border: 1px solid rgba(239, 68, 68, 0.3);" title="{{ bkp.error_message }}">
+                  <i class="fa-solid fa-triangle-exclamation"></i> <span>Falha</span>
                 </span>
               {% endif %}
             </td>
@@ -201,8 +201,8 @@
                 
                 {% if bkp.status == 'success' %}
                 <!-- Botão de Download para o Desktop com 1 clique -->
-                <a href="{% url 'backups:download' bkp.pk %}" class="btn btn-primary" style="font-size: 0.8rem; padding: 6px 14px; background: #2563eb; border-color: #1d4ed8; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; font-weight: 600; box-shadow: 0 2px 6px rgba(37, 99, 235, 0.3);" title="Baixar arquivo no computador">
-                  <i class="fa-solid fa-download"></i> Baixar no Desktop
+                <a href="{% url 'backups:download' bkp.pk %}" class="btn btn-primary" style="font-size: 0.8rem; padding: 6px 14px; background: #2563eb; border-color: #1d4ed8; text-decoration: none; display: inline-flex; align-items: center; gap: 7px; font-weight: 600; box-shadow: 0 2px 6px rgba(37, 99, 235, 0.3);" title="Baixar arquivo no computador">
+                  <i class="fa-solid fa-download"></i> <span>Baixar no Desktop</span>
                 </a>
                 {% endif %}
 

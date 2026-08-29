@@ -361,6 +361,26 @@ canvas#finance-chart, canvas#stage-chart {
   }
 }
 
+/* --- Padronização de Espaçamento de Badges e Ícones --- */
+.badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  padding: 4px 9px !important;
+  line-height: 1.2 !important;
+  font-weight: 600 !important;
+}
+
+.badge i {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 0.95em !important;
+  line-height: 1 !important;
+  margin: 0 !important;
+}
+
 /* --- Ferramenta de Usuários Online & Sessões em Tempo Real --- */
 
 .sidebar-online-users-btn {
