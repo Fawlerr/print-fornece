@@ -10,7 +10,7 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from apps.accounts.models import User
+from apps.accounts.models import SystemSetting, User
 from apps.audit.models import AuditEvent
 from apps.expenses.models import Expense
 from apps.notifications.models import Notification
@@ -1445,17 +1445,47 @@ class PrintForneceTestCase(TestCase):
         )
 
         self.client.force_login(self.admin)
+        # 1. Bloqueado (padrão)
+        SystemSetting.objects.update_or_create(key="cash_register", defaults={"name": "Caixa", "is_active": False})
         response = self.client.get(reverse("reports:cash_register"))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Módulo de Caixa Indisponível")
         self.assertContains(response, "pendências financeiras")
         self.assertContains(response, "DevDream")
 
-    def test_cash_register_view_accessible_for_employee(self):
+        # 2. Desbloqueado via SystemSetting
+        SystemSetting.objects.update_or_create(key="cash_register", defaults={"name": "Caixa", "is_active": True})
+        response_unlocked = self.client.get(reverse("reports:cash_register"))
+        self.assertEqual(response_unlocked.status_code, 200)
+        self.assertContains(response_unlocked, "Fechamento de Caixa")
+        self.assertContains(response_unlocked, "R$ 150,00")
+
+    def test_cash_register_view_accessible_for_employee_when_unlocked(self):
+        SystemSetting.objects.update_or_create(key="cash_register", defaults={"name": "Caixa", "is_active": True})
         self.client.force_login(self.employee)
         response = self.client.get(reverse("reports:cash_register"))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Módulo de Caixa Indisponível")
+        self.assertContains(response, "Fechamento de Caixa")
+
+    def test_system_setting_admin_toggle_action(self):
+        self.admin.is_staff = True
+        self.admin.is_superuser = True
+        self.admin.save()
+        self.client.force_login(self.admin)
+
+        setting, _ = SystemSetting.objects.update_or_create(key="cash_register", defaults={"name": "Caixa", "is_active": False})
+        toggle_url = reverse("admin:accounts_systemsetting_toggle", args=[setting.pk])
+        resp = self.client.get(toggle_url, follow=True)
+        self.assertEqual(resp.status_code, 200)
+
+        setting.refresh_from_db()
+        self.assertTrue(setting.is_active, "O toggle deve alternar para True")
+
+        # Segundo toggle: deve voltar para False
+        resp2 = self.client.get(toggle_url, follow=True)
+        self.assertEqual(resp2.status_code, 200)
+        setting.refresh_from_db()
+        self.assertFalse(setting.is_active, "O toggle deve alternar de volta para False")
 
     def test_cash_register_view_unauthenticated_redirects(self):
         self.client.logout()

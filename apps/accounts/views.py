@@ -25,7 +25,7 @@ from .forms import (
     UserCreateForm,
     UserUpdateForm,
 )
-from .models import User
+from .models import SystemSetting, User
 from .permissions import AdministratorRequiredMixin
 
 
@@ -235,7 +235,9 @@ class OnlineUsersApiView(LoginRequiredMixin, View):
 
     def get(self, request: HttpRequest, *args, **kwargs) -> JsonResponse:
         now = timezone.now()
-        can_view_timers = bool(request.user.is_administrator or request.user.is_dev)
+        is_dev = getattr(request.user, "is_dev", False)
+        timers_unlocked_for_all = SystemSetting.is_feature_enabled("online_timers_all", default=False)
+        can_view_timers = bool(timers_unlocked_for_all or request.user.is_administrator or is_dev)
 
         # Heartbeat mantém sessão ativa
         if request.user.is_authenticated:
@@ -250,8 +252,7 @@ class OnlineUsersApiView(LoginRequiredMixin, View):
             User.objects.filter(pk=request.user.pk).update(**update_kw)
             request.user.last_activity = now
 
-        # Stealth Mode: apenas o próprio Dev pode ver usuários Dev online
-        is_dev = getattr(request.user, "is_dev", False)
+        # Stealth Mode: Dev nunca é visível para nenhum usuário comum ou administrador não-dev
         users_qs = User.objects.filter(is_active=True).order_by("name")
         if not is_dev:
             users_qs = users_qs.exclude(role=User.Role.DEV)

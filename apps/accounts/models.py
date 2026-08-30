@@ -134,3 +134,32 @@ class User(AbstractBaseUser, PermissionsMixin):
             self.is_superuser = False
         super().save(*args, **kwargs)
 
+
+class SystemSetting(models.Model):
+    """Global system configuration and feature locks."""
+    key = models.CharField("chave de sistema", max_length=50, unique=True)
+    name = models.CharField("nome da funcionalidade", max_length=100)
+    is_active = models.BooleanField("desbloqueado / ativo", default=True, help_text="Se marcado, a funcionalidade estará liberada para uso normal.")
+    description = models.TextField("descrição / observação", blank=True, default="")
+    updated_at = models.DateTimeField("atualizado em", auto_now=True)
+
+    class Meta:
+        db_table = "pf_system_settings"
+        ordering = ["name"]
+        verbose_name = "Controle de Funcionalidade"
+        verbose_name_plural = "Controle de Funcionalidades & Bloqueios"
+
+    def __str__(self) -> str:
+        status = "LIBERADO" if self.is_active else "BLOQUEADO"
+        return f"{self.name} [{status}]"
+
+    @classmethod
+    def is_feature_enabled(cls, key: str, default: bool = True) -> bool:
+        try:
+            setting = cls.objects.filter(key=key).first()
+            if setting is not None:
+                return setting.is_active
+        except Exception:
+            pass
+        return default
+
