@@ -6,9 +6,11 @@ from collections import defaultdict
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 
+from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Prefetch, Q, Sum
 from django.http import HttpResponse
+from django.shortcuts import redirect
 from django.utils import timezone
 from django.views.generic import TemplateView
 
@@ -454,3 +456,196 @@ class CashRegisterReportView(LoginRequiredMixin, TemplateView):
                 resp_name
             ])
         return response
+
+
+class CashRegisterBetaView(LoginRequiredMixin, TemplateView):
+    template_name = "reports/cash_register_beta.html"
+
+    def _get_session_data(self):
+        default_data = {
+            "status": "fechado",  # 'fechado', 'aberto', 'encerrado'
+            "abertura": None,
+            "movimentacoes": [],
+            "fechamento": None,
+        }
+        return self.request.session.get("caixa_beta", default_data)
+
+    def _save_session_data(self, data):
+        self.request.session["caixa_beta"] = data
+        self.request.session.modified = True
+
+    def post(self, request, *args, **kwargs):
+        action = request.POST.get("action", "").strip()
+        data = self._get_session_data()
+        now_str = timezone.localtime().strftime("%d/%m/%Y às %H:%M")
+        user_name = request.user.name or request.user.email
+
+        if action == "abrir":
+            raw_val = request.POST.get("fundo_inicial", "100,00").replace(".", "").replace(",", ".").strip()
+            try:
+                fundo = max(float(raw_val), 0.0)
+            except ValueError:
+                fundo = 100.00
+            data["status"] = "aberto"
+            data["abertura"] = {
+                "fundo_inicial": fundo,
+                "horario": now_str,
+                "operador": user_name,
+            }
+            data["movimentacoes"] = []
+            data["fechamento"] = None
+            self._save_session_data(data)
+            messages.success(request, f"Caixa aberto com sucesso com fundo de troco de R$ {fundo:.2f}!")
+
+        elif action == "sangria":
+            raw_val = request.POST.get("valor", "").replace(".", "").replace(",", ".").strip()
+            motivo = request.POST.get("motivo", "Retirada de caixa (Sangria)").strip()
+            try:
+                val = max(float(raw_val), 0.0)
+                if val > 0:
+                    data["movimentacoes"].append({
+                        "tipo": "sangria",
+                        "valor": val,
+                        "motivo": motivo,
+                        "horario": timezone.localtime().strftime("%H:%M"),
+                        "operador": user_name,
+                    })
+                    self._save_session_data(data)
+                    messages.success(request, f"Sangria de R$ {val:.2f} registrada com sucesso!")
+            except ValueError:
+                messages.error(request, "Valor inválido para sangria.")
+
+        elif action == "suprimento":
+            raw_val = request.POST.get("valor", "").replace(".", "").replace(",", ".").strip()
+            motivo = request.POST.get("motivo", "Reforço de troco (Suprimento)").strip()
+            try:
+                val = max(float(raw_val), 0.0)
+                if val > 0:
+                    data["movimentacoes"].append({
+                        "tipo": "suprimento",
+                        "valor": val,
+                        "motivo": motivo,
+                        "horario": timezone.localtime().strftime("%H:%M"),
+                        "operador": user_name,
+                    })
+                    self._save_session_data(data)
+                    messages.success(request, f"Suprimento de R$ {val:.2f} adicionado à gaveta!")
+            except ValueError:
+                messages.error(request, "Valor inválido para suprimento.")
+
+        elif action == "fechar":
+            raw_val = request.POST.get("dinheiro_informado", "0").replace(".", "").replace(",", ".").strip()
+            try:
+                informado = float(raw_val)
+            except ValueError:
+                informado = 0.0
+
+            # Calcular esperado
+            today = timezone.localdate()
+            start_dt = timezone.make_aware(datetime.combine(today, time.min))
+            end_dt = timezone.make_aware(datetime.combine(today, time.max))
+            orders_today = Order.objects.filter(
+                (
+                    Q(payment_confirmed_at__gte=start_dt, payment_confirmed_at__lte=end_dt) |
+                    Q(payment_confirmed_at__isnull=True, created_at__gte=start_dt, created_at__lte=end_dt, paid_amount__gt=Decimal("0.00"))
+                ) & ~Q(stage=Order.Stage.CANCELLED)
+            )
+            dinheiro_vendas = sum(float(o.paid_amount) for o in orders_today if o.payment_method == Order.PaymentMethod.CASH)
+            fundo = data.get("abertura", {}).get("fundo_inicial", 0.0)
+            total_sangrias = sum(m["valor"] for m in data.get("movimentacoes", []) if m["tipo"] == "sangria")
+            total_suprimentos = sum(m["valor"] for m in data.get("movimentacoes", []) if m["tipo"] == "suprimento")
+            esperado = fundo + dinheiro_vendas + total_suprimentos - total_sangrias
+            dif = informado - esperado
+
+            status_dif = "exato"
+            if dif > 0.01:
+                status_dif = "sobra"
+            elif dif < -0.01:
+                status_dif = "falta"
+
+            data["status"] = "encerrado"
+            data["fechamento"] = {
+                "horario": now_str,
+                "operador": user_name,
+                "dinheiro_informado": informado,
+                "dinheiro_esperado": esperado,
+                "diferenca": dif,
+                "status_diferenca": status_dif,
+            }
+            self._save_session_data(data)
+            messages.success(request, "Fechamento de caixa concluído com sucesso!")
+
+        elif action in ("reset", "reabrir"):
+            self.request.session["caixa_beta"] = {
+                "status": "fechado",
+                "abertura": None,
+                "movimentacoes": [],
+                "fechamento": None,
+            }
+            self.request.session.modified = True
+            messages.info(request, "Demonstração do caixa reiniciada. Pronto para uma nova abertura!")
+
+        return redirect("reports:cash_register_beta")
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        session_data = self._get_session_data()
+        today = timezone.localdate()
+        start_dt = timezone.make_aware(datetime.combine(today, time.min))
+        end_dt = timezone.make_aware(datetime.combine(today, time.max))
+
+        orders = Order.objects.filter(
+            (
+                Q(payment_confirmed_at__gte=start_dt, payment_confirmed_at__lte=end_dt) |
+                Q(payment_confirmed_at__isnull=True, created_at__gte=start_dt, created_at__lte=end_dt, paid_amount__gt=Decimal("0.00"))
+            ) & ~Q(stage=Order.Stage.CANCELLED)
+        ).select_related("responsible", "created_by").order_by("-payment_confirmed_at", "-created_at")
+
+        # Totais de vendas reais do dia
+        vendas = {
+            "pix": Decimal("0.00"),
+            "cartao_credito": Decimal("0.00"),
+            "cartao_debito": Decimal("0.00"),
+            "dinheiro": Decimal("0.00"),
+            "outros": Decimal("0.00"),
+            "total": Decimal("0.00"),
+            "qtd_pedidos": len(orders),
+        }
+        for o in orders:
+            paid = o.paid_amount or Decimal("0.00")
+            vendas["total"] += paid
+            if o.payment_method == Order.PaymentMethod.PIX:
+                vendas["pix"] += paid
+            elif o.payment_method == Order.PaymentMethod.CREDIT_CARD:
+                vendas["cartao_credito"] += paid
+            elif o.payment_method == Order.PaymentMethod.DEBIT_CARD:
+                vendas["cartao_debito"] += paid
+            elif o.payment_method == Order.PaymentMethod.CASH:
+                vendas["dinheiro"] += paid
+            else:
+                vendas["outros"] += paid
+
+        # Totais de movimentações do caixa na sessão
+        fundo_inicial = float(session_data.get("abertura", {}).get("fundo_inicial", 0.0) if session_data.get("abertura") else 0.0)
+        movimentacoes = session_data.get("movimentacoes", [])
+        total_sangrias = sum(m["valor"] for m in movimentacoes if m["tipo"] == "sangria")
+        total_suprimentos = sum(m["valor"] for m in movimentacoes if m["tipo"] == "suprimento")
+        dinheiro_vendas_float = float(vendas["dinheiro"])
+        saldo_gaveta_esperado = fundo_inicial + dinheiro_vendas_float + total_suprimentos - total_sangrias
+
+        context.update({
+            "session_caixa": session_data,
+            "status_caixa": session_data.get("status", "fechado"),
+            "abertura": session_data.get("abertura"),
+            "movimentacoes": movimentacoes,
+            "fechamento": session_data.get("fechamento"),
+            "fundo_inicial": fundo_inicial,
+            "total_sangrias": total_sangrias,
+            "total_suprimentos": total_suprimentos,
+            "saldo_gaveta_esperado": saldo_gaveta_esperado,
+            "vendas": vendas,
+            "orders": orders,
+            "today_display": today.strftime("%d/%m/%Y"),
+            "is_beta": True,
+        })
+        return context

@@ -1584,7 +1584,50 @@ class PrintForneceTestCase(TestCase):
         self.assertIsNotNone(dev_self_item, "O próprio Dev deve conseguir ver seu status")
         self.assertTrue(dev_self_item["is_self"])
 
+    def test_cash_register_beta_flow_opening_sangria_suprimento_closing(self):
+        self.client.force_login(self.admin)
+        url = reverse("reports:cash_register_beta")
+        
+        # 1. Acesso inicial com caixa fechado
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Abertura de Caixa")
 
+        # 2. Abertura do caixa com fundo de R$ 150,00
+        post_open = self.client.post(url, {"action": "abrir", "fundo_inicial": "150,00"})
+        self.assertEqual(post_open.status_code, 302)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Caixa Aberto")
+
+        # 3. Registro de sangria de R$ 30,00
+        post_sangria = self.client.post(url, {"action": "sangria", "valor": "30,00", "motivo": "Pagamento motoboy"})
+        self.assertEqual(post_sangria.status_code, 302)
+
+        # 4. Registro de suprimento de R$ 50,00
+        post_suprimento = self.client.post(url, {"action": "suprimento", "valor": "50,00", "motivo": "Reforço moedas"})
+        self.assertEqual(post_suprimento.status_code, 302)
+
+        # 5. Fechamento de caixa com contagem física exata (150 + 50 - 30 = 170)
+        post_close = self.client.post(url, {"action": "fechar", "dinheiro_informado": "170,00"})
+        self.assertEqual(post_close.status_code, 302)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Comprovante de Fechamento de Caixa")
+        self.assertContains(response, "Exato")
+
+        # 6. Reset da demonstração
+        post_reset = self.client.post(url, {"action": "reset"})
+        self.assertEqual(post_reset.status_code, 302)
+        response = self.client.get(url)
+        self.assertContains(response, "Abertura de Caixa")
+
+    def test_cash_register_beta_root_urls(self):
+        self.client.force_login(self.admin)
+        res1 = self.client.get("/caixa/beta/")
+        self.assertEqual(res1.status_code, 200)
+        res2 = self.client.get("/cash-register/beta/")
+        self.assertEqual(res2.status_code, 200)
 
 
 

@@ -1,0 +1,559 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Caixa Completo (BETA) | Print Fornece{% endblock %}
+{% block page_heading %}Caixa Completo (Demonstração BETA){% endblock %}
+
+{% block content %}
+<section class="section" style="max-width: 1200px; margin: 0 auto;">
+
+  <!-- Alerta de Ambiente de Testes / Demonstração (Oculto na Impressão) -->
+  <div class="no-print" style="margin-bottom: 20px; background: linear-gradient(135deg, rgba(37, 99, 235, 0.15), rgba(168, 85, 247, 0.15)); border: 1px solid rgba(168, 85, 247, 0.35); border-radius: 12px; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+    <div>
+      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
+        <span class="badge" style="background: #a855f7; color: #fff; font-weight: 700; text-transform: uppercase; font-size: 0.72rem; letter-spacing: 0.05em; padding: 3px 8px; border-radius: 4px;">
+          🚀 Modo Demonstração (BETA)
+        </span>
+        <strong style="color: #f8fafc; font-size: 0.95rem;">Prévia do Caixa com Abertura, Sangrias e Conferência</strong>
+      </div>
+      <p style="margin: 0; color: #cbd5e1; font-size: 0.85rem;">
+        Esta tela é 100% interativa para a sua reunião. As movimentações registradas aqui funcionam em modo de simulação segura e <strong>não alteram o banco de dados oficial</strong>.
+      </p>
+    </div>
+
+    <div style="display: flex; gap: 10px; align-items: center;">
+      <a href="{% url 'reports:cash_register' %}" class="btn btn-secondary btn-small" style="font-weight: 600;">
+        <i class="fa-solid fa-arrow-left"></i> Ir para o Caixa Oficial
+      </a>
+      <form method="post" style="margin: 0;" onsubmit="return confirm('Deseja reiniciar a demonstração do caixa do zero?');">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="reset">
+        <button type="submit" class="btn btn-secondary btn-small" style="background: rgba(239, 68, 68, 0.15); color: #f87171; border-color: rgba(239, 68, 68, 0.3);">
+          <i class="fa-solid fa-rotate-left"></i> Resetar Demonstração
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ESTADO 1: CAIXA FECHADO - NECESSITA ABERTURA -->
+  {% if status_caixa == 'fechado' %}
+  <div class="card" style="max-width: 620px; margin: 40px auto; padding: 32px; background: var(--surface, #1e293b); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); text-align: center;">
+    
+    <div style="width: 72px; height: 72px; border-radius: 50%; background: rgba(56, 189, 248, 0.12); border: 2px solid #38bdf8; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px auto;">
+      <i class="fa-solid fa-cash-register" style="font-size: 2rem; color: #38bdf8;"></i>
+    </div>
+
+    <h2 style="font-size: 1.4rem; font-weight: 800; color: #fff; margin-bottom: 8px;">
+      Abertura de Caixa
+    </h2>
+    <p style="color: #94a3b8; font-size: 0.9rem; margin-bottom: 24px;">
+      O caixa encontra-se <strong>fechado</strong> no momento. Informe o fundo de troco inicial para abrir o turno de atendimento.
+    </p>
+
+    <form method="post" style="text-align: left;">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="abrir">
+
+      <div style="margin-bottom: 18px;">
+        <label style="display: block; font-size: 0.85rem; font-weight: 600; color: #cbd5e1; margin-bottom: 6px;">
+          Operador Responsável:
+        </label>
+        <input type="text" value="{{ request.user.name|default:request.user.email }}" readonly style="width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.12); background: rgba(0,0,0,0.3); color: #94a3b8; font-size: 0.92rem;">
+      </div>
+
+      <div style="margin-bottom: 24px;">
+        <label for="id_fundo_inicial" style="display: block; font-size: 0.85rem; font-weight: 600; color: #cbd5e1; margin-bottom: 6px;">
+          Fundo de Troco Inicial na Gaveta (R$):
+        </label>
+        <div style="position: relative;">
+          <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #38bdf8; font-weight: 700; font-size: 1rem;">R$</span>
+          <input type="text" id="id_fundo_inicial" name="fundo_inicial" value="150,00" required autofocus style="width: 100%; padding: 10px 12px 10px 42px; border-radius: 8px; border: 1px solid rgba(56, 189, 248, 0.4); background: rgba(0,0,0,0.4); color: #fff; font-size: 1.15rem; font-weight: 700;">
+        </div>
+        <small style="color: #94a3b8; font-size: 0.78rem; display: block; margin-top: 4px;">Valor em notas/moedas disponível no início do turno para troco.</small>
+      </div>
+
+      <button type="submit" class="btn btn-primary" style="width: 100%; padding: 12px; font-size: 1rem; font-weight: 700; background: #22c55e; border-color: #16a34a; display: flex; align-items: center; justify-content: center; gap: 10px;">
+        <i class="fa-solid fa-lock-open"></i> Abrir Caixa e Iniciar Turno
+      </button>
+    </form>
+  </div>
+  {% endif %}
+
+  <!-- ESTADO 2: CAIXA ABERTO -->
+  {% if status_caixa == 'aberto' %}
+  
+  <!-- Barra de Informações do Caixa Aberto -->
+  <div class="card" style="margin-bottom: 24px; padding: 18px 24px; background: rgba(34, 197, 94, 0.07); border: 1px solid rgba(34, 197, 94, 0.35); border-radius: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+    <div>
+      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
+        <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 10px #22c55e;"></span>
+        <strong style="color: #22c55e; font-size: 1.1rem; text-transform: uppercase; letter-spacing: 0.05em;">Caixa Aberto</strong>
+        <span style="color: #94a3b8; font-size: 0.85rem;">(Turno em andamento)</span>
+      </div>
+      <p style="margin: 0; color: #cbd5e1; font-size: 0.88rem;">
+        Aberto por: <strong>{{ abertura.operador }}</strong> | Início: <strong>{{ abertura.horario }}</strong>
+      </p>
+    </div>
+
+    <!-- Botões de Ações Rápidas do Caixa -->
+    <div class="no-print" style="display: flex; gap: 10px; flex-wrap: wrap;">
+      <button type="button" onclick="document.getElementById('modal-sangria').style.display='flex'" class="btn btn-secondary" style="background: rgba(239, 68, 68, 0.15); color: #f87171; border-color: rgba(239, 68, 68, 0.35); font-weight: 600;">
+        <i class="fa-solid fa-arrow-up-from-bracket"></i> Nova Sangria (Retirada)
+      </button>
+      <button type="button" onclick="document.getElementById('modal-suprimento').style.display='flex'" class="btn btn-secondary" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border-color: rgba(56, 189, 248, 0.35); font-weight: 600;">
+        <i class="fa-solid fa-arrow-down-to-bracket"></i> Novo Suprimento (Reforço)
+      </button>
+      <button type="button" onclick="document.getElementById('modal-fechar').style.display='flex'" class="btn btn-primary" style="background: #e11d48; border-color: #be123c; font-weight: 700;">
+        <i class="fa-solid fa-lock"></i> Fechar Caixa
+      </button>
+    </div>
+  </div>
+
+  <!-- Grade de KPIs da Gaveta e Meios de Pagamento -->
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px;">
+    
+    <!-- Fundo de Troco -->
+    <div class="card" style="padding: 16px 20px; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 10px;">
+      <span style="font-size: 0.8rem; text-transform: uppercase; font-weight: 700; color: #94a3b8; display: block; margin-bottom: 4px;">
+        <i class="fa-solid fa-coins"></i> Fundo de Troco Inicial
+      </span>
+      <div style="font-size: 1.4rem; font-weight: 800; color: #fff;">
+        R$ {{ fundo_inicial|floatformat:2 }}
+      </div>
+      <small style="color: #94a3b8; font-size: 0.78rem;">Valor informado na abertura</small>
+    </div>
+
+    <!-- Saldo Esperado na Gaveta Física -->
+    <div class="card" style="padding: 16px 20px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 10px;">
+      <span style="font-size: 0.8rem; text-transform: uppercase; font-weight: 700; color: #38bdf8; display: block; margin-bottom: 4px;">
+        <i class="fa-solid fa-vault"></i> Saldo Esperado na Gaveta
+      </span>
+      <div style="font-size: 1.4rem; font-weight: 800; color: #38bdf8;">
+        R$ {{ saldo_gaveta_esperado|floatformat:2 }}
+      </div>
+      <small style="color: #cbd5e1; font-size: 0.75rem;">
+        Fundo (+{{ fundo_inicial|floatformat:0 }}) + Vendas (+{{ vendas.dinheiro|floatformat:0 }}) + Suprim. (+{{ total_suprimentos|floatformat:0 }}) - Sangrias (-{{ total_sangrias|floatformat:0 }})
+      </small>
+    </div>
+
+    <!-- Total PIX -->
+    <div class="card" style="padding: 16px 20px; background: rgba(168, 85, 247, 0.08); border: 1px solid rgba(168, 85, 247, 0.3); border-radius: 10px;">
+      <span style="font-size: 0.8rem; text-transform: uppercase; font-weight: 700; color: #c084fc; display: block; margin-bottom: 4px;">
+        <i class="fa-brands fa-pix"></i> Total PIX (Banco)
+      </span>
+      <div style="font-size: 1.4rem; font-weight: 800; color: #c084fc;">
+        R$ {{ vendas.pix|floatformat:2 }}
+      </div>
+      <small style="color: #94a3b8; font-size: 0.78rem;">Entradas diretas na conta</small>
+    </div>
+
+    <!-- Total Cartões -->
+    <div class="card" style="padding: 16px 20px; background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 10px;">
+      <span style="font-size: 0.8rem; text-transform: uppercase; font-weight: 700; color: #60a5fa; display: block; margin-bottom: 4px;">
+        <i class="fa-solid fa-credit-card"></i> Cartões (Crédito / Débito)
+      </span>
+      <div style="font-size: 1.4rem; font-weight: 800; color: #60a5fa;">
+        R$ {{ vendas.cartao_credito|add:vendas.cartao_debito|floatformat:2 }}
+      </div>
+      <small style="color: #94a3b8; font-size: 0.78rem;">Crédito: R$ {{ vendas.cartao_credito|floatformat:2 }} | Débito: R$ {{ vendas.cartao_debito|floatformat:2 }}</small>
+    </div>
+
+    <!-- Total Geral Recebido -->
+    <div class="card" style="padding: 16px 20px; background: rgba(34, 197, 94, 0.08); border: 1px solid rgba(34, 197, 94, 0.3); border-radius: 10px;">
+      <span style="font-size: 0.8rem; text-transform: uppercase; font-weight: 700; color: #4ade80; display: block; margin-bottom: 4px;">
+        <i class="fa-solid fa-chart-line"></i> Total Recebido no Turno
+      </span>
+      <div style="font-size: 1.4rem; font-weight: 800; color: #22c55e;">
+        R$ {{ vendas.total|floatformat:2 }}
+      </div>
+      <small style="color: #94a3b8; font-size: 0.78rem;">{{ vendas.qtd_pedidos }} pedido(s) atendido(s)</small>
+    </div>
+
+  </div>
+
+  <!-- Tabela de Movimentações Registradas no Turno (Sangrias e Suprimentos) -->
+  <div class="card" style="margin-bottom: 28px; padding: 20px; background: var(--surface, #1e293b); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+      <h3 style="font-size: 1.05rem; font-weight: 700; color: #fff; margin: 0; display: flex; align-items: center; gap: 8px;">
+        <i class="fa-solid fa-list-ol" style="color: #38bdf8;"></i> Movimentações Avulsas de Gaveta (Sangrias & Suprimentos)
+      </h3>
+      <span style="color: #94a3b8; font-size: 0.82rem;">{{ movimentacoes|length }} lançamento(s) na sessão</span>
+    </div>
+
+    {% if movimentacoes %}
+    <div class="table-responsive" style="overflow-x: auto;">
+      <table class="table" style="width: 100%; border-collapse: collapse;">
+        <thead>
+          <tr style="border-bottom: 1px solid rgba(255,255,255,0.15); text-align: left; font-size: 0.82rem; color: #94a3b8; text-transform: uppercase;">
+            <th style="padding: 8px;">Horário</th>
+            <th style="padding: 8px;">Tipo</th>
+            <th style="padding: 8px;">Motivo / Justificativa</th>
+            <th style="padding: 8px;">Responsável</th>
+            <th style="padding: 8px; text-align: right;">Valor</th>
+          </tr>
+        </thead>
+        <tbody style="font-size: 0.88rem;">
+          {% for m in movimentacoes %}
+          <tr style="border-bottom: 1px solid rgba(255,255,255,0.06);">
+            <td style="padding: 8px; color: #94a3b8;">{{ m.horario }}</td>
+            <td style="padding: 8px;">
+              {% if m.tipo == 'sangria' %}
+                <span class="badge" style="background: rgba(239, 68, 68, 0.2); color: #f87171; font-weight: 700;">
+                  <i class="fa-solid fa-arrow-up"></i> SANGRIA (Retirada)
+                </span>
+              {% else %}
+                <span class="badge" style="background: rgba(56, 189, 248, 0.2); color: #38bdf8; font-weight: 700;">
+                  <i class="fa-solid fa-arrow-down"></i> SUPRIMENTO (Reforço)
+                </span>
+              {% endif %}
+            </td>
+            <td style="padding: 8px; color: #f8fafc; font-weight: 600;">{{ m.motivo }}</td>
+            <td style="padding: 8px; color: #94a3b8; font-size: 0.82rem;">{{ m.operador }}</td>
+            <td style="padding: 8px; text-align: right; font-weight: 700; color: {% if m.tipo == 'sangria' %}#f87171{% else %}#38bdf8{% endif %};">
+              {% if m.tipo == 'sangria' %}-{% else %}+{% endif %}R$ {{ m.valor|floatformat:2 }}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div style="padding: 24px; text-align: center; color: #94a3b8; background: rgba(0,0,0,0.2); border-radius: 8px;">
+      Nenhuma sangria ou suprimento lançado ainda neste turno. Use os botões acima para simular retiradas e reforços.
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Tabela de Pedidos Recebidos no Turno -->
+  <div class="card" style="margin-bottom: 28px; padding: 20px; background: var(--surface, #1e293b); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+      <h3 style="font-size: 1.05rem; font-weight: 700; color: #fff; margin: 0; display: flex; align-items: center; gap: 8px;">
+        <i class="fa-solid fa-cart-shopping" style="color: #22c55e;"></i> Vendas & Recebimentos Integrados do Dia ({{ orders|length }})
+      </h3>
+      <strong style="color: #22c55e; font-size: 1.05rem;">Total Vendas: R$ {{ vendas.total|floatformat:2 }}</strong>
+    </div>
+
+    <div class="table-responsive" style="overflow-x: auto;">
+      <table class="table" style="width: 100%; border-collapse: collapse;">
+        <thead>
+          <tr style="border-bottom: 1px solid rgba(255,255,255,0.15); text-align: left; font-size: 0.82rem; color: #94a3b8; text-transform: uppercase;">
+            <th style="padding: 8px;">Horário</th>
+            <th style="padding: 8px;">Pedido</th>
+            <th style="padding: 8px;">Cliente</th>
+            <th style="padding: 8px;">Forma Pagto</th>
+            <th style="padding: 8px; text-align: right;">Valor Pago</th>
+            <th style="padding: 8px;">Situação</th>
+          </tr>
+        </thead>
+        <tbody style="font-size: 0.88rem;">
+          {% for o in orders %}
+          <tr style="border-bottom: 1px solid rgba(255,255,255,0.06);">
+            <td style="padding: 8px; color: #94a3b8;">
+              {% if o.payment_confirmed_at %}{{ o.payment_confirmed_at|date:"H:i" }}{% else %}{{ o.created_at|date:"H:i" }}{% endif %}
+            </td>
+            <td style="padding: 8px; font-weight: 700;">
+              <a href="{% url 'production:detail' pk=o.pk %}" target="_blank" style="color: #38bdf8; text-decoration: none;">#{{ o.number }}</a>
+            </td>
+            <td style="padding: 8px; color: #f8fafc; font-weight: 600;">{{ o.client_name }}</td>
+            <td style="padding: 8px;">
+              {% if o.payment_method == "pix" %}
+                <span class="badge" style="background: rgba(34,197,94,0.2); color: #22c55e;">PIX</span>
+              {% elif o.payment_method == "cartao_credito" %}
+                <span class="badge" style="background: rgba(56,189,248,0.2); color: #38bdf8;">Crédito</span>
+              {% elif o.payment_method == "cartao_debito" %}
+                <span class="badge" style="background: rgba(129,140,248,0.2); color: #818cf8;">Débito</span>
+              {% elif o.payment_method == "dinheiro" %}
+                <span class="badge" style="background: rgba(52,211,153,0.2); color: #34d399;">Dinheiro</span>
+              {% else %}
+                <span class="badge" style="background: rgba(255,255,255,0.1); color: #cbd5e1;">{{ o.get_payment_method_display }}</span>
+              {% endif %}
+            </td>
+            <td style="padding: 8px; text-align: right; font-weight: 700; color: #22c55e;">
+              R$ {{ o.paid_amount|floatformat:2 }}
+            </td>
+            <td style="padding: 8px;">
+              {% if o.payment_status == "pago" %}
+                <span class="badge" style="background: rgba(34,197,94,0.2); color: #22c55e; font-size: 0.72rem;">Pago</span>
+              {% else %}
+                <span class="badge" style="background: rgba(234,179,8,0.2); color: #eab308; font-size: 0.72rem;">Parcial</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="6" style="padding: 20px; text-align: center; color: #94a3b8;">
+              Nenhuma venda registrada na data de hoje.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  {% endif %}
+
+  <!-- ESTADO 3: CAIXA FECHADO / CONFERÊNCIA CONCLUÍDA -->
+  {% if status_caixa == 'encerrado' %}
+  <div class="card" style="margin-bottom: 24px; padding: 24px; background: var(--surface, #1e293b); border: 2px solid {% if fechamento.status_diferenca == 'exato' %}#22c55e{% elif fechamento.status_diferenca == 'sobra' %}#38bdf8{% else %}#ef4444{% endif %}; border-radius: 14px;">
+    
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 14px; margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 14px;">
+      <div>
+        <span style="font-size: 0.8rem; text-transform: uppercase; font-weight: 700; color: #94a3b8; letter-spacing: 0.05em;">Demonstrativo Final</span>
+        <h2 style="font-size: 1.5rem; font-weight: 800; color: #fff; margin: 4px 0 2px 0;">
+          Comprovante de Fechamento de Caixa
+        </h2>
+        <p style="margin: 0; color: #cbd5e1; font-size: 0.88rem;">
+          Turno encerrado em: <strong>{{ fechamento.horario }}</strong> | Operador: <strong>{{ fechamento.operador }}</strong>
+        </p>
+      </div>
+
+      <div class="no-print" style="display: flex; gap: 10px;">
+        <button type="button" onclick="window.print()" class="btn btn-secondary" style="font-weight: 600;">
+          <i class="fa-solid fa-print"></i> Imprimir Comprovante
+        </button>
+        <form method="post" style="margin: 0;">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="reabrir">
+          <button type="submit" class="btn btn-primary" style="background: #2563eb; border-color: #1d4ed8; font-weight: 700;">
+            <i class="fa-solid fa-rotate"></i> Iniciar Novo Turno
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Comparativo de Conferência da Gaveta -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-bottom: 24px;">
+      
+      <div style="background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 16px;">
+        <span style="font-size: 0.8rem; text-transform: uppercase; color: #94a3b8; font-weight: 700; display: block; margin-bottom: 4px;">Saldo Esperado (Sistema)</span>
+        <div style="font-size: 1.6rem; font-weight: 800; color: #fff;">
+          R$ {{ fechamento.dinheiro_esperado|floatformat:2 }}
+        </div>
+        <small style="color: #94a3b8; font-size: 0.78rem;">Fundo + Vendas Espécie + Suprimentos - Sangrias</small>
+      </div>
+
+      <div style="background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 16px;">
+        <span style="font-size: 0.8rem; text-transform: uppercase; color: #38bdf8; font-weight: 700; display: block; margin-bottom: 4px;">Dinheiro Contado (Operador)</span>
+        <div style="font-size: 1.6rem; font-weight: 800; color: #38bdf8;">
+          R$ {{ fechamento.dinheiro_informado|floatformat:2 }}
+        </div>
+        <small style="color: #94a3b8; font-size: 0.78rem;">Valor apurado fisicamente na gaveta</small>
+      </div>
+
+      <div style="background: rgba(0,0,0,0.25); border: 1px solid {% if fechamento.status_diferenca == 'exato' %}rgba(34,197,94,0.4){% elif fechamento.status_diferenca == 'sobra' %}rgba(56,189,248,0.4){% else %}rgba(239,68,68,0.4){% endif %}; border-radius: 10px; padding: 16px;">
+        <span style="font-size: 0.8rem; text-transform: uppercase; color: {% if fechamento.status_diferenca == 'exato' %}#4ade80{% elif fechamento.status_diferenca == 'sobra' %}#38bdf8{% else %}#f87171{% endif %}; font-weight: 700; display: block; margin-bottom: 4px;">
+          Resultado da Conferência
+        </span>
+        <div style="font-size: 1.6rem; font-weight: 800; color: {% if fechamento.status_diferenca == 'exato' %}#22c55e{% elif fechamento.status_diferenca == 'sobra' %}#38bdf8{% else %}#ef4444{% endif %};">
+          {% if fechamento.status_diferenca == 'exato' %}
+            R$ 0,00 (Exato)
+          {% elif fechamento.status_diferenca == 'sobra' %}
+            +R$ {{ fechamento.diferenca|floatformat:2 }} (Sobra)
+          {% else %}
+            R$ {{ fechamento.diferenca|floatformat:2 }} (Falta)
+          {% endif %}
+        </div>
+        <small style="color: #cbd5e1; font-size: 0.78rem;">
+          {% if fechamento.status_diferenca == 'exato' %}
+            Caixa bateu centavo por centavo sem divergências.
+          {% elif fechamento.status_diferenca == 'sobra' %}
+            Há mais dinheiro na gaveta do que o registrado.
+          {% else %}
+            Falta dinheiro na gaveta em relação ao registrado.
+          {% endif %}
+        </small>
+      </div>
+
+    </div>
+
+    <!-- Resumo dos Valores Totais do Turno -->
+    <div style="background: rgba(0,0,0,0.2); border-radius: 10px; padding: 18px; margin-bottom: 24px;">
+      <h4 style="font-size: 0.95rem; font-weight: 700; color: #fff; margin-bottom: 12px; text-transform: uppercase;">
+        Resumo Consolidado do Turno
+      </h4>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; font-size: 0.9rem;">
+        <div>Fundo de Troco Inicial: <strong>R$ {{ fundo_inicial|floatformat:2 }}</strong></div>
+        <div>Vendas em Dinheiro: <strong style="color: #22c55e;">+R$ {{ vendas.dinheiro|floatformat:2 }}</strong></div>
+        <div>Suprimentos (Reforços): <strong style="color: #38bdf8;">+R$ {{ total_suprimentos|floatformat:2 }}</strong></div>
+        <div>Sangrias (Retiradas): <strong style="color: #ef4444;">-R$ {{ total_sangrias|floatformat:2 }}</strong></div>
+        <div>Vendas via PIX: <strong style="color: #c084fc;">R$ {{ vendas.pix|floatformat:2 }}</strong></div>
+        <div>Vendas em Cartões: <strong style="color: #60a5fa;">R$ {{ vendas.cartao_credito|add:vendas.cartao_debito|floatformat:2 }}</strong></div>
+        <div style="grid-column: 1 / -1; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 8px; font-size: 1rem; color: #fff;">
+          <strong>Total Geral Faturado no Turno: R$ {{ vendas.total|floatformat:2 }}</strong> ({{ vendas.qtd_pedidos }} pedidos)
+        </div>
+      </div>
+    </div>
+
+    <!-- Quadro de Assinaturas para Impressão -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 24px; padding-top: 12px; page-break-inside: avoid;">
+      <div style="text-align: center;">
+        <div style="border-top: 1px solid rgba(255,255,255,0.4); margin-bottom: 6px; padding-top: 6px;"></div>
+        <strong style="color: #f8fafc; font-size: 0.88rem; display: block;">{{ fechamento.operador }}</strong>
+        <small style="color: #94a3b8; font-size: 0.75rem;">Operador de Caixa (Assinatura)</small>
+      </div>
+
+      <div style="text-align: center;">
+        <div style="border-top: 1px solid rgba(255,255,255,0.4); margin-bottom: 6px; padding-top: 6px;"></div>
+        <strong style="color: #f8fafc; font-size: 0.88rem; display: block;">Gerência / Administração</strong>
+        <small style="color: #94a3b8; font-size: 0.75rem;">Conferência e Visto</small>
+      </div>
+    </div>
+
+  </div>
+  {% endif %}
+
+  <!-- MODAL: NOVA SANGRIA -->
+  <div id="modal-sangria" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 9999; align-items: center; justify-content: center; padding: 20px;">
+    <div class="card" style="max-width: 480px; width: 100%; background: #1e293b; border: 1px solid rgba(239,68,68,0.3); border-radius: 14px; padding: 24px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3 style="margin: 0; color: #f87171; font-size: 1.2rem; font-weight: 700;">
+          <i class="fa-solid fa-arrow-up-from-bracket"></i> Registrar Sangria de Caixa
+        </h3>
+        <button type="button" onclick="document.getElementById('modal-sangria').style.display='none'" style="background: none; border: none; color: #94a3b8; font-size: 1.2rem; cursor: pointer;">&times;</button>
+      </div>
+      <p style="color: #cbd5e1; font-size: 0.85rem; margin-bottom: 18px;">
+        Retirada de dinheiro da gaveta física (ex: depósito bancário, pagamento de motoboy ou despesa emergencial).
+      </p>
+
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="sangria">
+
+        <div style="margin-bottom: 14px;">
+          <label style="display: block; font-size: 0.85rem; font-weight: 600; color: #cbd5e1; margin-bottom: 4px;">Valor a Retirar (R$):</label>
+          <input type="text" name="valor" placeholder="Ex: 50,00" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15); background: rgba(0,0,0,0.3); color: #fff; font-size: 1.05rem; font-weight: 700;">
+        </div>
+
+        <div style="margin-bottom: 20px;">
+          <label style="display: block; font-size: 0.85rem; font-weight: 600; color: #cbd5e1; margin-bottom: 4px;">Motivo / Justificativa:</label>
+          <input type="text" name="motivo" placeholder="Ex: Sangria para o cofre / Pagamento motoboy" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15); background: rgba(0,0,0,0.3); color: #fff; font-size: 0.9rem;">
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 10px;">
+          <button type="button" onclick="document.getElementById('modal-sangria').style.display='none'" class="btn btn-secondary">Cancelar</button>
+          <button type="submit" class="btn btn-primary" style="background: #ef4444; border-color: #dc2626; font-weight: 700;">Confirmar Sangria</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: NOVO SUPRIMENTO -->
+  <div id="modal-suprimento" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 9999; align-items: center; justify-content: center; padding: 20px;">
+    <div class="card" style="max-width: 480px; width: 100%; background: #1e293b; border: 1px solid rgba(56,189,248,0.3); border-radius: 14px; padding: 24px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3 style="margin: 0; color: #38bdf8; font-size: 1.2rem; font-weight: 700;">
+          <i class="fa-solid fa-arrow-down-to-bracket"></i> Registrar Suprimento de Caixa
+        </h3>
+        <button type="button" onclick="document.getElementById('modal-suprimento').style.display='none'" style="background: none; border: none; color: #94a3b8; font-size: 1.2rem; cursor: pointer;">&times;</button>
+      </div>
+      <p style="color: #cbd5e1; font-size: 0.85rem; margin-bottom: 18px;">
+        Entrada avulsa de dinheiro para reforço de troco na gaveta durante o turno.
+      </p>
+
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="suprimento">
+
+        <div style="margin-bottom: 14px;">
+          <label style="display: block; font-size: 0.85rem; font-weight: 600; color: #cbd5e1; margin-bottom: 4px;">Valor a Inserir (R$):</label>
+          <input type="text" name="valor" placeholder="Ex: 100,00" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15); background: rgba(0,0,0,0.3); color: #fff; font-size: 1.05rem; font-weight: 700;">
+        </div>
+
+        <div style="margin-bottom: 20px;">
+          <label style="display: block; font-size: 0.85rem; font-weight: 600; color: #cbd5e1; margin-bottom: 4px;">Motivo / Justificativa:</label>
+          <input type="text" name="motivo" placeholder="Ex: Reforço de moedas e notas de R$ 5" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15); background: rgba(0,0,0,0.3); color: #fff; font-size: 0.9rem;">
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 10px;">
+          <button type="button" onclick="document.getElementById('modal-suprimento').style.display='none'" class="btn btn-secondary">Cancelar</button>
+          <button type="submit" class="btn btn-primary" style="background: #0284c7; border-color: #0369a1; font-weight: 700;">Confirmar Suprimento</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: FECHAR CAIXA & CONFERÊNCIA -->
+  <div id="modal-fechar" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 9999; align-items: center; justify-content: center; padding: 20px;">
+    <div class="card" style="max-width: 520px; width: 100%; background: #1e293b; border: 1px solid rgba(225,29,72,0.4); border-radius: 14px; padding: 24px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3 style="margin: 0; color: #fb7185; font-size: 1.25rem; font-weight: 700;">
+          <i class="fa-solid fa-lock"></i> Encerrar Turno & Fechar Caixa
+        </h3>
+        <button type="button" onclick="document.getElementById('modal-fechar').style.display='none'" style="background: none; border: none; color: #94a3b8; font-size: 1.2rem; cursor: pointer;">&times;</button>
+      </div>
+
+      <p style="color: #cbd5e1; font-size: 0.88rem; margin-bottom: 18px;">
+        Faça a contagem física do dinheiro em espécie na gaveta e digite abaixo para a conferência cega do sistema:
+      </p>
+
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="fechar">
+
+        <div style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 12px; margin-bottom: 18px;">
+          <div style="font-size: 0.82rem; color: #94a3b8; margin-bottom: 4px;">Referência interna do sistema:</div>
+          <div style="font-size: 0.95rem; color: #cbd5e1;">Saldo esperado na gaveta: <strong style="color: #38bdf8;">R$ {{ saldo_gaveta_esperado|floatformat:2 }}</strong></div>
+        </div>
+
+        <div style="margin-bottom: 22px;">
+          <label style="display: block; font-size: 0.9rem; font-weight: 700; color: #fff; margin-bottom: 6px;">
+            Total contado na gaveta (R$):
+          </label>
+          <div style="position: relative;">
+            <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #fb7185; font-weight: 700; font-size: 1rem;">R$</span>
+            <input type="text" name="dinheiro_informado" value="{{ saldo_gaveta_esperado|floatformat:2 }}" required autofocus style="width: 100%; padding: 10px 12px 10px 42px; border-radius: 8px; border: 1px solid rgba(225,29,72,0.4); background: rgba(0,0,0,0.4); color: #fff; font-size: 1.15rem; font-weight: 700;">
+          </div>
+          <small style="color: #94a3b8; font-size: 0.78rem; display: block; margin-top: 4px;">O sistema calculará automaticamente qualquer sobra ou falta.</small>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 10px;">
+          <button type="button" onclick="document.getElementById('modal-fechar').style.display='none'" class="btn btn-secondary">Cancelar</button>
+          <button type="submit" class="btn btn-primary" style="background: #e11d48; border-color: #be123c; font-weight: 700;">Finalizar Fechamento</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+</section>
+
+<!-- Estilos específicos de impressão -->
+<style>
+  @media print {
+    body {
+      background: #fff !important;
+      color: #000 !important;
+      font-size: 10pt;
+    }
+    .sidebar, .topbar, .no-print, header, nav, .icon-button {
+      display: none !important;
+    }
+    .main-content, .content, section {
+      padding: 0 !important;
+      margin: 0 !important;
+      max-width: 100% !important;
+    }
+    .card {
+      background: #fff !important;
+      border: 1px solid #ccc !important;
+      box-shadow: none !important;
+      color: #000 !important;
+      padding: 10px !important;
+      margin-bottom: 16px !important;
+    }
+    h1, h2, h3, h4, strong, span, td, th {
+      color: #000 !important;
+    }
+    .table th, .table td {
+      border-color: #ddd !important;
+      color: #000 !important;
+      padding: 5px 6px !important;
+    }
+    .badge {
+      border: 1px solid #999 !important;
+      color: #000 !important;
+      background: #f0f0f0 !important;
+    }
+  }
+</style>
+{% endblock %}
