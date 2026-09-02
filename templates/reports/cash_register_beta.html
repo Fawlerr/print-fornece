@@ -5,25 +5,25 @@
 {% block page_heading %}Caixa Completo (Demonstração BETA){% endblock %}
 
 {% block content %}
-<section class="section" style="max-width: 1200px; margin: 0 auto;">
+<section class="section" style="max-width: 1240px; margin: 0 auto;">
 
   <!-- Alerta de Ambiente de Testes / Demonstração (Oculto na Impressão) -->
-  <div class="no-print" style="margin-bottom: 20px; background: linear-gradient(135deg, rgba(37, 99, 235, 0.15), rgba(168, 85, 247, 0.15)); border: 1px solid rgba(168, 85, 247, 0.35); border-radius: 12px; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+  <div class="no-print" style="margin-bottom: 20px; background: linear-gradient(135deg, rgba(37, 99, 235, 0.12), rgba(168, 85, 247, 0.12)); border: 1px solid rgba(168, 85, 247, 0.35); border-radius: 12px; padding: 14px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
     <div>
-      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
+      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 3px;">
         <span class="badge" style="background: #a855f7; color: #fff; font-weight: 700; text-transform: uppercase; font-size: 0.72rem; letter-spacing: 0.05em; padding: 3px 8px; border-radius: 4px;">
           🚀 Modo Demonstração (BETA)
         </span>
-        <strong style="color: #f8fafc; font-size: 0.95rem;">Prévia do Caixa com Abertura, Sangrias e Conferência</strong>
+        <strong style="color: #f8fafc; font-size: 0.95rem;">Painel Interativo de Frente de Caixa (PDV)</strong>
       </div>
-      <p style="margin: 0; color: #cbd5e1; font-size: 0.85rem;">
-        Esta tela é 100% interativa para a sua reunião. As movimentações registradas aqui funcionam em modo de simulação segura e <strong>não alteram o banco de dados oficial</strong>.
+      <p style="margin: 0; color: #cbd5e1; font-size: 0.84rem;">
+        Protótipo funcional com contagem física de cédulas/moedas, sangrias, suprimentos e conferência cega. <strong>Não altera dados oficiais do banco</strong>.
       </p>
     </div>
 
     <div style="display: flex; gap: 10px; align-items: center;">
       <a href="{% url 'reports:cash_register' %}" class="btn btn-secondary btn-small" style="font-weight: 600;">
-        <i class="fa-solid fa-arrow-left"></i> Ir para o Caixa Oficial
+        <i class="fa-solid fa-arrow-left"></i> Caixa Oficial
       </a>
       <form method="post" style="margin: 0;" onsubmit="return confirm('Deseja reiniciar a demonstração do caixa do zero?');">
         {% csrf_token %}
@@ -35,51 +35,138 @@
     </div>
   </div>
 
-  <!-- ESTADO 1: CAIXA FECHADO - NECESSITA ABERTURA -->
+  <!-- ALERTA INTELIGENTE DE TETO DE SEGURANÇA DA GAVETA (Se dinheiro > R$ 500) -->
+  {% if status_caixa == 'aberto' and alerta_limite_gaveta %}
+  <div class="card no-print" style="margin-bottom: 20px; padding: 12px 18px; background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.4); border-radius: 10px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <i class="fa-solid fa-triangle-exclamation" style="font-size: 1.4rem; color: #f59e0b;"></i>
+      <div>
+        <strong style="color: #fbbf24; font-size: 0.92rem;">Aviso de Segurança: Saldo elevado em dinheiro na gaveta (R$ {{ saldo_gaveta_esperado|floatformat:2 }})</strong>
+        <p style="margin: 0; font-size: 0.82rem; color: #cbd5e1;">Por segurança contra assaltos e perdas, é recomendado efetuar uma sangria transferindo o excesso para o cofre da loja.</p>
+      </div>
+    </div>
+    <button type="button" onclick="abrirModalSangria('Coleta de Segurança para o Cofre')" class="btn btn-secondary btn-small" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; border-color: rgba(245, 158, 11, 0.5); font-weight: 700;">
+      <i class="fa-solid fa-vault"></i> Realizar Sangria p/ Cofre
+    </button>
+  </div>
+  {% endif %}
+
+  <!-- ==================== ESTADO 1: CAIXA FECHADO ==================== -->
   {% if status_caixa == 'fechado' %}
-  <div class="card" style="max-width: 620px; margin: 40px auto; padding: 32px; background: var(--surface, #1e293b); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); text-align: center;">
+  <div class="card" style="max-width: 680px; margin: 30px auto; padding: 32px; background: var(--surface, #1e293b); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.3);">
     
-    <div style="width: 72px; height: 72px; border-radius: 50%; background: rgba(56, 189, 248, 0.12); border: 2px solid #38bdf8; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px auto;">
-      <i class="fa-solid fa-cash-register" style="font-size: 2rem; color: #38bdf8;"></i>
+    <div style="text-align: center; margin-bottom: 24px;">
+      <div style="width: 72px; height: 72px; border-radius: 50%; background: rgba(56, 189, 248, 0.12); border: 2px solid #38bdf8; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px auto;">
+        <i class="fa-solid fa-cash-register" style="font-size: 2rem; color: #38bdf8;"></i>
+      </div>
+      <h2 style="font-size: 1.45rem; font-weight: 800; color: #fff; margin-bottom: 6px;">
+        Abertura de Caixa (Início de Turno)
+      </h2>
+      <p style="color: #94a3b8; font-size: 0.9rem; margin: 0;">
+        Defina o fundo de troco inicial para liberar o PDV e iniciar as operações do dia.
+      </p>
     </div>
 
-    <h2 style="font-size: 1.4rem; font-weight: 800; color: #fff; margin-bottom: 8px;">
-      Abertura de Caixa
-    </h2>
-    <p style="color: #94a3b8; font-size: 0.9rem; margin-bottom: 24px;">
-      O caixa encontra-se <strong>fechado</strong> no momento. Informe o fundo de troco inicial para abrir o turno de atendimento.
-    </p>
-
-    <form method="post" style="text-align: left;">
+    <form method="post" id="form-abertura">
       {% csrf_token %}
       <input type="hidden" name="action" value="abrir">
 
-      <div style="margin-bottom: 18px;">
+      <div style="margin-bottom: 16px;">
         <label style="display: block; font-size: 0.85rem; font-weight: 600; color: #cbd5e1; margin-bottom: 6px;">
           Operador Responsável:
         </label>
         <input type="text" value="{{ request.user.name|default:request.user.email }}" readonly style="width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.12); background: rgba(0,0,0,0.3); color: #94a3b8; font-size: 0.92rem;">
       </div>
 
-      <div style="margin-bottom: 24px;">
-        <label for="id_fundo_inicial" style="display: block; font-size: 0.85rem; font-weight: 600; color: #cbd5e1; margin-bottom: 6px;">
-          Fundo de Troco Inicial na Gaveta (R$):
-        </label>
-        <div style="position: relative;">
-          <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #38bdf8; font-weight: 700; font-size: 1rem;">R$</span>
-          <input type="text" id="id_fundo_inicial" name="fundo_inicial" value="150,00" required autofocus style="width: 100%; padding: 10px 12px 10px 42px; border-radius: 8px; border: 1px solid rgba(56, 189, 248, 0.4); background: rgba(0,0,0,0.4); color: #fff; font-size: 1.15rem; font-weight: 700;">
+      <!-- Abas de Entrada: Digitação Direta vs Calculadora de Cédulas -->
+      <div style="margin-bottom: 18px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <label style="font-size: 0.85rem; font-weight: 600; color: #cbd5e1; margin: 0;">
+            Fundo de Troco Inicial:
+          </label>
+          <button type="button" onclick="toggleCalc('calc-abertura', 'fundo_inicial_input')" class="btn btn-secondary btn-small" style="font-size: 0.78rem; padding: 3px 8px;">
+            <i class="fa-solid fa-calculator"></i> <span id="label-calc-abertura">Usar Contador de Cédulas</span>
+          </button>
         </div>
-        <small style="color: #94a3b8; font-size: 0.78rem; display: block; margin-top: 4px;">Valor em notas/moedas disponível no início do turno para troco.</small>
+
+        <div style="position: relative;">
+          <span style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #38bdf8; font-weight: 800; font-size: 1.1rem;">R$</span>
+          <input type="text" id="fundo_inicial_input" name="fundo_inicial" value="150,00" required style="width: 100%; padding: 12px 14px 12px 46px; border-radius: 8px; border: 1px solid rgba(56, 189, 248, 0.4); background: rgba(0,0,0,0.4); color: #fff; font-size: 1.25rem; font-weight: 800;">
+        </div>
       </div>
 
-      <button type="submit" class="btn btn-primary" style="width: 100%; padding: 12px; font-size: 1rem; font-weight: 700; background: #22c55e; border-color: #16a34a; display: flex; align-items: center; justify-content: center; gap: 10px;">
-        <i class="fa-solid fa-lock-open"></i> Abrir Caixa e Iniciar Turno
+      <!-- CALCULADORA DE CÉDULAS E MOEDAS (ABERTURA) -->
+      <div id="calc-abertura" style="display: none; background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 14px; margin-bottom: 22px;">
+        <span style="font-size: 0.82rem; font-weight: 700; color: #38bdf8; text-transform: uppercase; display: block; margin-bottom: 10px;">
+          <i class="fa-solid fa-coins"></i> Contagem Física de Cédulas e Moedas
+        </span>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 0.85rem;">
+          <!-- Cédulas -->
+          <div>
+            <strong style="color: #cbd5e1; font-size: 0.78rem; display: block; margin-bottom: 6px;">Cédulas (Notas):</strong>
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+              <div style="display: flex; align-items: center; justify-content: space-between;">
+                <span style="color: #94a3b8;">R$ 100,00:</span>
+                <input type="number" min="0" value="1" onchange="recalcAbertura()" class="calc-ab-item" data-val="100" style="width: 60px; padding: 4px; border-radius: 4px; border: 1px solid #444; background: #111; color: #fff; text-align: center;">
+              </div>
+              <div style="display: flex; align-items: center; justify-content: space-between;">
+                <span style="color: #94a3b8;">R$ 50,00:</span>
+                <input type="number" min="0" value="0" onchange="recalcAbertura()" class="calc-ab-item" data-val="50" style="width: 60px; padding: 4px; border-radius: 4px; border: 1px solid #444; background: #111; color: #fff; text-align: center;">
+              </div>
+              <div style="display: flex; align-items: center; justify-content: space-between;">
+                <span style="color: #94a3b8;">R$ 20,00:</span>
+                <input type="number" min="0" value="2" onchange="recalcAbertura()" class="calc-ab-item" data-val="20" style="width: 60px; padding: 4px; border-radius: 4px; border: 1px solid #444; background: #111; color: #fff; text-align: center;">
+              </div>
+              <div style="display: flex; align-items: center; justify-content: space-between;">
+                <span style="color: #94a3b8;">R$ 10,00:</span>
+                <input type="number" min="0" value="0" onchange="recalcAbertura()" class="calc-ab-item" data-val="10" style="width: 60px; padding: 4px; border-radius: 4px; border: 1px solid #444; background: #111; color: #fff; text-align: center;">
+              </div>
+              <div style="display: flex; align-items: center; justify-content: space-between;">
+                <span style="color: #94a3b8;">R$ 5,00:</span>
+                <input type="number" min="0" value="1" onchange="recalcAbertura()" class="calc-ab-item" data-val="5" style="width: 60px; padding: 4px; border-radius: 4px; border: 1px solid #444; background: #111; color: #fff; text-align: center;">
+              </div>
+              <div style="display: flex; align-items: center; justify-content: space-between;">
+                <span style="color: #94a3b8;">R$ 2,00:</span>
+                <input type="number" min="0" value="2" onchange="recalcAbertura()" class="calc-ab-item" data-val="2" style="width: 60px; padding: 4px; border-radius: 4px; border: 1px solid #444; background: #111; color: #fff; text-align: center;">
+              </div>
+            </div>
+          </div>
+
+          <!-- Moedas -->
+          <div>
+            <strong style="color: #cbd5e1; font-size: 0.78rem; display: block; margin-bottom: 6px;">Moedas (Troco):</strong>
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+              <div style="display: flex; align-items: center; justify-content: space-between;">
+                <span style="color: #94a3b8;">R$ 1,00:</span>
+                <input type="number" min="0" value="1" onchange="recalcAbertura()" class="calc-ab-item" data-val="1" style="width: 60px; padding: 4px; border-radius: 4px; border: 1px solid #444; background: #111; color: #fff; text-align: center;">
+              </div>
+              <div style="display: flex; align-items: center; justify-content: space-between;">
+                <span style="color: #94a3b8;">R$ 0,50:</span>
+                <input type="number" min="0" value="0" onchange="recalcAbertura()" class="calc-ab-item" data-val="0.5" style="width: 60px; padding: 4px; border-radius: 4px; border: 1px solid #444; background: #111; color: #fff; text-align: center;">
+              </div>
+              <div style="display: flex; align-items: center; justify-content: space-between;">
+                <span style="color: #94a3b8;">R$ 0,25:</span>
+                <input type="number" min="0" value="0" onchange="recalcAbertura()" class="calc-ab-item" data-val="0.25" style="width: 60px; padding: 4px; border-radius: 4px; border: 1px solid #444; background: #111; color: #fff; text-align: center;">
+              </div>
+            </div>
+            <div style="margin-top: 18px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.1); text-align: right;">
+              <small style="color: #94a3b8;">Total contado:</small>
+              <div id="calc-ab-total" style="font-size: 1.1rem; font-weight: 800; color: #38bdf8;">R$ 150,00</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary" style="width: 100%; padding: 14px; font-size: 1.05rem; font-weight: 700; background: #22c55e; border-color: #16a34a; display: flex; align-items: center; justify-content: center; gap: 10px;">
+        <i class="fa-solid fa-lock-open"></i> Abrir Caixa e Iniciar Atendimento
       </button>
     </form>
   </div>
   {% endif %}
 
-  <!-- ESTADO 2: CAIXA ABERTO -->
+
+  <!-- ==================== ESTADO 2: CAIXA ABERTO ==================== -->
   {% if status_caixa == 'aberto' %}
   
   <!-- Barra de Informações do Caixa Aberto -->
@@ -97,13 +184,13 @@
 
     <!-- Botões de Ações Rápidas do Caixa -->
     <div class="no-print" style="display: flex; gap: 10px; flex-wrap: wrap;">
-      <button type="button" onclick="document.getElementById('modal-sangria').style.display='flex'" class="btn btn-secondary" style="background: rgba(239, 68, 68, 0.15); color: #f87171; border-color: rgba(239, 68, 68, 0.35); font-weight: 600;">
-        <i class="fa-solid fa-arrow-up-from-bracket"></i> Nova Sangria (Retirada)
+      <button type="button" onclick="abrirModalSangria()" class="btn btn-secondary" style="background: rgba(239, 68, 68, 0.15); color: #f87171; border-color: rgba(239, 68, 68, 0.35); font-weight: 600;">
+        <i class="fa-solid fa-arrow-up-from-bracket"></i> Nova Sangria
       </button>
-      <button type="button" onclick="document.getElementById('modal-suprimento').style.display='flex'" class="btn btn-secondary" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border-color: rgba(56, 189, 248, 0.35); font-weight: 600;">
-        <i class="fa-solid fa-arrow-down-to-bracket"></i> Novo Suprimento (Reforço)
+      <button type="button" onclick="abrirModalSuprimento()" class="btn btn-secondary" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border-color: rgba(56, 189, 248, 0.35); font-weight: 600;">
+        <i class="fa-solid fa-arrow-down-to-bracket"></i> Novo Suprimento
       </button>
-      <button type="button" onclick="document.getElementById('modal-fechar').style.display='flex'" class="btn btn-primary" style="background: #e11d48; border-color: #be123c; font-weight: 700;">
+      <button type="button" onclick="abrirModalFechar()" class="btn btn-primary" style="background: #e11d48; border-color: #be123c; font-weight: 700;">
         <i class="fa-solid fa-lock"></i> Fechar Caixa
       </button>
     </div>
@@ -120,7 +207,7 @@
       <div style="font-size: 1.4rem; font-weight: 800; color: #fff;">
         R$ {{ fundo_inicial|floatformat:2 }}
       </div>
-      <small style="color: #94a3b8; font-size: 0.78rem;">Valor informado na abertura</small>
+      <small style="color: #94a3b8; font-size: 0.78rem;">Informado na abertura</small>
     </div>
 
     <!-- Saldo Esperado na Gaveta Física -->
@@ -166,60 +253,88 @@
       <div style="font-size: 1.4rem; font-weight: 800; color: #22c55e;">
         R$ {{ vendas.total|floatformat:2 }}
       </div>
-      <small style="color: #94a3b8; font-size: 0.78rem;">{{ vendas.qtd_pedidos }} pedido(s) atendido(s)</small>
+      <small style="color: #94a3b8; font-size: 0.78rem;">{{ vendas.qtd_pedidos }} pedido(s) faturado(s)</small>
     </div>
 
   </div>
 
-  <!-- Tabela de Movimentações Registradas no Turno (Sangrias e Suprimentos) -->
-  <div class="card" style="margin-bottom: 28px; padding: 20px; background: var(--surface, #1e293b); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-      <h3 style="font-size: 1.05rem; font-weight: 700; color: #fff; margin: 0; display: flex; align-items: center; gap: 8px;">
-        <i class="fa-solid fa-list-ol" style="color: #38bdf8;"></i> Movimentações Avulsas de Gaveta (Sangrias & Suprimentos)
-      </h3>
-      <span style="color: #94a3b8; font-size: 0.82rem;">{{ movimentacoes|length }} lançamento(s) na sessão</span>
+  <!-- BARRA DE COMPOSIÇÃO DOS MEIOS DE PAGAMENTO -->
+  <div class="card" style="margin-bottom: 24px; padding: 18px 20px; background: var(--surface, #1e293b); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+      <strong style="color: #cbd5e1; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em;">
+        <i class="fa-solid fa-chart-pie" style="color: #38bdf8;"></i> Composição de Recebimentos do Turno
+      </strong>
+      <span style="color: #94a3b8; font-size: 0.82rem;">100% dos pagamentos apurados</span>
     </div>
 
-    {% if movimentacoes %}
-    <div class="table-responsive" style="overflow-x: auto;">
-      <table class="table" style="width: 100%; border-collapse: collapse;">
-        <thead>
-          <tr style="border-bottom: 1px solid rgba(255,255,255,0.15); text-align: left; font-size: 0.82rem; color: #94a3b8; text-transform: uppercase;">
-            <th style="padding: 8px;">Horário</th>
-            <th style="padding: 8px;">Tipo</th>
-            <th style="padding: 8px;">Motivo / Justificativa</th>
-            <th style="padding: 8px;">Responsável</th>
-            <th style="padding: 8px; text-align: right;">Valor</th>
-          </tr>
-        </thead>
-        <tbody style="font-size: 0.88rem;">
-          {% for m in movimentacoes %}
-          <tr style="border-bottom: 1px solid rgba(255,255,255,0.06);">
-            <td style="padding: 8px; color: #94a3b8;">{{ m.horario }}</td>
-            <td style="padding: 8px;">
-              {% if m.tipo == 'sangria' %}
-                <span class="badge" style="background: rgba(239, 68, 68, 0.2); color: #f87171; font-weight: 700;">
-                  <i class="fa-solid fa-arrow-up"></i> SANGRIA (Retirada)
-                </span>
-              {% else %}
-                <span class="badge" style="background: rgba(56, 189, 248, 0.2); color: #38bdf8; font-weight: 700;">
-                  <i class="fa-solid fa-arrow-down"></i> SUPRIMENTO (Reforço)
-                </span>
-              {% endif %}
-            </td>
-            <td style="padding: 8px; color: #f8fafc; font-weight: 600;">{{ m.motivo }}</td>
-            <td style="padding: 8px; color: #94a3b8; font-size: 0.82rem;">{{ m.operador }}</td>
-            <td style="padding: 8px; text-align: right; font-weight: 700; color: {% if m.tipo == 'sangria' %}#f87171{% else %}#38bdf8{% endif %};">
-              {% if m.tipo == 'sangria' %}-{% else %}+{% endif %}R$ {{ m.valor|floatformat:2 }}
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+    <!-- Barra Segmentada -->
+    <div style="height: 14px; border-radius: 999px; overflow: hidden; display: flex; background: rgba(255,255,255,0.06); margin-bottom: 12px;">
+      {% if pct_pix > 0 %}<div style="width: {{ pct_pix }}%; background: #c084fc;" title="PIX: {{ pct_pix }}%"></div>{% endif %}
+      {% if pct_credito > 0 %}<div style="width: {{ pct_credito }}%; background: #38bdf8;" title="Crédito: {{ pct_credito }}%"></div>{% endif %}
+      {% if pct_debito > 0 %}<div style="width: {{ pct_debito }}%; background: #818cf8;" title="Débito: {{ pct_debito }}%"></div>{% endif %}
+      {% if pct_dinheiro > 0 %}<div style="width: {{ pct_dinheiro }}%; background: #34d399;" title="Dinheiro: {{ pct_dinheiro }}%"></div>{% endif %}
+    </div>
+
+    <!-- Legenda com Valores e Percentuais -->
+    <div style="display: flex; flex-wrap: wrap; gap: 16px; font-size: 0.82rem; color: #cbd5e1;">
+      <div style="display: flex; align-items: center; gap: 6px;">
+        <span style="width: 10px; height: 10px; border-radius: 50%; background: #c084fc;"></span>
+        <span>PIX: <strong>{{ pct_pix }}%</strong> (R$ {{ vendas.pix|floatformat:2 }})</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 6px;">
+        <span style="width: 10px; height: 10px; border-radius: 50%; background: #38bdf8;"></span>
+        <span>Crédito: <strong>{{ pct_credito }}%</strong> (R$ {{ vendas.cartao_credito|floatformat:2 }})</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 6px;">
+        <span style="width: 10px; height: 10px; border-radius: 50%; background: #818cf8;"></span>
+        <span>Débito: <strong>{{ pct_debito }}%</strong> (R$ {{ vendas.cartao_debito|floatformat:2 }})</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 6px;">
+        <span style="width: 10px; height: 10px; border-radius: 50%; background: #34d399;"></span>
+        <span>Dinheiro: <strong>{{ pct_dinheiro }}%</strong> (R$ {{ vendas.dinheiro|floatformat:2 }})</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- LINHA DO TEMPO VISUAL DO TURNO (FITA DE AUDITORIA) -->
+  <div class="card" style="margin-bottom: 28px; padding: 20px; background: var(--surface, #1e293b); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px;">
+      <h3 style="font-size: 1.05rem; font-weight: 700; color: #fff; margin: 0; display: flex; align-items: center; gap: 8px;">
+        <i class="fa-solid fa-timeline" style="color: #38bdf8;"></i> Fita de Auditoria do Caixa (Linha do Tempo)
+      </h3>
+      <span style="color: #94a3b8; font-size: 0.82rem;">Cronologia de eventos que impactaram a gaveta</span>
+    </div>
+
+    {% if timeline %}
+    <div style="position: relative; padding-left: 20px; border-left: 2px solid rgba(255,255,255,0.1); margin-left: 10px; display: flex; flex-direction: column; gap: 16px;">
+      {% for event in timeline %}
+      <div style="position: relative;">
+        <!-- Ponto / Ícone no eixo vertical -->
+        <span style="position: absolute; left: -29px; top: 2px; width: 18px; height: 18px; border-radius: 50%; background: {{ event.cor }}; border: 3px solid #1e293b;"></span>
+        
+        <div style="background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.06); border-radius: 8px; padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+          <div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="color: #94a3b8; font-size: 0.78rem; font-weight: 700;">{{ event.horario }}</span>
+              <strong style="color: #f8fafc; font-size: 0.9rem;">
+                <i class="{{ event.icone }}" style="color: {{ event.cor }}; margin-right: 4px;"></i> {{ event.titulo }}
+              </strong>
+            </div>
+            <small style="color: #94a3b8; font-size: 0.78rem; display: block; margin-top: 2px;">{{ event.detalhe }}</small>
+          </div>
+
+          <div>
+            <strong style="font-size: 0.95rem; color: {% if event.impacto == 'positivo' %}#22c55e{% elif event.impacto == 'negativo' %}#f87171{% else %}#38bdf8{% endif %};">
+              {{ event.valor_str }}
+            </strong>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
     </div>
     {% else %}
-    <div style="padding: 24px; text-align: center; color: #94a3b8; background: rgba(0,0,0,0.2); border-radius: 8px;">
-      Nenhuma sangria ou suprimento lançado ainda neste turno. Use os botões acima para simular retiradas e reforços.
+    <div style="padding: 20px; text-align: center; color: #94a3b8; background: rgba(0,0,0,0.2); border-radius: 8px;">
+      Nenhum evento registrado ainda neste turno.
     </div>
     {% endif %}
   </div>
@@ -228,7 +343,7 @@
   <div class="card" style="margin-bottom: 28px; padding: 20px; background: var(--surface, #1e293b); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
       <h3 style="font-size: 1.05rem; font-weight: 700; color: #fff; margin: 0; display: flex; align-items: center; gap: 8px;">
-        <i class="fa-solid fa-cart-shopping" style="color: #22c55e;"></i> Vendas & Recebimentos Integrados do Dia ({{ orders|length }})
+        <i class="fa-solid fa-cart-shopping" style="color: #22c55e;"></i> Vendas Integradas do Dia ({{ orders|length }})
       </h3>
       <strong style="color: #22c55e; font-size: 1.05rem;">Total Vendas: R$ {{ vendas.total|floatformat:2 }}</strong>
     </div>
@@ -293,7 +408,7 @@
 
   {% endif %}
 
-  <!-- ESTADO 3: CAIXA FECHADO / CONFERÊNCIA CONCLUÍDA -->
+  <!-- ==================== ESTADO 3: CAIXA ENCERRADO ==================== -->
   {% if status_caixa == 'encerrado' %}
   <div class="card" style="margin-bottom: 24px; padding: 24px; background: var(--surface, #1e293b); border: 2px solid {% if fechamento.status_diferenca == 'exato' %}#22c55e{% elif fechamento.status_diferenca == 'sobra' %}#38bdf8{% else %}#ef4444{% endif %}; border-radius: 14px;">
     
@@ -308,10 +423,16 @@
         </p>
       </div>
 
-      <div class="no-print" style="display: flex; gap: 10px;">
+      <div class="no-print" style="display: flex; gap: 10px; flex-wrap: wrap;">
+        <!-- Alternador Térmico / A4 -->
+        <button type="button" onclick="toggleCupomTermico()" class="btn btn-secondary" style="font-weight: 600; background: rgba(56, 189, 248, 0.15); color: #38bdf8; border-color: rgba(56, 189, 248, 0.35);">
+          <i class="fa-solid fa-receipt"></i> <span id="btn-termico-label">Ver Cupom Térmico (80mm)</span>
+        </button>
+
         <button type="button" onclick="window.print()" class="btn btn-secondary" style="font-weight: 600;">
           <i class="fa-solid fa-print"></i> Imprimir Comprovante
         </button>
+
         <form method="post" style="margin: 0;">
           {% csrf_token %}
           <input type="hidden" name="action" value="reabrir">
@@ -385,8 +506,40 @@
       </div>
     </div>
 
-    <!-- Quadro de Assinaturas para Impressão -->
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 24px; padding-top: 12px; page-break-inside: avoid;">
+    <!-- VISUALIZAÇÃO DO CUPOM TÉRMICO (BOBINA 80MM) -->
+    <div id="cupom-termico-wrap" style="display: none; max-width: 380px; margin: 20px auto; background: #fff; color: #000; padding: 20px; font-family: 'Courier New', Courier, monospace; font-size: 12px; border: 1px dashed #999; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+      <div style="text-align: center; border-bottom: 1px dashed #000; padding-bottom: 8px; margin-bottom: 8px;">
+        <strong style="font-size: 14px;">PRINT FORNECE</strong><br>
+        COMPROVANTE DE FECHAMENTO DE CAIXA<br>
+        Data: {{ today_display }}
+      </div>
+      <div>
+        Operador: {{ fechamento.operador }}<br>
+        Fechamento: {{ fechamento.horario }}<br>
+        --------------------------------<br>
+        (+) Fundo Inicial : R$ {{ fundo_inicial|floatformat:2 }}<br>
+        (+) Vendas Dinheiro: R$ {{ vendas.dinheiro|floatformat:2 }}<br>
+        (+) Suprimentos   : R$ {{ total_suprimentos|floatformat:2 }}<br>
+        (-) Sangrias      : R$ {{ total_sangrias|floatformat:2 }}<br>
+        --------------------------------<br>
+        (=) Esperado Gaveta: R$ {{ fechamento.dinheiro_esperado|floatformat:2 }}<br>
+        (=) Contado Gaveta : R$ {{ fechamento.dinheiro_informado|floatformat:2 }}<br>
+        DIFERENÇA: <strong>R$ {{ fechamento.diferenca|floatformat:2 }} ({{ fechamento.status_diferenca|upper }})</strong><br>
+        --------------------------------<br>
+        Vendas PIX       : R$ {{ vendas.pix|floatformat:2 }}<br>
+        Vendas Cartões   : R$ {{ vendas.cartao_credito|add:vendas.cartao_debito|floatformat:2 }}<br>
+        TOTAL FATURADO   : R$ {{ vendas.total|floatformat:2 }} ({{ vendas.qtd_pedidos }} ped.)<br>
+        --------------------------------<br>
+        <br><br>
+        ________________________________<br>
+        Visto do Caixa / Operador<br><br>
+        ________________________________<br>
+        Visto da Gerência
+      </div>
+    </div>
+
+    <!-- Quadro de Assinaturas para Impressão A4 -->
+    <div id="quadro-assinaturas-a4" style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 24px; padding-top: 12px; page-break-inside: avoid;">
       <div style="text-align: center;">
         <div style="border-top: 1px solid rgba(255,255,255,0.4); margin-bottom: 6px; padding-top: 6px;"></div>
         <strong style="color: #f8fafc; font-size: 0.88rem; display: block;">{{ fechamento.operador }}</strong>
@@ -403,18 +556,27 @@
   </div>
   {% endif %}
 
-  <!-- MODAL: NOVA SANGRIA -->
-  <div id="modal-sangria" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 9999; align-items: center; justify-content: center; padding: 20px;">
-    <div class="card" style="max-width: 480px; width: 100%; background: #1e293b; border: 1px solid rgba(239,68,68,0.3); border-radius: 14px; padding: 24px;">
+  <!-- ==================== MODAL: NOVA SANGRIA COM CATEGORIAS ==================== -->
+  <div id="modal-sangria" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 9999; align-items: center; justify-content: center; padding: 20px;">
+    <div class="card" style="max-width: 500px; width: 100%; background: #1e293b; border: 1px solid rgba(239,68,68,0.3); border-radius: 14px; padding: 24px;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
         <h3 style="margin: 0; color: #f87171; font-size: 1.2rem; font-weight: 700;">
           <i class="fa-solid fa-arrow-up-from-bracket"></i> Registrar Sangria de Caixa
         </h3>
         <button type="button" onclick="document.getElementById('modal-sangria').style.display='none'" style="background: none; border: none; color: #94a3b8; font-size: 1.2rem; cursor: pointer;">&times;</button>
       </div>
-      <p style="color: #cbd5e1; font-size: 0.85rem; margin-bottom: 18px;">
-        Retirada de dinheiro da gaveta física (ex: depósito bancário, pagamento de motoboy ou despesa emergencial).
+      <p style="color: #cbd5e1; font-size: 0.85rem; margin-bottom: 14px;">
+        Retirada de dinheiro da gaveta física. Selecione um motivo rápido ou digite:
       </p>
+
+      <!-- Botões de Motivos Rápidos -->
+      <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px;">
+        <button type="button" onclick="setSangriaMotivo('Pagamento de Motoboy / Frete')" class="btn btn-secondary btn-small" style="font-size: 0.75rem;">🚚 Motoboy</button>
+        <button type="button" onclick="setSangriaMotivo('Coleta de Segurança para o Cofre')" class="btn btn-secondary btn-small" style="font-size: 0.75rem;">🏦 Cofre</button>
+        <button type="button" onclick="setSangriaMotivo('Compra Emergencial de Insumo')" class="btn btn-secondary btn-small" style="font-size: 0.75rem;">📦 Insumo</button>
+        <button type="button" onclick="setSangriaMotivo('Alimentação / Lanche da Equipe')" class="btn btn-secondary btn-small" style="font-size: 0.75rem;">☕ Lanche</button>
+        <button type="button" onclick="setSangriaMotivo('Limpeza / Despesa de Balcão')" class="btn btn-secondary btn-small" style="font-size: 0.75rem;">🧹 Limpeza</button>
+      </div>
 
       <form method="post">
         {% csrf_token %}
@@ -422,12 +584,12 @@
 
         <div style="margin-bottom: 14px;">
           <label style="display: block; font-size: 0.85rem; font-weight: 600; color: #cbd5e1; margin-bottom: 4px;">Valor a Retirar (R$):</label>
-          <input type="text" name="valor" placeholder="Ex: 50,00" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15); background: rgba(0,0,0,0.3); color: #fff; font-size: 1.05rem; font-weight: 700;">
+          <input type="text" name="valor" id="sangria-valor" placeholder="Ex: 50,00" required autofocus style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15); background: rgba(0,0,0,0.3); color: #fff; font-size: 1.05rem; font-weight: 700;">
         </div>
 
         <div style="margin-bottom: 20px;">
           <label style="display: block; font-size: 0.85rem; font-weight: 600; color: #cbd5e1; margin-bottom: 4px;">Motivo / Justificativa:</label>
-          <input type="text" name="motivo" placeholder="Ex: Sangria para o cofre / Pagamento motoboy" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15); background: rgba(0,0,0,0.3); color: #fff; font-size: 0.9rem;">
+          <input type="text" name="motivo" id="sangria-motivo" placeholder="Ex: Pagamento de motoboy" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15); background: rgba(0,0,0,0.3); color: #fff; font-size: 0.9rem;">
         </div>
 
         <div style="display: flex; justify-content: flex-end; gap: 10px;">
@@ -438,18 +600,24 @@
     </div>
   </div>
 
-  <!-- MODAL: NOVO SUPRIMENTO -->
-  <div id="modal-suprimento" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 9999; align-items: center; justify-content: center; padding: 20px;">
-    <div class="card" style="max-width: 480px; width: 100%; background: #1e293b; border: 1px solid rgba(56,189,248,0.3); border-radius: 14px; padding: 24px;">
+  <!-- ==================== MODAL: NOVO SUPRIMENTO COM CATEGORIAS ==================== -->
+  <div id="modal-suprimento" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 9999; align-items: center; justify-content: center; padding: 20px;">
+    <div class="card" style="max-width: 500px; width: 100%; background: #1e293b; border: 1px solid rgba(56,189,248,0.3); border-radius: 14px; padding: 24px;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
         <h3 style="margin: 0; color: #38bdf8; font-size: 1.2rem; font-weight: 700;">
           <i class="fa-solid fa-arrow-down-to-bracket"></i> Registrar Suprimento de Caixa
         </h3>
         <button type="button" onclick="document.getElementById('modal-suprimento').style.display='none'" style="background: none; border: none; color: #94a3b8; font-size: 1.2rem; cursor: pointer;">&times;</button>
       </div>
-      <p style="color: #cbd5e1; font-size: 0.85rem; margin-bottom: 18px;">
-        Entrada avulsa de dinheiro para reforço de troco na gaveta durante o turno.
+      <p style="color: #cbd5e1; font-size: 0.85rem; margin-bottom: 14px;">
+        Entrada avulsa de dinheiro para reforço de troco na gaveta. Selecione ou digite:
       </p>
+
+      <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px;">
+        <button type="button" onclick="setSuprimentoMotivo('Reforço de Moedas para Troco')" class="btn btn-secondary btn-small" style="font-size: 0.75rem;">🪙 Moedas</button>
+        <button type="button" onclick="setSuprimentoMotivo('Reforço de Cédulas Baixas (R$ 2, R$ 5)')" class="btn btn-secondary btn-small" style="font-size: 0.75rem;">💵 Notas Baixas</button>
+        <button type="button" onclick="setSuprimentoMotivo('Troca de Notas Grandes')" class="btn btn-secondary btn-small" style="font-size: 0.75rem;">🔄 Troca</button>
+      </div>
 
       <form method="post">
         {% csrf_token %}
@@ -457,12 +625,12 @@
 
         <div style="margin-bottom: 14px;">
           <label style="display: block; font-size: 0.85rem; font-weight: 600; color: #cbd5e1; margin-bottom: 4px;">Valor a Inserir (R$):</label>
-          <input type="text" name="valor" placeholder="Ex: 100,00" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15); background: rgba(0,0,0,0.3); color: #fff; font-size: 1.05rem; font-weight: 700;">
+          <input type="text" name="valor" id="suprimento-valor" placeholder="Ex: 100,00" required autofocus style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15); background: rgba(0,0,0,0.3); color: #fff; font-size: 1.05rem; font-weight: 700;">
         </div>
 
         <div style="margin-bottom: 20px;">
           <label style="display: block; font-size: 0.85rem; font-weight: 600; color: #cbd5e1; margin-bottom: 4px;">Motivo / Justificativa:</label>
-          <input type="text" name="motivo" placeholder="Ex: Reforço de moedas e notas de R$ 5" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15); background: rgba(0,0,0,0.3); color: #fff; font-size: 0.9rem;">
+          <input type="text" name="motivo" id="suprimento-motivo" placeholder="Ex: Reforço de moedas para troco" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15); background: rgba(0,0,0,0.3); color: #fff; font-size: 0.9rem;">
         </div>
 
         <div style="display: flex; justify-content: flex-end; gap: 10px;">
@@ -473,38 +641,100 @@
     </div>
   </div>
 
-  <!-- MODAL: FECHAR CAIXA & CONFERÊNCIA -->
-  <div id="modal-fechar" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 9999; align-items: center; justify-content: center; padding: 20px;">
-    <div class="card" style="max-width: 520px; width: 100%; background: #1e293b; border: 1px solid rgba(225,29,72,0.4); border-radius: 14px; padding: 24px;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+  <!-- ==================== MODAL: FECHAR CAIXA COM CALCULADORA ==================== -->
+  <div id="modal-fechar" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 9999; align-items: center; justify-content: center; padding: 20px;">
+    <div class="card" style="max-width: 580px; width: 100%; background: #1e293b; border: 1px solid rgba(225,29,72,0.4); border-radius: 14px; padding: 24px; max-height: 90vh; overflow-y: auto;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
         <h3 style="margin: 0; color: #fb7185; font-size: 1.25rem; font-weight: 700;">
-          <i class="fa-solid fa-lock"></i> Encerrar Turno & Fechar Caixa
+          <i class="fa-solid fa-lock"></i> Conferência & Fechamento de Caixa
         </h3>
         <button type="button" onclick="document.getElementById('modal-fechar').style.display='none'" style="background: none; border: none; color: #94a3b8; font-size: 1.2rem; cursor: pointer;">&times;</button>
       </div>
 
-      <p style="color: #cbd5e1; font-size: 0.88rem; margin-bottom: 18px;">
-        Faça a contagem física do dinheiro em espécie na gaveta e digite abaixo para a conferência cega do sistema:
-      </p>
+      <div style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 12px; margin-bottom: 16px;">
+        <div style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 2px;">Referência interna do sistema (Conferência Cega):</div>
+        <div style="font-size: 0.95rem; color: #cbd5e1;">Saldo esperado na gaveta: <strong style="color: #38bdf8;">R$ {{ saldo_gaveta_esperado|floatformat:2 }}</strong></div>
+      </div>
 
       <form method="post">
         {% csrf_token %}
         <input type="hidden" name="action" value="fechar">
 
-        <div style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 12px; margin-bottom: 18px;">
-          <div style="font-size: 0.82rem; color: #94a3b8; margin-bottom: 4px;">Referência interna do sistema:</div>
-          <div style="font-size: 0.95rem; color: #cbd5e1;">Saldo esperado na gaveta: <strong style="color: #38bdf8;">R$ {{ saldo_gaveta_esperado|floatformat:2 }}</strong></div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <label style="font-size: 0.9rem; font-weight: 700; color: #fff; margin: 0;">
+            Total Contado na Gaveta:
+          </label>
+          <button type="button" onclick="toggleCalc('calc-fechamento', 'fechar_input')" class="btn btn-secondary btn-small" style="font-size: 0.78rem; padding: 3px 8px;">
+            <i class="fa-solid fa-calculator"></i> <span id="label-calc-fechamento">Abrir Contador de Cédulas</span>
+          </button>
         </div>
 
-        <div style="margin-bottom: 22px;">
-          <label style="display: block; font-size: 0.9rem; font-weight: 700; color: #fff; margin-bottom: 6px;">
-            Total contado na gaveta (R$):
-          </label>
-          <div style="position: relative;">
-            <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #fb7185; font-weight: 700; font-size: 1rem;">R$</span>
-            <input type="text" name="dinheiro_informado" value="{{ saldo_gaveta_esperado|floatformat:2 }}" required autofocus style="width: 100%; padding: 10px 12px 10px 42px; border-radius: 8px; border: 1px solid rgba(225,29,72,0.4); background: rgba(0,0,0,0.4); color: #fff; font-size: 1.15rem; font-weight: 700;">
+        <div style="position: relative; margin-bottom: 14px;">
+          <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #fb7185; font-weight: 700; font-size: 1.1rem;">R$</span>
+          <input type="text" id="fechar_input" name="dinheiro_informado" value="{{ saldo_gaveta_esperado|floatformat:2 }}" required autofocus style="width: 100%; padding: 10px 12px 10px 42px; border-radius: 8px; border: 1px solid rgba(225,29,72,0.4); background: rgba(0,0,0,0.4); color: #fff; font-size: 1.15rem; font-weight: 700;">
+        </div>
+
+        <!-- CALCULADORA DE CÉDULAS E MOEDAS (FECHAMENTO) -->
+        <div id="calc-fechamento" style="display: none; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 14px; margin-bottom: 18px;">
+          <span style="font-size: 0.8rem; font-weight: 700; color: #fb7185; text-transform: uppercase; display: block; margin-bottom: 10px;">
+            <i class="fa-solid fa-calculator"></i> Somador de Cédulas e Moedas
+          </span>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.82rem;">
+            <!-- Notas -->
+            <div>
+              <strong style="color: #cbd5e1; font-size: 0.76rem; display: block; margin-bottom: 4px;">Notas:</strong>
+              <div style="display: flex; flex-direction: column; gap: 4px;">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                  <span style="color: #94a3b8;">R$ 100:</span>
+                  <input type="number" min="0" value="0" onchange="recalcFechamento()" class="calc-fc-item" data-val="100" style="width: 55px; padding: 3px; border-radius: 4px; border: 1px solid #444; background: #111; color: #fff; text-align: center;">
+                </div>
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                  <span style="color: #94a3b8;">R$ 50:</span>
+                  <input type="number" min="0" value="0" onchange="recalcFechamento()" class="calc-fc-item" data-val="50" style="width: 55px; padding: 3px; border-radius: 4px; border: 1px solid #444; background: #111; color: #fff; text-align: center;">
+                </div>
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                  <span style="color: #94a3b8;">R$ 20:</span>
+                  <input type="number" min="0" value="0" onchange="recalcFechamento()" class="calc-fc-item" data-val="20" style="width: 55px; padding: 3px; border-radius: 4px; border: 1px solid #444; background: #111; color: #fff; text-align: center;">
+                </div>
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                  <span style="color: #94a3b8;">R$ 10:</span>
+                  <input type="number" min="0" value="0" onchange="recalcFechamento()" class="calc-fc-item" data-val="10" style="width: 55px; padding: 3px; border-radius: 4px; border: 1px solid #444; background: #111; color: #fff; text-align: center;">
+                </div>
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                  <span style="color: #94a3b8;">R$ 5:</span>
+                  <input type="number" min="0" value="0" onchange="recalcFechamento()" class="calc-fc-item" data-val="5" style="width: 55px; padding: 3px; border-radius: 4px; border: 1px solid #444; background: #111; color: #fff; text-align: center;">
+                </div>
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                  <span style="color: #94a3b8;">R$ 2:</span>
+                  <input type="number" min="0" value="0" onchange="recalcFechamento()" class="calc-fc-item" data-val="2" style="width: 55px; padding: 3px; border-radius: 4px; border: 1px solid #444; background: #111; color: #fff; text-align: center;">
+                </div>
+              </div>
+            </div>
+
+            <!-- Moedas -->
+            <div>
+              <strong style="color: #cbd5e1; font-size: 0.76rem; display: block; margin-bottom: 4px;">Moedas:</strong>
+              <div style="display: flex; flex-direction: column; gap: 4px;">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                  <span style="color: #94a3b8;">R$ 1,00:</span>
+                  <input type="number" min="0" value="0" onchange="recalcFechamento()" class="calc-fc-item" data-val="1" style="width: 55px; padding: 3px; border-radius: 4px; border: 1px solid #444; background: #111; color: #fff; text-align: center;">
+                </div>
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                  <span style="color: #94a3b8;">R$ 0,50:</span>
+                  <input type="number" min="0" value="0" onchange="recalcFechamento()" class="calc-fc-item" data-val="0.5" style="width: 55px; padding: 3px; border-radius: 4px; border: 1px solid #444; background: #111; color: #fff; text-align: center;">
+                </div>
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                  <span style="color: #94a3b8;">R$ 0,25:</span>
+                  <input type="number" min="0" value="0" onchange="recalcFechamento()" class="calc-fc-item" data-val="0.25" style="width: 55px; padding: 3px; border-radius: 4px; border: 1px solid #444; background: #111; color: #fff; text-align: center;">
+                </div>
+              </div>
+              <div style="margin-top: 14px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1); text-align: right;">
+                <small style="color: #94a3b8;">Soma:</small>
+                <div id="calc-fc-total" style="font-size: 1.05rem; font-weight: 800; color: #fb7185;">R$ 0,00</div>
+              </div>
+            </div>
           </div>
-          <small style="color: #94a3b8; font-size: 0.78rem; display: block; margin-top: 4px;">O sistema calculará automaticamente qualquer sobra ou falta.</small>
         </div>
 
         <div style="display: flex; justify-content: flex-end; gap: 10px;">
@@ -516,6 +746,80 @@
   </div>
 
 </section>
+
+<!-- Scripts de Interatividade -->
+<script>
+function toggleCalc(calcId, targetInputId) {
+  const el = document.getElementById(calcId);
+  const isHidden = el.style.display === 'none';
+  el.style.display = isHidden ? 'block' : 'none';
+  const labelEl = document.getElementById('label-' + calcId);
+  if (labelEl) {
+    labelEl.innerText = isHidden ? 'Ocultar Contador' : 'Usar Contador de Cédulas';
+  }
+}
+
+function recalcAbertura() {
+  let total = 0;
+  document.querySelectorAll('.calc-ab-item').forEach(inp => {
+    const qty = parseFloat(inp.value) || 0;
+    const val = parseFloat(inp.dataset.val) || 0;
+    total += qty * val;
+  });
+  document.getElementById('calc-ab-total').innerText = 'R$ ' + total.toFixed(2).replace('.', ',');
+  document.getElementById('fundo_inicial_input').value = total.toFixed(2).replace('.', ',');
+}
+
+function recalcFechamento() {
+  let total = 0;
+  document.querySelectorAll('.calc-fc-item').forEach(inp => {
+    const qty = parseFloat(inp.value) || 0;
+    const val = parseFloat(inp.dataset.val) || 0;
+    total += qty * val;
+  });
+  document.getElementById('calc-fc-total').innerText = 'R$ ' + total.toFixed(2).replace('.', ',');
+  document.getElementById('fechar_input').value = total.toFixed(2).replace('.', ',');
+}
+
+function abrirModalSangria(motivoPadrao) {
+  document.getElementById('modal-sangria').style.display = 'flex';
+  if (motivoPadrao) {
+    document.getElementById('sangria-motivo').value = motivoPadrao;
+  }
+}
+
+function setSangriaMotivo(m) {
+  document.getElementById('sangria-motivo').value = m;
+  document.getElementById('sangria-valor').focus();
+}
+
+function abrirModalSuprimento() {
+  document.getElementById('modal-suprimento').style.display = 'flex';
+}
+
+function setSuprimentoMotivo(m) {
+  document.getElementById('suprimento-motivo').value = m;
+  document.getElementById('suprimento-valor').focus();
+}
+
+function abrirModalFechar() {
+  document.getElementById('modal-fechar').style.display = 'flex';
+}
+
+function toggleCupomTermico() {
+  const wrap = document.getElementById('cupom-termico-wrap');
+  const label = document.getElementById('btn-termico-label');
+  const a4 = document.getElementById('quadro-assinaturas-a4');
+  if (wrap.style.display === 'none') {
+    wrap.style.display = 'block';
+    label.innerText = 'Ocultar Cupom Térmico';
+    wrap.scrollIntoView({ behavior: 'smooth' });
+  } else {
+    wrap.style.display = 'none';
+    label.innerText = 'Ver Cupom Térmico (80mm)';
+  }
+}
+</script>
 
 <!-- Estilos específicos de impressão -->
 <style>

@@ -500,6 +500,7 @@ class CashRegisterBetaView(LoginRequiredMixin, TemplateView):
         elif action == "sangria":
             raw_val = request.POST.get("valor", "").replace(".", "").replace(",", ".").strip()
             motivo = request.POST.get("motivo", "Retirada de caixa (Sangria)").strip()
+            categoria = request.POST.get("categoria", "geral").strip()
             try:
                 val = max(float(raw_val), 0.0)
                 if val > 0:
@@ -507,6 +508,7 @@ class CashRegisterBetaView(LoginRequiredMixin, TemplateView):
                         "tipo": "sangria",
                         "valor": val,
                         "motivo": motivo,
+                        "categoria": categoria,
                         "horario": timezone.localtime().strftime("%H:%M"),
                         "operador": user_name,
                     })
@@ -518,6 +520,7 @@ class CashRegisterBetaView(LoginRequiredMixin, TemplateView):
         elif action == "suprimento":
             raw_val = request.POST.get("valor", "").replace(".", "").replace(",", ".").strip()
             motivo = request.POST.get("motivo", "Reforço de troco (Suprimento)").strip()
+            categoria = request.POST.get("categoria", "geral").strip()
             try:
                 val = max(float(raw_val), 0.0)
                 if val > 0:
@@ -525,6 +528,7 @@ class CashRegisterBetaView(LoginRequiredMixin, TemplateView):
                         "tipo": "suprimento",
                         "valor": val,
                         "motivo": motivo,
+                        "categoria": categoria,
                         "horario": timezone.localtime().strftime("%H:%M"),
                         "operador": user_name,
                     })
@@ -633,6 +637,84 @@ class CashRegisterBetaView(LoginRequiredMixin, TemplateView):
         dinheiro_vendas_float = float(vendas["dinheiro"])
         saldo_gaveta_esperado = fundo_inicial + dinheiro_vendas_float + total_suprimentos - total_sangrias
 
+        # Percentuais de meios de pagamento
+        vendas_total_float = float(vendas["total"])
+        if vendas_total_float > 0:
+            pct_pix = round((float(vendas["pix"]) / vendas_total_float) * 100, 1)
+            pct_credito = round((float(vendas["cartao_credito"]) / vendas_total_float) * 100, 1)
+            pct_debito = round((float(vendas["cartao_debito"]) / vendas_total_float) * 100, 1)
+            pct_dinheiro = round((float(vendas["dinheiro"]) / vendas_total_float) * 100, 1)
+            pct_outros = max(round(100.0 - (pct_pix + pct_credito + pct_debito + pct_dinheiro), 1), 0.0)
+        else:
+            pct_pix = pct_credito = pct_debito = pct_dinheiro = pct_outros = 0.0
+
+        # Linha do tempo visual cronológica do turno
+        timeline = []
+        abertura = session_data.get("abertura")
+        if abertura:
+            timeline.append({
+                "horario": abertura.get("horario", "").split("às")[-1].strip() if "às" in abertura.get("horario", "") else "Início",
+                "tipo": "abertura",
+                "titulo": "Abertura de Caixa (Fundo de Troco)",
+                "detalhe": f"Operador: {abertura.get('operador', '-')}",
+                "icone": "fa-solid fa-lock-open",
+                "cor": "#38bdf8",
+                "valor_str": f"+R$ {fundo_inicial:.2f}",
+                "impacto": "positivo",
+            })
+
+        for o in orders:
+            if o.payment_method == Order.PaymentMethod.CASH and (o.paid_amount or Decimal("0.00")) > Decimal("0.00"):
+                paid_dt = o.payment_confirmed_at or o.created_at
+                h_str = timezone.localtime(paid_dt).strftime("%H:%M") if paid_dt else "--:--"
+                timeline.append({
+                    "horario": h_str,
+                    "tipo": "venda_dinheiro",
+                    "titulo": f"Venda em Dinheiro #{o.number}",
+                    "detalhe": f"Cliente: {o.client_name}",
+                    "icone": "fa-solid fa-money-bill-wave",
+                    "cor": "#22c55e",
+                    "valor_str": f"+R$ {o.paid_amount:.2f}",
+                    "impacto": "positivo",
+                })
+
+        for m in movimentacoes:
+            if m["tipo"] == "sangria":
+                timeline.append({
+                    "horario": m.get("horario", "--:--"),
+                    "tipo": "sangria",
+                    "titulo": f"Sangria: {m.get('motivo')}",
+                    "detalhe": f"Retirado por: {m.get('operador')}",
+                    "icone": "fa-solid fa-arrow-up",
+                    "cor": "#ef4444",
+                    "valor_str": f"-R$ {m.get('valor', 0):.2f}",
+                    "impacto": "negativo",
+                })
+            else:
+                timeline.append({
+                    "horario": m.get("horario", "--:--"),
+                    "tipo": "suprimento",
+                    "titulo": f"Suprimento: {m.get('motivo')}",
+                    "detalhe": f"Inserido por: {m.get('operador')}",
+                    "icone": "fa-solid fa-arrow-down",
+                    "cor": "#38bdf8",
+                    "valor_str": f"+R$ {m.get('valor', 0):.2f}",
+                    "impacto": "positivo",
+                })
+
+        fechamento = session_data.get("fechamento")
+        if fechamento:
+            timeline.append({
+                "horario": fechamento.get("horario", "").split("às")[-1].strip() if "às" in fechamento.get("horario", "") else "Fim",
+                "tipo": "fechamento",
+                "titulo": "Fechamento de Caixa Realizado",
+                "detalhe": f"Conferência: {fechamento.get('status_diferenca', '').upper()} (Contado: R$ {fechamento.get('dinheiro_informado', 0):.2f})",
+                "icone": "fa-solid fa-lock",
+                "cor": "#e11d48",
+                "valor_str": f"Esperado: R$ {fechamento.get('dinheiro_esperado', 0):.2f}",
+                "impacto": "neutro",
+            })
+
         context.update({
             "session_caixa": session_data,
             "status_caixa": session_data.get("status", "fechado"),
@@ -643,7 +725,14 @@ class CashRegisterBetaView(LoginRequiredMixin, TemplateView):
             "total_sangrias": total_sangrias,
             "total_suprimentos": total_suprimentos,
             "saldo_gaveta_esperado": saldo_gaveta_esperado,
+            "alerta_limite_gaveta": saldo_gaveta_esperado >= 500.0,
             "vendas": vendas,
+            "pct_pix": pct_pix,
+            "pct_credito": pct_credito,
+            "pct_debito": pct_debito,
+            "pct_dinheiro": pct_dinheiro,
+            "pct_outros": pct_outros,
+            "timeline": timeline,
             "orders": orders,
             "today_display": today.strftime("%d/%m/%Y"),
             "is_beta": True,
