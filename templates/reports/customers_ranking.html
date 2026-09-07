@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+
+{% block title %}Ranking de Clientes | Print Fornece{% endblock %}
+{% block page_heading %}Ranking dos Melhores Clientes{% endblock %}
+
+{% block content %}
+  <!-- Abas de Navegação dos Relatórios -->
+  <div class="no-print" style="display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 12px; flex-wrap: wrap;">
+    <a href="{% url 'reports:index' %}" class="btn btn-secondary" style="display: inline-flex; align-items: center; gap: 8px; font-weight: 500;">
+      <i class="fa-solid fa-chart-line"></i> Visão Geral & Financeiro
+    </a>
+    <a href="{% url 'reports:cash_register' %}" class="btn btn-secondary" style="display: inline-flex; align-items: center; gap: 8px; font-weight: 500;">
+      <i class="fa-solid fa-cash-register"></i> Fechamento de Caixa
+    </a>
+    <a href="{% url 'reports:production' %}" class="btn btn-secondary" style="display: inline-flex; align-items: center; gap: 8px; font-weight: 500;">
+      <i class="fa-solid fa-print"></i> Produção Diária (Metros)
+    </a>
+    <a href="{% url 'reports:materials' %}" class="btn btn-secondary" style="display: inline-flex; align-items: center; gap: 8px; font-weight: 500;">
+      <i class="fa-solid fa-boxes-stacked"></i> Consumo de Materiais
+    </a>
+    <a href="{% url 'reports:team_ranking' %}" class="btn btn-secondary" style="display: inline-flex; align-items: center; gap: 8px; font-weight: 500;">
+      <i class="fa-solid fa-trophy"></i> Ranking da Equipe
+    </a>
+    <a href="{% url 'reports:customers_ranking' %}" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 8px; font-weight: 600; background: #2563eb; border-color: #1d4ed8;">
+      <i class="fa-solid fa-users"></i> Ranking de Clientes
+    </a>
+  </div>
+
+  <div class="section-heading" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
+    <div>
+      <h2 style="margin: 0; font-size: 1.35rem; color: #f8fafc;">Ranking e Classificação de Clientes</h2>
+      <p style="margin: 4px 0 0 0; color: #94a3b8; font-size: 0.9rem;">
+        Listagem dos clientes ordenada por 
+        <strong>{% if order_by == 'quantidade' %}Quantidade de Produtos / Metros Comprados{% else %}Volume Financeiro Total de Vendas (R$){% endif %}</strong>.
+      </p>
+    </div>
+    <div style="display: flex; gap: 8px; align-items: center;" class="no-print">
+      <!-- Botões de Alternância de Ordenação -->
+      <div style="background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; padding: 3px; display: flex; gap: 4px;">
+        <a href="?order_by=volume" class="btn btn-small" style="{% if order_by == 'volume' %}background: #2563eb; color: #fff; font-weight: 700;{% else %}background: transparent; color: #94a3b8;{% endif %} border: none; padding: 5px 12px; border-radius: 6px;">
+          <i class="fa-solid fa-sack-dollar"></i> Por Volume (R$)
+        </a>
+        <a href="?order_by=quantidade" class="btn btn-small" style="{% if order_by == 'quantidade' %}background: #2563eb; color: #fff; font-weight: 700;{% else %}background: transparent; color: #94a3b8;{% endif %} border: none; padding: 5px 12px; border-radius: 6px;">
+          <i class="fa-solid fa-layer-group"></i> Por Quantidade
+        </a>
+      </div>
+      <a href="?order_by={{ order_by }}&export=csv" class="btn btn-primary btn-small" style="background: #10b981; border-color: #059669;">
+        <i class="fa-solid fa-file-csv"></i> Exportar CSV
+      </a>
+    </div>
+  </div>
+
+  <!-- Cards de Resumo / KPIs -->
+  <div class="grid stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px;">
+    <div class="stat-card" style="border-left: 4px solid #10b981;">
+      <small style="color: #94a3b8; font-size: 0.8rem; text-transform: uppercase;">Faturamento Total dos Clientes</small>
+      <strong style="font-size: 1.6rem; color: #34d399;">R$ {{ grand_revenue|floatformat:2 }}</strong>
+    </div>
+    <div class="stat-card" style="border-left: 4px solid #38bdf8;">
+      <small style="color: #94a3b8; font-size: 0.8rem; text-transform: uppercase;">Total de Pedidos Realizados</small>
+      <strong style="font-size: 1.6rem; color: #38bdf8;">{{ grand_orders }}</strong>
+    </div>
+    <div class="stat-card" style="border-left: 4px solid #c084fc;">
+      <small style="color: #94a3b8; font-size: 0.8rem; text-transform: uppercase;">Base de Clientes Atendidos</small>
+      <strong style="font-size: 1.6rem; color: #c084fc;">{{ total_customers_count }}</strong>
+    </div>
+  </div>
+
+  <!-- Tabela de Ranking de Clientes -->
+  <section class="card card-pad" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 20px; box-shadow: 0 4px 16px rgba(0,0,0,0.25);">
+    <div class="table-wrap">
+      <table class="data-table" style="width: 100%; border-collapse: collapse;">
+        <thead>
+          <tr style="border-bottom: 2px solid rgba(255, 255, 255, 0.1); text-align: left;">
+            <th style="padding: 12px 14px; font-weight: 700; color: #cbd5e1; width: 60px; text-align: center;">Posição</th>
+            <th style="padding: 12px 14px; font-weight: 700; color: #cbd5e1;">Cliente</th>
+            <th style="padding: 12px 14px; font-weight: 700; color: #cbd5e1; text-align: right;">
+              <a href="?order_by=volume" style="color: {% if order_by == 'volume' %}#38bdf8{% else %}#cbd5e1{% endif %}; text-decoration: none;">
+                Volume Total (R$) {% if order_by == 'volume' %}<i class="fa-solid fa-arrow-down-wide-short"></i>{% endif %}
+              </a>
+            </th>
+            <th style="padding: 12px 14px; font-weight: 700; color: #cbd5e1; text-align: right;">
+              <a href="?order_by=quantidade" style="color: {% if order_by == 'quantidade' %}#38bdf8{% else %}#cbd5e1{% endif %}; text-decoration: none;">
+                Qtd. Itens/Peças {% if order_by == 'quantidade' %}<i class="fa-solid fa-arrow-down-wide-short"></i>{% endif %}
+              </a>
+            </th>
+            <th style="padding: 12px 14px; font-weight: 700; color: #cbd5e1; text-align: right;">Metros DTF (m)</th>
+            <th style="padding: 12px 14px; font-weight: 700; color: #cbd5e1; text-align: right;">Total Pedidos</th>
+            <th style="padding: 12px 14px; font-weight: 700; color: #cbd5e1; text-align: right;">Ticket Médio (R$)</th>
+            <th style="padding: 12px 14px; font-weight: 700; color: #cbd5e1; text-align: right;">Último Pedido</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in customer_rows %}
+            <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.05); transition: background 0.15s ease;">
+              <td style="padding: 12px 14px; text-align: center;">
+                {% if r.rank == 1 %}
+                  <span style="display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; background: rgba(250, 204, 21, 0.2); color: #facc15; font-weight: 800; border: 1px solid #facc15;">
+                    <i class="fa-solid fa-crown"></i>
+                  </span>
+                {% elif r.rank == 2 %}
+                  <span style="display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; background: rgba(148, 163, 184, 0.2); color: #e2e8f0; font-weight: 800; border: 1px solid #cbd5e1;">
+                    2º
+                  </span>
+                {% elif r.rank == 3 %}
+                  <span style="display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; background: rgba(217, 119, 6, 0.2); color: #fb923c; font-weight: 800; border: 1px solid #fb923c;">
+                    3º
+                  </span>
+                {% else %}
+                  <span style="color: #94a3b8; font-weight: 700; font-size: 0.9rem;">{{ r.rank }}º</span>
+                {% endif %}
+              </td>
+              <td style="padding: 12px 14px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <span style="width: 32px; height: 32px; border-radius: 50%; background: rgba(56, 189, 248, 0.15); color: #38bdf8; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem;">
+                    {{ r.name|slice:":1"|upper }}
+                  </span>
+                  <div>
+                    <strong style="color: #f8fafc; font-size: 0.95rem; display: block;">{{ r.name }}</strong>
+                    {% if r.phone %}
+                      <small style="color: #22c55e;"><i class="fa-brands fa-whatsapp"></i> {{ r.phone }}</small>
+                    {% else %}
+                      <small style="color: #64748b;">Sem telefone</small>
+                    {% endif %}
+                  </div>
+                </div>
+              </td>
+              <td style="padding: 12px 14px; text-align: right; font-weight: 700; color: #34d399; font-size: 1.05rem;">
+                R$ {{ r.total_sales|floatformat:2 }}
+              </td>
+              <td style="padding: 12px 14px; text-align: right; color: #38bdf8; font-weight: 700; font-size: 1rem;">
+                {{ r.total_items_qty }} un
+              </td>
+              <td style="padding: 12px 14px; text-align: right; color: #c084fc; font-weight: 600;">
+                {{ r.total_meters|floatformat:2 }} m
+              </td>
+              <td style="padding: 12px 14px; text-align: right; color: #e2e8f0; font-weight: 600;">
+                {{ r.orders_count }}
+              </td>
+              <td style="padding: 12px 14px; text-align: right; color: #cbd5e1;">
+                R$ {{ r.avg_ticket|floatformat:2 }}
+              </td>
+              <td style="padding: 12px 14px; text-align: right; color: #94a3b8; font-size: 0.85rem;">
+                {{ r.last_order_date|date:"d/m/Y H:i" }}
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="8" style="padding: 30px; text-align: center; color: #94a3b8;">
+                Nenhum cliente cadastrado ou com pedidos registrados.
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+{% endblock %}

@@ -6,7 +6,10 @@ rules across DTF printing, garment products (shirts), and extra pre-press servic
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime, timedelta
 from decimal import Decimal, InvalidOperation, ROUND_CEILING, ROUND_FLOOR, ROUND_HALF_UP
+
+from django.utils import timezone
 
 
 CENTIMETERS_PER_METER = Decimal("100")
@@ -455,4 +458,50 @@ def calculate_service_quote(*, service_code: str, quantity: int | str = 1) -> Se
         total=total,
         pricing_rule=f"Valor fixo de R$ {unit_price:.2f}/un".replace(".", ","),
     )
+
+
+MINUTES_PER_METER = 15  # Regra de negócio: 15 minutos por metro impresso
+
+
+def calculate_order_production_time(
+    total_meters: Decimal | float | int | str,
+    start_time: datetime | None = None,
+) -> dict:
+    """
+    Calcula automaticamente o tempo de entrega e produção do pedido com base na
+    regra de negócio de 15 minutos de produção para cada metro impresso.
+    """
+    try:
+        meters_dec = Decimal(str(total_meters or 0))
+    except (InvalidOperation, TypeError, ValueError):
+        meters_dec = Decimal("0.00")
+
+    if meters_dec <= Decimal("0.00"):
+        total_minutes = 0
+    else:
+        # 15 minutos de produção por metro
+        total_minutes = int((meters_dec * Decimal(str(MINUTES_PER_METER))).quantize(Decimal("1"), rounding=ROUND_CEILING))
+
+    if total_minutes <= 0:
+        display_str = "Pronto imediato"
+    elif total_minutes < 60:
+        display_str = f"{total_minutes} min"
+    else:
+        hours = total_minutes // 60
+        mins = total_minutes % 60
+        if mins > 0:
+            display_str = f"{hours}h {mins:02d}min"
+        else:
+            display_str = f"{hours}h"
+
+    base_time = start_time or timezone.now()
+    estimated_due_at = base_time + timedelta(minutes=total_minutes) if total_minutes > 0 else base_time
+
+    return {
+        "total_meters": float(meters_dec),
+        "production_minutes": total_minutes,
+        "display": display_str,
+        "estimated_due_at": estimated_due_at,
+    }
+
 

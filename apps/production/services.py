@@ -41,6 +41,11 @@ def move_order_stage(*, order_id: int, new_stage: str, actor, request=None) -> O
             order.finished_at = timezone.now()
             update_fields.append("finished_at")
 
+    # Baixa automática de estoque de insumos e consumo de metros quando atinge 'Pronto para retirada' ou 'Entregue'
+    if new_stage in {Order.Stage.READY, Order.Stage.DELIVERED}:
+        from apps.inventory.services import deduct_order_stock
+        deduct_order_stock(order, actor)
+
     order.save(update_fields=list(set(update_fields)))
     message = f"Movido de {_stage_label(previous_stage)} para {_stage_label(new_stage)}"
     OrderStageHistory.objects.create(order=order, previous_stage=previous_stage, new_stage=new_stage, user=actor)

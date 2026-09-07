@@ -596,4 +596,124 @@ label.required {
   font-weight: 700 !important;
 }
 
+/* ==========================================================================
+   ESTILIZAÇÃO CONDICIONAL DE CORES POR ETAPA DO PEDIDO
+   ========================================================================== */
+.order-card {
+  position: relative;
+  border-left: 4px solid #475569;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.order-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+}
+
+/* 1. Novo Pedido: Azul Céu */
+.order-card.stage-novo {
+  border-left-color: #38bdf8 !important;
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.04) 0%, rgba(15, 23, 42, 0.8) 100%);
+}
+.order-card.stage-novo:hover {
+  border-color: rgba(56, 189, 248, 0.4);
+  border-left-color: #38bdf8 !important;
+}
+
+/* 2. Aguardando Pagamento: Âmbar / Laranja */
+.order-card.stage-aguardando_pagamento {
+  border-left-color: #f59e0b !important;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.04) 0%, rgba(15, 23, 42, 0.8) 100%);
+}
+.order-card.stage-aguardando_pagamento:hover {
+  border-color: rgba(245, 158, 11, 0.4);
+  border-left-color: #f59e0b !important;
+}
+
+/* 3. Pagamento Confirmado: Verde Esmeralda */
+.order-card.stage-pagamento_confirmado {
+  border-left-color: #10b981 !important;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.04) 0%, rgba(15, 23, 42, 0.8) 100%);
+}
+.order-card.stage-pagamento_confirmado:hover {
+  border-color: rgba(16, 185, 129, 0.4);
+  border-left-color: #10b981 !important;
+}
+
+/* 4. Pré-Impressão: Roxo / Violeta */
+.order-card.stage-pre_impressao {
+  border-left-color: #a855f7 !important;
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.04) 0%, rgba(15, 23, 42, 0.8) 100%);
+}
+.order-card.stage-pre_impressao:hover {
+  border-color: rgba(168, 85, 247, 0.4);
+  border-left-color: #a855f7 !important;
+}
+
+/* 5. Em Produção: Ciano / Azul Neon */
+.order-card.stage-em_producao,
+.order-card.stage-producao {
+  border-left-color: #06b6d4 !important;
+  background: linear-gradient(135deg, rgba(6, 182, 212, 0.04) 0%, rgba(15, 23, 42, 0.8) 100%);
+}
+.order-card.stage-em_producao:hover,
+.order-card.stage-producao:hover {
+  border-color: rgba(6, 182, 212, 0.4);
+  border-left-color: #06b6d4 !important;
+}
+
+/* 6. Pronto pra Retirada: Verde Claro Vibrante */
+.order-card.stage-pronto_retirada,
+.order-card.stage-pronto {
+  border-left-color: #22c55e !important;
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.06) 0%, rgba(15, 23, 42, 0.8) 100%);
+}
+.order-card.stage-pronto_retirada:hover,
+.order-card.stage-pronto:hover {
+  border-color: rgba(34, 197, 94, 0.4);
+  border-left-color: #22c55e !important;
+}
+
+/* 7. Entregue: Cinza Ardósia Suave */
+.order-card.stage-entregue {
+  border-left-color: #64748b !important;
+  opacity: 0.9;
+}
+
+/* 8. Cancelado: Vermelho */
+.order-card.stage-cancelado {
+  border-left-color: #ef4444 !important;
+  opacity: 0.75;
+}
+
+/* Botão de Impressão de Nota no Card */
+.kanban-print-receipt-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #38bdf8 !important;
+  background: rgba(56, 189, 248, 0.12) !important;
+  border: 1px solid rgba(56, 189, 248, 0.35) !important;
+  padding: 3px 9px;
+  border-radius: 5px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+}
+
+.kanban-print-receipt-btn:hover {
+  background: rgba(56, 189, 248, 0.25) !important;
+  border-color: #38bdf8 !important;
+  color: #ffffff !important;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(56, 189, 248, 0.3);
+}
+
+.kanban-print-receipt-btn i {
+  font-size: 0.74rem;
+}
+
+
 

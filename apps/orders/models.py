@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid
+from decimal import Decimal
 from pathlib import Path
 
 from django.conf import settings
@@ -201,6 +202,35 @@ class Order(models.Model):
     @property
     def is_late(self) -> bool:
         return bool(self.due_at and self.due_at < timezone.now() and self.is_active_stage)
+
+    @property
+    def total_meters(self) -> Decimal:
+        """Soma total de metros de material/DTF impressos neste pedido."""
+        items = list(self.items.all()) if hasattr(self, "items") else []
+        total = Decimal("0.00")
+        for it in items:
+            kind = getattr(it, "kind", "")
+            if kind == "material" or "metro" in (getattr(it, "billing_unit", "") or "").lower():
+                if getattr(it, "calculation_snapshot", None) and "film_used_m" in it.calculation_snapshot:
+                    total += Decimal(str(it.calculation_snapshot["film_used_m"]))
+                elif getattr(it, "billing_quantity", None):
+                    total += Decimal(str(it.billing_quantity))
+                elif getattr(it, "used_length_cm", None):
+                    total += Decimal(str(it.used_length_cm)) / Decimal("100")
+        return total
+
+    @property
+    def estimated_production_time(self) -> dict:
+        from .calculator import calculate_order_production_time
+        return calculate_order_production_time(self.total_meters, start_time=self.created_at)
+
+    @property
+    def estimated_production_minutes(self) -> int:
+        return self.estimated_production_time["production_minutes"]
+
+    @property
+    def estimated_production_display(self) -> str:
+        return self.estimated_production_time["display"]
 
     @property
     def primary_attachment(self) -> OrderAttachment | None:

@@ -20,6 +20,10 @@ def deduct_order_stock(order, actor=None) -> list[SupplyMovement]:
     if not items:
         return movements
 
+    # Evita baixa duplicada de estoque caso o pedido transite mais de uma vez pelas etapas finais
+    if SupplyMovement.objects.filter(description__contains=f"Pedido #{order.number}").exists():
+        return movements
+
     textil_meters = Decimal("0.00")
     uv_meters = Decimal("0.00")
     shirts_to_deduct: list[tuple[str, str, str, Decimal]] = []  # (shirt_type, color, size, quantity)

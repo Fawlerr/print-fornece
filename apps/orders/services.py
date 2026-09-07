@@ -295,10 +295,6 @@ def create_order(*, form, actor, files, request=None) -> Order:
 
             order.cliente.save(update_fields=["saldo_credito", "metros_saldo", "updated_at"])
 
-        # Baixa Automática de Estoque de Insumos (Filmes DTF e Camisetas)
-        from apps.inventory.services import deduct_order_stock
-        deduct_order_stock(order, actor)
-
         desc_criacao = f"Pedido criado.{' (Correção por Defeito)' if order.is_correction else ''}"
         OrderHistory.objects.create(order=order, user=actor, action="criacao", description=desc_criacao)
         if order.payment_status == Order.PaymentStatus.PAID:

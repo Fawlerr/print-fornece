@@ -1241,6 +1241,15 @@ class PrintForneceTestCase(TestCase):
             "calculation_payload": calc_payload,
         })
         self.assertEqual(response.status_code, 302)
+        order = Order.objects.get(client_name="Cliente Teste Estoque")
+
+        # Na criação, estoque NÃO foi abatido ainda (regra de contagem de metros em 'Pronto para retirada')
+        filme_textil.refresh_from_db()
+        self.assertEqual(filme_textil.quantity, Decimal("100.00"))
+
+        # Ao mover o status para 'Pronto para retirada' (READY), o estoque é abatido
+        from apps.production.services import move_order_stage
+        move_order_stage(order_id=order.pk, new_stage=Order.Stage.READY, actor=self.admin)
 
         filme_textil.refresh_from_db()
         camisa_p.refresh_from_db()
@@ -1628,6 +1637,256 @@ class PrintForneceTestCase(TestCase):
         self.assertEqual(res1.status_code, 200)
         res2 = self.client.get("/cash-register/beta/")
         self.assertEqual(res2.status_code, 200)
+
+    def test_kanban_card_without_financial_amount_and_with_print_receipt_when_paid(self):
+        self.client.force_login(self.admin)
+        paid_order = Order.objects.create(
+            number="PF-KB-PAID-01",
+            client_name="Cliente Pago VIP",
+            description="Banner Teste Pago",
+            total_amount=Decimal("250.00"),
+            payment_status=Order.PaymentStatus.PAID,
+            stage=Order.Stage.PRODUCTION,
+            responsible=self.admin,
+            created_by=self.admin,
+        )
+        unpaid_order = Order.objects.create(
+            number="PF-KB-UNPAID-01",
+            client_name="Cliente Pendente",
+            description="Adesivo Pendente",
+            total_amount=Decimal("180.00"),
+            payment_status=Order.PaymentStatus.UNPAID,
+            stage=Order.Stage.NEW,
+            responsible=self.admin,
+            created_by=self.admin,
+        )
+
+        res = self.client.get(reverse("production:kanban"))
+        self.assertEqual(res.status_code, 200)
+
+        # 1. Classes condicionais por etapa
+        self.assertContains(res, f"stage-{Order.Stage.PRODUCTION}")
+        self.assertContains(res, f"stage-{Order.Stage.NEW}")
+
+        # 2. Botão 'Imprimir Nota' exibido exclusivamente para o pedido pago
+        self.assertContains(res, reverse("orders:download_receipt", kwargs={"pk": paid_order.pk}))
+        self.assertContains(res, "Imprimir Nota")
+        self.assertNotContains(res, reverse("orders:download_receipt", kwargs={"pk": unpaid_order.pk}))
+
+    def test_whatsapp_quote_url_generation_on_order_create(self):
+        self.client.force_login(self.admin)
+        data = {
+            "client_name": "Cliente WhatsApp Auto",
+            "client_whatsapp": "84999991234",
+            "description": "Serviço com disparo WhatsApp",
+            "total_amount": "150.00",
+            "payment_status": Order.PaymentStatus.UNPAID,
+            "payment_method": Order.PaymentMethod.PIX,
+            "shift": Order.Shift.MORNING,
+            "priority": Order.Priority.NORMAL,
+        }
+        res = self.client.post(
+            reverse("orders:create"),
+            data=data,
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+            HTTP_ACCEPT="application/json",
+        )
+        self.assertEqual(res.status_code, 200)
+        res_data = res.json()
+        self.assertTrue(res_data["success"])
+        self.assertIn("whatsapp_quote_url", res_data)
+        self.assertTrue(res_data["whatsapp_quote_url"].startswith("https://wa.me/5584999991234"))
+
+    def test_automatic_delivery_due_calculation_15_min_per_meter(self):
+        from apps.orders.calculator import calculate_order_production_time
+
+        # 1. Teste direto da função utilitária
+        calc_2m = calculate_order_production_time(Decimal("2.00"))
+        self.assertEqual(calc_2m["production_minutes"], 30)
+        self.assertEqual(calc_2m["display"], "30 min")
+
+        calc_10m = calculate_order_production_time(Decimal("10.00"))
+        self.assertEqual(calc_10m["production_minutes"], 150)
+        self.assertEqual(calc_10m["display"], "2h 30min")
+
+        calc_0m = calculate_order_production_time(Decimal("0.00"))
+        self.assertEqual(calc_0m["production_minutes"], 0)
+
+        # 2. Teste das propriedades no modelo Order
+        order = Order.objects.create(
+            number="PF-CALC-METER-01",
+            client_name="Cliente Metro Teste",
+            total_amount=Decimal("100.00"),
+            responsible=self.admin,
+            created_by=self.admin,
+        )
+        OrderItem.objects.create(
+            order=order,
+            position=1,
+            kind=OrderItem.Kind.MATERIAL,
+            material_code="dtf_textil",
+            material_name="DTF Têxtil 60cm",
+            category="DTF",
+            billing_quantity=Decimal("4.00"),
+            billing_unit="Metros",
+            unit_price=Decimal("45.00"),
+            line_total=Decimal("180.00"),
+            pricing_rule="Preço padrão",
+        )
+        order.refresh_from_db()
+        self.assertEqual(order.total_meters, Decimal("4.00"))
+        self.assertEqual(order.estimated_production_minutes, 60)
+        self.assertEqual(order.estimated_production_display, "1h")
+
+    def test_meter_consumption_and_stock_deduction_only_on_ready_stage(self):
+        from apps.inventory.models import SupplyItem, SupplyMovement
+        from apps.production.services import move_order_stage
+
+        # Criar item de estoque
+        filme = SupplyItem.objects.create(
+            name="Filme DTF Têxtil 60cm",
+            category=SupplyItem.Category.DTF_TEXTIL,
+            unit=SupplyItem.Unit.METER,
+            quantity=Decimal("100.00"),
+            minimum_quantity=Decimal("10.00"),
+        )
+
+        order = Order.objects.create(
+            number="PF-STOCK-001",
+            client_name="Cliente Estoque Ready",
+            total_amount=Decimal("90.00"),
+            stage=Order.Stage.NEW,
+            responsible=self.admin,
+            created_by=self.admin,
+        )
+        OrderItem.objects.create(
+            order=order,
+            position=1,
+            kind=OrderItem.Kind.MATERIAL,
+            material_code="dtf_textil",
+            material_name="DTF Têxtil 60cm",
+            category="DTF",
+            billing_quantity=Decimal("5.00"),
+            billing_unit="Metros",
+            unit_price=Decimal("45.00"),
+            line_total=Decimal("90.00"),
+            pricing_rule="Preço padrão",
+        )
+
+        # Na criação, estoque NÃO foi abatido
+        self.assertEqual(SupplyMovement.objects.filter(description__contains=f"Pedido #{order.number}").count(), 0)
+
+        # Mover para pré-impressão: estoque AINDA NÃO é abatido
+        move_order_stage(order_id=order.pk, new_stage=Order.Stage.PRE_PRESS, actor=self.admin)
+        self.assertEqual(SupplyMovement.objects.filter(description__contains=f"Pedido #{order.number}").count(), 0)
+
+        # Mover para Pronto para retirada: estoque É abatido
+        move_order_stage(order_id=order.pk, new_stage=Order.Stage.READY, actor=self.admin)
+        self.assertEqual(SupplyMovement.objects.filter(description__contains=f"Pedido #{order.number}").count(), 1)
+        filme.refresh_from_db()
+        self.assertEqual(filme.quantity, Decimal("95.00"))
+
+    def test_materials_report_view(self):
+        self.client.force_login(self.admin)
+        order = Order.objects.create(
+            number="PF-RPT-MAT-01",
+            client_name="Cliente Relatorio Material",
+            total_amount=Decimal("150.00"),
+            stage=Order.Stage.READY,
+            responsible=self.admin,
+            created_by=self.admin,
+        )
+        OrderItem.objects.create(
+            order=order,
+            position=1,
+            kind=OrderItem.Kind.MATERIAL,
+            material_code="dtf_textil",
+            material_name="DTF Têxtil 60cm",
+            category="DTF",
+            billing_quantity=Decimal("3.00"),
+            billing_unit="Metros",
+            unit_price=Decimal("50.00"),
+            line_total=Decimal("150.00"),
+            pricing_rule="Preço padrão",
+        )
+
+        res = self.client.get(reverse("reports:materials"))
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "Volume de Materiais Vendidos")
+        self.assertContains(res, "DTF Têxtil (Metro)")
+        self.assertContains(res, "3,00 m")
+
+        # Export CSV
+        res_csv = self.client.get(f"{reverse('reports:materials')}?export=csv")
+        self.assertEqual(res_csv.status_code, 200)
+        self.assertEqual(res_csv["Content-Type"], "text/csv; charset=utf-8")
+
+    def test_team_ranking_report_view(self):
+        self.client.force_login(self.admin)
+        order = Order.objects.create(
+            number="PF-RPT-TEAM-01",
+            client_name="Cliente Ranking Equipe",
+            total_amount=Decimal("500.00"),
+            paid_amount=Decimal("500.00"),
+            payment_status=Order.PaymentStatus.PAID,
+            stage=Order.Stage.DELIVERED,
+            responsible=self.admin,
+            created_by=self.admin,
+        )
+
+        res = self.client.get(reverse("reports:team_ranking"))
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "Desempenho de Vendas por Atendente")
+        self.assertContains(res, self.admin.name)
+        self.assertContains(res, "R$ 500,00")
+
+        # Export CSV
+        res_csv = self.client.get(f"{reverse('reports:team_ranking')}?export=csv")
+        self.assertEqual(res_csv.status_code, 200)
+        self.assertEqual(res_csv["Content-Type"], "text/csv; charset=utf-8")
+
+    def test_customers_ranking_report_view(self):
+        self.client.force_login(self.admin)
+        order1 = Order.objects.create(
+            number="PF-RPT-CUST-01",
+            client_name="Cliente Alpha Top",
+            client_whatsapp="84999990001",
+            total_amount=Decimal("1000.00"),
+            payment_status=Order.PaymentStatus.PAID,
+            stage=Order.Stage.DELIVERED,
+            responsible=self.admin,
+            created_by=self.admin,
+        )
+        OrderItem.objects.create(
+            order=order1,
+            position=1,
+            kind=OrderItem.Kind.MATERIAL,
+            material_code="dtf_textil",
+            material_name="DTF Têxtil",
+            category="DTF",
+            billing_quantity=Decimal("20.00"),
+            billing_unit="Metros",
+            unit_price=Decimal("50.00"),
+            line_total=Decimal("1000.00"),
+            pricing_rule="Preço",
+        )
+
+        # 1. Ordenação por Volume (R$)
+        res_vol = self.client.get(f"{reverse('reports:customers_ranking')}?order_by=volume")
+        self.assertEqual(res_vol.status_code, 200)
+        self.assertContains(res_vol, "Cliente Alpha Top")
+        self.assertContains(res_vol, "R$ 1000,00")
+
+        # 2. Ordenação por Quantidade
+        res_qty = self.client.get(f"{reverse('reports:customers_ranking')}?order_by=quantidade")
+        self.assertEqual(res_qty.status_code, 200)
+        self.assertContains(res_qty, "Cliente Alpha Top")
+
+        # 3. Export CSV
+        res_csv = self.client.get(f"{reverse('reports:customers_ranking')}?order_by=volume&export=csv")
+        self.assertEqual(res_csv.status_code, 200)
+        self.assertEqual(res_csv["Content-Type"], "text/csv; charset=utf-8")
+
 
 
 

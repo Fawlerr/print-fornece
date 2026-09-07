@@ -15,6 +15,7 @@ from django.views.decorators.http import require_POST
 from django.views.generic import CreateView, UpdateView
 
 from apps.notifications.services import notify_role
+from apps.notifications.whatsapp import get_whatsapp_share_links
 from apps.audit.services import record_audit
 
 from .art_preview import generate_art_preview_image
@@ -76,8 +77,20 @@ class OrderCreateView(LoginRequiredMixin, CreateView):
         else:
             redirect_url = reverse("production:kanban")
 
+        # Geração automática do link do WhatsApp para envio do orçamento
+        host = self.request.build_absolute_uri('/')[:-1]
+        share_links = get_whatsapp_share_links(self.object, host=host)
+        whatsapp_quote_url = share_links.get("quote_url") if share_links.get("phone") else ""
+
         if is_ajax:
-            return JsonResponse({"success": True, "redirect_url": redirect_url, "order_number": self.object.number})
+            return JsonResponse({
+                "success": True,
+                "redirect_url": redirect_url,
+                "order_number": self.object.number,
+                "whatsapp_quote_url": whatsapp_quote_url,
+            })
+        if whatsapp_quote_url:
+            self.request.session["auto_open_whatsapp_url"] = whatsapp_quote_url
         return redirect(redirect_url)
 
     def form_invalid(self, form):
@@ -168,8 +181,20 @@ class OrderUpdateView(LoginRequiredMixin, UpdateView):
 
         messages.success(self.request, "Pedido atualizado.")
         redirect_url = reverse("production:detail", kwargs={"pk": self.object.pk})
+        
+        host = self.request.build_absolute_uri('/')[:-1]
+        share_links = get_whatsapp_share_links(self.object, host=host)
+        whatsapp_quote_url = share_links.get("quote_url") if share_links.get("phone") else ""
+
         if is_ajax:
-            return JsonResponse({"success": True, "redirect_url": redirect_url, "order_number": self.object.number})
+            return JsonResponse({
+                "success": True,
+                "redirect_url": redirect_url,
+                "order_number": self.object.number,
+                "whatsapp_quote_url": whatsapp_quote_url,
+            })
+        if whatsapp_quote_url:
+            self.request.session["auto_open_whatsapp_url"] = whatsapp_quote_url
         return redirect(redirect_url)
 
     def form_invalid(self, form):

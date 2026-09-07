@@ -393,92 +393,99 @@
 
       if (orderForm) {
         orderForm.addEventListener("submit", (e) => {
+          e.preventDefault();
+
           const files = attachmentInput ? attachmentInput.files : null;
           const hasFiles = files && files.length > 0;
 
-          // Se não há arquivos, apenas previne duplo clique e deixa o submit padrão acontecer
-          if (!hasFiles) {
-            if (submitBtn) {
-              submitBtn.disabled = true;
-              submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Salvando...';
-            }
-            return true;
+          if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Salvando...';
           }
 
-          // Se há arquivos pesados anexados, faz o upload via XMLHttpRequest para mostrar a barra de progresso
-          e.preventDefault();
-
-          if (submitBtn) submitBtn.disabled = true;
           modal.style.display = "flex";
           errorBox.style.display = "none";
           cancelBtn.style.display = "none";
-          progressBar.style.width = "0%";
-          percentLabel.textContent = "0%";
-          speedLabel.textContent = "Iniciando upload...";
-          titleLabel.textContent = "Enviando arquivo(s)...";
-          subtitleLabel.textContent = "Por favor, aguarde enquanto seus arquivos de arte são transferidos com segurança.";
+          progressBar.style.width = hasFiles ? "0%" : "70%";
+          percentLabel.textContent = hasFiles ? "0%" : "70%";
+          speedLabel.textContent = hasFiles ? "Iniciando upload..." : "Processando pedido...";
+          titleLabel.textContent = hasFiles ? "Enviando arquivo(s)..." : "Gravando pedido...";
+          subtitleLabel.textContent = "Por favor, aguarde enquanto os dados e o orçamento são registrados no sistema.";
           iconBox.innerHTML = '<div style="width: 52px; height: 52px; margin: 0 auto; border: 4px solid rgba(56, 189, 248, 0.2); border-top-color: #38bdf8; border-radius: 50%; animation: spin 0.8s linear infinite;"></div>';
 
           let totalBytes = 0;
-          for (let i = 0; i < files.length; i++) totalBytes += files[i].size;
-          bytesLabel.textContent = `0 MB de ${formatBytes(totalBytes)}`;
-          countLabel.innerHTML = `<i class="fa-solid fa-file"></i> ${files.length} arquivo(s)`;
+          if (hasFiles) {
+            for (let i = 0; i < files.length; i++) totalBytes += files[i].size;
+            bytesLabel.textContent = `0 MB de ${formatBytes(totalBytes)}`;
+            countLabel.innerHTML = `<i class="fa-solid fa-file"></i> ${files.length} arquivo(s)`;
+          } else {
+            bytesLabel.textContent = "Dados do formulário";
+            countLabel.innerHTML = `<i class="fa-solid fa-check"></i> Sem anexos pesados`;
+          }
 
           const formData = new FormData(orderForm);
           const xhr = new XMLHttpRequest();
           const startTime = Date.now();
 
-          xhr.upload.addEventListener("progress", (event) => {
-            if (event.lengthComputable) {
-              const percent = Math.min(99, Math.round((event.loaded / event.total) * 100));
-              progressBar.style.width = `${percent}%`;
-              percentLabel.textContent = `${percent}%`;
-              bytesLabel.textContent = `${formatBytes(event.loaded)} de ${formatBytes(event.total)}`;
+          if (hasFiles) {
+            xhr.upload.addEventListener("progress", (event) => {
+              if (event.lengthComputable) {
+                const percent = Math.min(99, Math.round((event.loaded / event.total) * 100));
+                progressBar.style.width = `${percent}%`;
+                percentLabel.textContent = `${percent}%`;
+                bytesLabel.textContent = `${formatBytes(event.loaded)} de ${formatBytes(event.total)}`;
 
-              const elapsedSec = (Date.now() - startTime) / 1000;
-              if (elapsedSec > 0.3) {
-                const speedBytesPerSec = event.loaded / elapsedSec;
-                speedLabel.textContent = `${formatBytes(speedBytesPerSec)}/s`;
+                const elapsedSec = (Date.now() - startTime) / 1000;
+                if (elapsedSec > 0.3) {
+                  const speedBytesPerSec = event.loaded / elapsedSec;
+                  speedLabel.textContent = `${formatBytes(speedBytesPerSec)}/s`;
 
-                const remainingBytes = event.total - event.loaded;
-                const etaSec = Math.round(remainingBytes / (speedBytesPerSec || 1));
-                if (etaSec <= 1) {
-                  etaLabel.innerHTML = `<i class="fa-solid fa-clock"></i> Quase pronto...`;
-                } else if (etaSec < 60) {
-                  etaLabel.innerHTML = `<i class="fa-solid fa-clock"></i> Tempo restante: ~${etaSec}s`;
-                } else {
-                  const etaMin = Math.ceil(etaSec / 60);
-                  etaLabel.innerHTML = `<i class="fa-solid fa-clock"></i> Tempo restante: ~${etaMin} min`;
+                  const remainingBytes = event.total - event.loaded;
+                  const etaSec = Math.round(remainingBytes / (speedBytesPerSec || 1));
+                  if (etaSec <= 1) {
+                    etaLabel.innerHTML = `<i class="fa-solid fa-clock"></i> Quase pronto...`;
+                  } else if (etaSec < 60) {
+                    etaLabel.innerHTML = `<i class="fa-solid fa-clock"></i> Tempo restante: ~${etaSec}s`;
+                  } else {
+                    const etaMin = Math.ceil(etaSec / 60);
+                    etaLabel.innerHTML = `<i class="fa-solid fa-clock"></i> Tempo restante: ~${etaMin} min`;
+                  }
+                }
+
+                if (percent >= 99) {
+                  titleLabel.textContent = "Processando arte e registrando pedido...";
+                  subtitleLabel.textContent = "Upload concluído! O servidor está gravando as informações no banco de dados.";
+                  etaLabel.innerHTML = '<i class="fa-solid fa-gear fa-spin"></i> Finalizando gravação...';
                 }
               }
-
-              if (percent >= 99) {
-                titleLabel.textContent = "Processando arte e registrando pedido...";
-                subtitleLabel.textContent = "Upload concluído! O servidor está gravando as informações no banco de dados.";
-                etaLabel.innerHTML = '<i class="fa-solid fa-gear fa-spin"></i> Finalizando gravação...';
-              }
-            }
-          });
+            });
+          }
 
           xhr.addEventListener("load", () => {
             if (xhr.status >= 200 && xhr.status < 300) {
               progressBar.style.width = "100%";
               percentLabel.textContent = "100%";
               titleLabel.textContent = "Pedido salvo com sucesso!";
-              subtitleLabel.textContent = "Redirecionando...";
+              subtitleLabel.textContent = "Abrindo WhatsApp e redirecionando...";
               iconBox.innerHTML = '<div style="width: 52px; height: 52px; margin: 0 auto; background: rgba(34, 197, 94, 0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #22c55e; font-size: 1.6rem;"><i class="fa-solid fa-check"></i></div>';
               
               let redirectUrl = "{% if object %}{% url 'production:detail' pk=object.pk %}{% else %}{% url 'production:kanban' %}{% endif %}";
               try {
                 const res = JSON.parse(xhr.responseText);
                 if (res.redirect_url) redirectUrl = res.redirect_url;
+                if (res.whatsapp_quote_url) {
+                  window.open(res.whatsapp_quote_url, '_blank');
+                }
               } catch (e) {}
 
               setTimeout(() => {
                 window.location.href = redirectUrl;
-              }, 400);
+              }, 450);
             } else {
-              if (submitBtn) submitBtn.disabled = false;
+              if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fa-solid fa-check"></i> Salvar Pedido';
+              }
               let errText = "Ocorreu um erro ao salvar o pedido.";
               try {
                 const res = JSON.parse(xhr.responseText);
@@ -486,7 +493,7 @@
                   errText = res.errors.join("<br>");
                 }
               } catch (e) {
-                errText = `Erro ${xhr.status}: Não foi possível concluir o envio. Verifique o tamanho do arquivo.`;
+                errText = `Erro ${xhr.status}: Não foi possível concluir o envio. Verifique os dados.`;
               }
               titleLabel.textContent = "Erro ao enviar pedido";
               subtitleLabel.textContent = "Corrija os dados e tente novamente.";
@@ -498,11 +505,14 @@
           });
 
           xhr.addEventListener("error", () => {
-            if (submitBtn) submitBtn.disabled = false;
+            if (submitBtn) {
+              submitBtn.disabled = false;
+              submitBtn.innerHTML = '<i class="fa-solid fa-check"></i> Salvar Pedido';
+            }
             titleLabel.textContent = "Falha de Conexão";
             subtitleLabel.textContent = "A conexão com o servidor foi interrompida.";
             iconBox.innerHTML = '<div style="width: 52px; height: 52px; margin: 0 auto; background: rgba(239, 68, 68, 0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #ef4444; font-size: 1.6rem;"><i class="fa-solid fa-wifi"></i></div>';
-            errorBox.innerHTML = "Não foi possível transferir o arquivo. Verifique sua conexão de internet e tente novamente.";
+            errorBox.innerHTML = "Não foi possível transferir as informações. Verifique sua conexão de internet e tente novamente.";
             errorBox.style.display = "block";
             cancelBtn.style.display = "block";
           });
