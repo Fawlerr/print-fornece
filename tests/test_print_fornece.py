@@ -1887,6 +1887,14 @@ class PrintForneceTestCase(TestCase):
         self.assertEqual(res_csv.status_code, 200)
         self.assertEqual(res_csv["Content-Type"], "text/csv; charset=utf-8")
 
+    def test_sensitive_reports_restricted_to_admin(self):
+        self.client.force_login(self.employee)
+        # Funcionário comum não pode acessar os relatórios confidenciais
+        for route_name in ["reports:index", "reports:team_ranking", "reports:customers_ranking", "reports:materials", "reports:production"]:
+            res = self.client.get(reverse(route_name))
+            self.assertEqual(res.status_code, 403, f"A rota {route_name} deve retornar 403 Forbidden para funcionários")
+
+
 
 
 
