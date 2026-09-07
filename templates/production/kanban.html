@@ -69,7 +69,7 @@
 
   <div class="kanban" aria-label="Etapas dos pedidos">
     {% for column in kanban_columns %}
-      <section class="kanban-column" data-stage="{{ column.stage }}" aria-labelledby="stage-{{ column.stage }}">
+      <section class="kanban-column kanban-column-{{ column.stage }}" data-stage="{{ column.stage }}" aria-labelledby="stage-{{ column.stage }}">
         <div class="kanban-title"><span id="stage-{{ column.stage }}">{{ column.label }}</span><span>{{ column.orders|length }}</span></div>
         <div class="kanban-cards">
           {% for order in column.orders %}

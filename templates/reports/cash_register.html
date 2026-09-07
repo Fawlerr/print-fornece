@@ -7,29 +7,16 @@
 {% block content %}
 <section class="section" style="max-width: 1200px; margin: 0 auto;">
 
-  <!-- Abas de Navegação dos Relatórios (Ocultas na Impressão) -->
-  <div class="no-print" style="display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 12px; flex-wrap: wrap;">
-    <a href="{% url 'reports:index' %}" class="btn btn-secondary" style="display: inline-flex; align-items: center; gap: 8px; font-weight: 500;">
-      <i class="fa-solid fa-chart-line"></i> Visão Geral & Financeiro
-    </a>
-    <a href="{% url 'reports:cash_register' %}" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 8px; font-weight: 600; background: #2563eb; border-color: #1d4ed8;">
-      <i class="fa-solid fa-cash-register"></i> Fechamento de Caixa
-    </a>
-    <a href="{% url 'reports:production' %}" class="btn btn-secondary" style="display: inline-flex; align-items: center; gap: 8px; font-weight: 500;">
-      <i class="fa-solid fa-print"></i> Produção Diária (Metros)
-    </a>
-    <a href="{% url 'reports:materials' %}" class="btn btn-secondary" style="display: inline-flex; align-items: center; gap: 8px; font-weight: 500;">
-      <i class="fa-solid fa-boxes-stacked"></i> Consumo de Materiais
-    </a>
-    <a href="{% url 'reports:team_ranking' %}" class="btn btn-secondary" style="display: inline-flex; align-items: center; gap: 8px; font-weight: 500;">
-      <i class="fa-solid fa-trophy"></i> Ranking da Equipe
-    </a>
-    <a href="{% url 'reports:customers_ranking' %}" class="btn btn-secondary" style="display: inline-flex; align-items: center; gap: 8px; font-weight: 500;">
-      <i class="fa-solid fa-users"></i> Ranking de Clientes
-    </a>
-    <a href="{% url 'reports:cash_register_beta' %}" class="btn btn-secondary" style="display: inline-flex; align-items: center; gap: 8px; font-weight: 600; background: rgba(168, 85, 247, 0.15); color: #c084fc; border-color: rgba(168, 85, 247, 0.4);">
-      <i class="fa-solid fa-rocket"></i> Caixa Completo (BETA)
-    </a>
+  <!-- Abas de Navegação do Módulo de Caixa (Ocultas na Impressão) -->
+  <div class="no-print" style="display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 12px; flex-wrap: wrap; align-items: center; justify-content: space-between;">
+    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+      <a href="{% url 'reports:cash_register' %}" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 8px; font-weight: 600; background: #2563eb; border-color: #1d4ed8;">
+        <i class="fa-solid fa-cash-register"></i> Fechamento de Caixa Diário
+      </a>
+      <a href="{% url 'reports:cash_register_beta' %}" class="btn btn-secondary" style="display: inline-flex; align-items: center; gap: 8px; font-weight: 600; background: rgba(168, 85, 247, 0.15); color: #c084fc; border-color: rgba(168, 85, 247, 0.4);">
+        <i class="fa-solid fa-rocket"></i> Caixa Completo (Versão BETA)
+      </a>
+    </div>
   </div>
 
   <!-- Barra de Filtro de Data e Ações (Oculta na Impressão) -->
