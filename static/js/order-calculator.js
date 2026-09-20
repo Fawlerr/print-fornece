@@ -19,6 +19,7 @@
     dtf: calculator.querySelector("#tab-dtf"),
     shirts: calculator.querySelector("#tab-shirts"),
     services: calculator.querySelector("#tab-services"),
+    custom: calculator.querySelector("#tab-custom"),
   };
 
   // DTF inputs & add button
@@ -36,6 +37,12 @@
   // Extra service inputs & add button
   const serviceQuantityInput = calculator.querySelector("[data-service-quantity]");
   const addServiceBtn = calculator.querySelector("[data-add-service-btn]");
+
+  // Custom / Avulso inputs & add button
+  const customNameInput = calculator.querySelector("[data-custom-name]");
+  const customPriceInput = calculator.querySelector("[data-custom-price]");
+  const customQtyInput = calculator.querySelector("[data-custom-quantity]");
+  const addCustomBtn = calculator.querySelector("[data-add-custom-btn]");
 
   let cartItems = [];
 
@@ -304,6 +311,43 @@
         cartItems.push(quote);
         renderCart();
         setStatus(`${quote.material_name} adicionado!`);
+      }
+    });
+  }
+
+  // 4. Add Custom Item / Service
+  if (addCustomBtn) {
+    addCustomBtn.addEventListener("click", async () => {
+      const name = customNameInput?.value.trim();
+      const price = customPriceInput?.value.trim();
+      const qty = customQtyInput?.value.trim() || "1";
+
+      if (!name) {
+        setStatus("Informe a descrição ou nome do item/serviço avulso.", true);
+        return;
+      }
+      if (!price || parseFloat(price.replace(",", ".")) <= 0) {
+        setStatus("Informe um valor unitário válido para o item avulso.", true);
+        return;
+      }
+
+      addCustomBtn.disabled = true;
+      const quote = await calculateItem({
+        kind: "servico",
+        service_code: "servico_avulso",
+        custom_name: name,
+        custom_price: price.replace(",", "."),
+        quantity: qty,
+      });
+      addCustomBtn.disabled = false;
+
+      if (quote) {
+        cartItems.push(quote);
+        renderCart();
+        setStatus(`Item avulso "${quote.material_name}" adicionado ao pedido!`);
+        if (customNameInput) customNameInput.value = "";
+        if (customPriceInput) customPriceInput.value = "";
+        if (customQtyInput) customQtyInput.value = "1";
       }
     });
   }

@@ -98,34 +98,44 @@ def get_payment_summary_for_message(order: Order) -> str:
         )
 
 
+def get_reduced_measures_summary(order: Order) -> str:
+    items = list(order.items.all())
+    material_items = [item for item in items if item.kind == OrderItem.Kind.MATERIAL]
+    if material_items:
+        first = material_items[0]
+        w = f"{first.art_width_cm:.1f}" if first.art_width_cm else "00.0"
+        h = f"{first.art_height_cm:.1f}" if first.art_height_cm else "00.0"
+        m = f"{order.total_meters:.2f}"
+        return f"{w}x{h} cm ({m} m)"
+    elif order.total_meters > Decimal("0.00"):
+        return f"{order.total_meters:.2f} m"
+    product_items = [item for item in items if item.kind == OrderItem.Kind.PRODUCT]
+    if product_items:
+        return ", ".join([f"{p.art_quantity or p.billing_quantity:.0f} un {p.material_name}" for p in product_items])
+    return "Conforme especificações"
+
+
 def build_quote_whatsapp_message(order: Order, public_quote_url: str = "") -> str:
-    """Template 1: Orçamento Completo (sem emojis, limpo e profissional)."""
-    service_name, measures, valor_metro = get_service_name_and_measures(order)
-    payment_info = get_payment_summary_for_message(order)
+    """Template enxuto solicitado pelo cliente com foco direto no que importa."""
+    medida = get_reduced_measures_summary(order)
+    valor_total = format_money_br(order.total_amount)
 
     if order.due_at:
         prazo = timezone.localtime(order.due_at).strftime("%d/%m/%Y às %H:%M")
     else:
         prazo = "A combinar com nossa equipe"
 
-    link_part = f"\nVisualize o preview e aprove seu orçamento pelo link:\n{public_quote_url}\n" if public_quote_url else ""
+    link_part = f"\n\nAprove seu orçamento pelo link:\n{public_quote_url}" if public_quote_url else ""
 
     message = (
         f"PRINT FORNECE\n"
-        f"Olá, {order.client_name}.\n\n"
-        f"Segue o orçamento solicitado para {service_name}:\n"
+        f"Olá, {order.client_name}. Segue seu orçamento:\n\n"
         f"━━━━━━━━━━━━━━━\n"
-        f"Medida / Especificações:{measures}\n\n"
-        f"Valor unitário/metro: R$ {valor_metro}\n"
-        f"{payment_info}\n"
+        f"Medida: {medida}\n"
+        f"TOTAL: R$ {valor_total}\n"
         f"━━━━━━━━━━━━━━━\n"
         f"Prazo estimado: {prazo}\n"
-        f"Formas de Pagamento: PIX, Cartão ou Pagamento na Retirada{link_part}\n"
-        f"Importante:\n"
-        f"• A produção inicia após a confirmação do pedido e aprovação da arte\n"
-        f"• Não realizamos reimpressão de arte já aprovada ou material cortado\n"
-        f"• Confira todos os detalhes antes de confirmar\n\n"
-        f"Estou enviando também o preview da arte para conferência. Qualquer ajuste, nos avise."
+        f"Pagamento: PIX, Cartão.{link_part}"
     )
     return message
 

@@ -17,7 +17,9 @@ from django.views.generic import TemplateView
 from apps.accounts.models import SystemSetting, User
 from apps.accounts.permissions import AdministratorRequiredMixin
 from apps.expenses.models import Expense
-from apps.orders.models import Order, OrderItem, OrderStageHistory
+from apps.inventory.models import SupplyItem, SupplyMovement
+from apps.orders.models import Order, OrderItem, OrderPayment, OrderStageHistory
+from apps.payments.models import Cliente
 
 from .forms import ProductionReportFilterForm, ReportFilterForm
 
@@ -332,7 +334,7 @@ class CashRegisterReportView(LoginRequiredMixin, TemplateView):
                 Q(payment_confirmed_at__gte=start_dt, payment_confirmed_at__lte=end_dt) |
                 Q(payment_confirmed_at__isnull=True, created_at__gte=start_dt, created_at__lte=end_dt, paid_amount__gt=Decimal("0.00"))
             ) & ~Q(stage=Order.Stage.CANCELLED)
-        ).select_related("responsible", "created_by", "payment_confirmed_by").order_by("-payment_confirmed_at", "-created_at")
+        ).select_related("responsible", "created_by", "payment_confirmed_by").prefetch_related("payments").order_by("-payment_confirmed_at", "-created_at")
 
         # Despesas na data selecionada
         expenses = Expense.objects.filter(
@@ -355,13 +357,23 @@ class CashRegisterReportView(LoginRequiredMixin, TemplateView):
         total_revenue = Decimal("0.00")
 
         for o in orders:
-            method = o.payment_method or "outro"
-            if method not in methods_summary:
-                method = "outro"
-            paid = o.paid_amount or Decimal("0.00")
-            methods_summary[method]["total"] += paid
-            methods_summary[method]["count"] += 1
-            total_revenue += paid
+            splits = list(o.payments.all())
+            if splits:
+                for sp in splits:
+                    m = sp.payment_method or "outro"
+                    if m not in methods_summary:
+                        m = "outro"
+                    methods_summary[m]["total"] += sp.amount
+                    methods_summary[m]["count"] += 1
+                    total_revenue += sp.amount
+            else:
+                method = o.payment_method or "outro"
+                if method not in methods_summary:
+                    method = "outro"
+                paid = o.paid_amount or Decimal("0.00")
+                methods_summary[method]["total"] += paid
+                methods_summary[method]["count"] += 1
+                total_revenue += paid
 
         total_expenses = Decimal("0.00")
         for exp in expenses:
@@ -1078,4 +1090,421 @@ class CustomerRankingReportView(LoginRequiredMixin, AdministratorRequiredMixin, 
         writer.writerow([])
         writer.writerow(["TOTAL GERAL", "", "", f"{grand_revenue:.2f}".replace(".", ","), "", "", grand_orders, "", ""])
         return response
+
+
+class ProductSalesReportView(LoginRequiredMixin, AdministratorRequiredMixin, TemplateView):
+    template_name = "reports/product_sales.html"
+
+    def get_dates(self) -> tuple[date, date, int, int]:
+        today = timezone.localdate()
+        year = int(self.request.GET.get("year", today.year))
+        month = int(self.request.GET.get("month", today.month))
+        try:
+            start_date = date(year, month, 1)
+            _, last_day = calendar.monthrange(year, month)
+            end_date = date(year, month, last_day)
+        except (ValueError, TypeError):
+            start_date = date(today.year, today.month, 1)
+            _, last_day = calendar.monthrange(today.year, today.month)
+            end_date = date(today.year, today.month, last_day)
+        return start_date, end_date, year, month
+
+    def get(self, request, *args, **kwargs):
+        start_date, end_date, year, month = self.get_dates()
+        start_dt = timezone.make_aware(datetime.combine(start_date, time.min))
+        end_dt = timezone.make_aware(datetime.combine(end_date + timedelta(days=1), time.min))
+
+        orders = Order.objects.filter(
+            created_at__gte=start_dt,
+            created_at__lt=end_dt,
+            stage__in=[Order.Stage.READY, Order.Stage.DELIVERED],
+        ).exclude(stage=Order.Stage.CANCELLED).prefetch_related("items")
+
+        products_map: dict[tuple, dict] = {}
+
+        for order in orders:
+            for item in order.items.all():
+                kind = getattr(item, "kind", "")
+                name = item.material_name or "Item sem nome"
+                color = item.product_color or ""
+                size = item.product_size or ""
+                mat_code = (item.material_code or "").lower()
+
+                if "uv" in mat_code or "uv" in name.lower():
+                    cat_label = "DTF UV"
+                    badge_color = "#c084fc"
+                elif mat_code == "dtf_textil" or kind == OrderItem.Kind.MATERIAL:
+                    cat_label = "DTF Têxtil"
+                    badge_color = "#38bdf8"
+                elif kind == OrderItem.Kind.PRODUCT or "camisa" in mat_code or "camisa" in name.lower():
+                    cat_label = "Camisetas"
+                    badge_color = "#34d399"
+                elif kind in {OrderItem.Kind.SERVICE, OrderItem.Kind.ADJUSTMENT} or "servico" in mat_code or "ajuste" in mat_code:
+                    cat_label = "Serviços / Ajustes"
+                    badge_color = "#fbbf24"
+                else:
+                    cat_label = "Diversos"
+                    badge_color = "#94a3b8"
+
+                display_name = name
+                if color or size:
+                    specs = []
+                    if color:
+                        specs.append(color)
+                    if size:
+                        specs.append(f"Tam. {size}")
+                    display_name += f" ({', '.join(specs)})"
+
+                key = (cat_label, display_name)
+                if key not in products_map:
+                    products_map[key] = {
+                        "category": cat_label,
+                        "badge_color": badge_color,
+                        "name": display_name,
+                        "quantity": Decimal("0.00"),
+                        "meters": Decimal("0.00"),
+                        "revenue": Decimal("0.00"),
+                        "orders_count": 0,
+                        "orders_set": set(),
+                        "unit": item.billing_unit or "un",
+                    }
+
+                meters = Decimal("0.00")
+                if item.calculation_snapshot and "film_used_m" in item.calculation_snapshot:
+                    meters = Decimal(str(item.calculation_snapshot["film_used_m"]))
+                elif "metro" in (item.billing_unit or "").lower():
+                    meters = Decimal(str(item.billing_quantity))
+                elif item.used_length_cm:
+                    meters = Decimal(str(item.used_length_cm)) / Decimal("100")
+
+                qty = Decimal(str(item.art_quantity if item.art_quantity else item.billing_quantity or 1))
+                products_map[key]["quantity"] += qty
+                products_map[key]["meters"] += meters
+                products_map[key]["revenue"] += item.line_total
+                products_map[key]["orders_set"].add(order.id)
+
+        rows = []
+        grand_total_revenue = Decimal("0.00")
+        grand_total_qty = Decimal("0.00")
+        grand_total_meters = Decimal("0.00")
+
+        for k, v in products_map.items():
+            v["orders_count"] = len(v["orders_set"])
+            v["avg_price"] = (v["revenue"] / v["quantity"]) if v["quantity"] > 0 else Decimal("0.00")
+            grand_total_revenue += v["revenue"]
+            grand_total_qty += v["quantity"]
+            grand_total_meters += v["meters"]
+            rows.append(v)
+
+        rows.sort(key=lambda x: x["revenue"], reverse=True)
+
+        for r in rows:
+            r["percentage"] = (float(r["revenue"] / grand_total_revenue) * 100) if grand_total_revenue > 0 else 0.0
+
+        if request.GET.get("export") == "csv":
+            return self._csv_export(rows, year, month, grand_total_qty, grand_total_meters, grand_total_revenue)
+
+        month_names = ["", "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"]
+        month_label = f"{month_names[month]} de {year}"
+        prev_month_date = start_date - timedelta(days=1)
+        next_month_date = end_date + timedelta(days=1)
+
+        context = self.get_context_data(
+            year=year,
+            month=month,
+            month_label=month_label,
+            current_month_str=f"{year:04d}-{month:02d}",
+            prev_month_str=prev_month_date.strftime("%Y-%m"),
+            next_month_str=next_month_date.strftime("%Y-%m"),
+            rows=rows,
+            grand_total_qty=grand_total_qty,
+            grand_total_meters=grand_total_meters,
+            grand_total_revenue=grand_total_revenue,
+            total_orders_count=len(orders),
+        )
+        return self.render_to_response(context)
+
+    @staticmethod
+    def _csv_export(rows, year, month, grand_qty, grand_meters, grand_revenue):
+        response = HttpResponse(content_type="text/csv; charset=utf-8")
+        response["Content-Disposition"] = f'attachment; filename="relatorio-vendas-produtos-{year:04d}-{month:02d}.csv"'
+        response.write("\ufeff")
+        writer = csv.writer(response, delimiter=";")
+        writer.writerow(["PRINT FORNECE - RELATÓRIO DE VENDAS POR PRODUTO", f"{month:02d}/{year:04d}"])
+        writer.writerow([])
+        writer.writerow(["Categoria", "Produto / Item", "Qtd. Vendida", "Unidade", "Metros (m)", "Qtd. Pedidos", "Preço Médio (R$)", "Faturamento Total (R$)", "Participação (%)"])
+        for r in rows:
+            writer.writerow([
+                r["category"],
+                r["name"],
+                f"{r['quantity']:.2f}".replace(".", ","),
+                r["unit"],
+                f"{r['meters']:.2f}".replace(".", ","),
+                r["orders_count"],
+                f"{r['avg_price']:.2f}".replace(".", ","),
+                f"{r['revenue']:.2f}".replace(".", ","),
+                f"{r['percentage']:.1f}%".replace(".", ","),
+            ])
+        writer.writerow([])
+        writer.writerow(["TOTAL GERAL", "", f"{grand_qty:.2f}".replace(".", ","), "", f"{grand_meters:.2f}".replace(".", ","), "", "", f"{grand_revenue:.2f}".replace(".", ","), "100%"])
+        return response
+
+
+class DailyConsumptionReportView(LoginRequiredMixin, AdministratorRequiredMixin, TemplateView):
+    template_name = "reports/daily_consumption.html"
+
+    def get_dates(self) -> tuple[date, date, int, int]:
+        today = timezone.localdate()
+        year = int(self.request.GET.get("year", today.year))
+        month = int(self.request.GET.get("month", today.month))
+        try:
+            start_date = date(year, month, 1)
+            _, last_day = calendar.monthrange(year, month)
+            end_date = date(year, month, last_day)
+        except (ValueError, TypeError):
+            start_date = date(today.year, today.month, 1)
+            _, last_day = calendar.monthrange(today.year, today.month)
+            end_date = date(today.year, today.month, last_day)
+        return start_date, end_date, year, month
+
+    def get(self, request, *args, **kwargs):
+        start_date, end_date, year, month = self.get_dates()
+        start_dt = timezone.make_aware(datetime.combine(start_date, time.min))
+        end_dt = timezone.make_aware(datetime.combine(end_date + timedelta(days=1), time.min))
+
+        orders = Order.objects.filter(
+            created_at__gte=start_dt,
+            created_at__lt=end_dt,
+            stage__in=[Order.Stage.READY, Order.Stage.DELIVERED],
+        ).exclude(stage=Order.Stage.CANCELLED).prefetch_related("items").order_by("created_at")
+
+        days_map: dict[date, dict] = {}
+        curr = start_date
+        while curr <= end_date:
+            days_map[curr] = {
+                "date": curr,
+                "date_display": curr.strftime("%d/%m/%Y"),
+                "weekday": ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"][curr.weekday()],
+                "orders_count": 0,
+                "dtf_textil_meters": Decimal("0.00"),
+                "dtf_uv_meters": Decimal("0.00"),
+                "shirts_qty": 0,
+                "services_qty": 0,
+                "revenue": Decimal("0.00"),
+            }
+            curr += timedelta(days=1)
+
+        grand_orders = 0
+        grand_textil = Decimal("0.00")
+        grand_uv = Decimal("0.00")
+        grand_shirts = 0
+        grand_services = 0
+        grand_revenue = Decimal("0.00")
+
+        for o in orders:
+            order_date = timezone.localtime(o.created_at).date()
+            if order_date in days_map:
+                d = days_map[order_date]
+                d["orders_count"] += 1
+                d["revenue"] += o.total_amount
+                grand_orders += 1
+                grand_revenue += o.total_amount
+
+                for item in o.items.all():
+                    mat_code = (item.material_code or "").lower()
+                    mat_name = (item.material_name or "").lower()
+                    kind = getattr(item, "kind", "")
+
+                    meters = Decimal("0.00")
+                    if item.calculation_snapshot and "film_used_m" in item.calculation_snapshot:
+                        meters = Decimal(str(item.calculation_snapshot["film_used_m"]))
+                    elif "metro" in (item.billing_unit or "").lower():
+                        meters = Decimal(str(item.billing_quantity))
+                    elif item.used_length_cm:
+                        meters = Decimal(str(item.used_length_cm)) / Decimal("100")
+
+                    if "uv" in mat_code or "uv" in mat_name:
+                        d["dtf_uv_meters"] += meters
+                        grand_uv += meters
+                    elif mat_code == "dtf_textil" or kind == OrderItem.Kind.MATERIAL:
+                        d["dtf_textil_meters"] += meters
+                        grand_textil += meters
+                    elif kind == OrderItem.Kind.PRODUCT or "camisa" in mat_code or "camisa" in mat_name:
+                        q = int(item.art_quantity or item.billing_quantity or 1)
+                        d["shirts_qty"] += q
+                        grand_shirts += q
+                    elif kind in {OrderItem.Kind.SERVICE, OrderItem.Kind.ADJUSTMENT} or "servico" in mat_code:
+                        q = int(item.art_quantity or item.billing_quantity or 1)
+                        d["services_qty"] += q
+                        grand_services += q
+
+        daily_rows = [v for k, v in sorted(days_map.items(), reverse=True) if v["orders_count"] > 0 or v["revenue"] > 0 or v["date"] <= timezone.localdate()]
+
+        if request.GET.get("export") == "csv":
+            return self._csv_export(daily_rows, year, month, grand_orders, grand_textil, grand_uv, grand_shirts, grand_services, grand_revenue)
+
+        month_names = ["", "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"]
+        month_label = f"{month_names[month]} de {year}"
+        prev_month_date = start_date - timedelta(days=1)
+        next_month_date = end_date + timedelta(days=1)
+
+        context = self.get_context_data(
+            year=year,
+            month=month,
+            month_label=month_label,
+            current_month_str=f"{year:04d}-{month:02d}",
+            prev_month_str=prev_month_date.strftime("%Y-%m"),
+            next_month_str=next_month_date.strftime("%Y-%m"),
+            daily_rows=daily_rows,
+            grand_orders=grand_orders,
+            grand_textil=grand_textil,
+            grand_uv=grand_uv,
+            grand_shirts=grand_shirts,
+            grand_services=grand_services,
+            grand_revenue=grand_revenue,
+        )
+        return self.render_to_response(context)
+
+    @staticmethod
+    def _csv_export(rows, year, month, grand_orders, grand_textil, grand_uv, grand_shirts, grand_services, grand_revenue):
+        response = HttpResponse(content_type="text/csv; charset=utf-8")
+        response["Content-Disposition"] = f'attachment; filename="relatorio-consumo-diario-{year:04d}-{month:02d}.csv"'
+        response.write("\ufeff")
+        writer = csv.writer(response, delimiter=";")
+        writer.writerow(["PRINT FORNECE - RELATÓRIO DE CONSUMO DIÁRIO", f"{month:02d}/{year:04d}"])
+        writer.writerow([])
+        writer.writerow(["Data", "Dia da Semana", "Qtd. Pedidos", "DTF Têxtil (m)", "DTF UV (m)", "Camisetas (un)", "Serviços (un)", "Faturamento (R$)"])
+        for r in sorted(rows, key=lambda x: x["date"]):
+            writer.writerow([
+                r["date_display"],
+                r["weekday"],
+                r["orders_count"],
+                f"{r['dtf_textil_meters']:.2f}".replace(".", ","),
+                f"{r['dtf_uv_meters']:.2f}".replace(".", ","),
+                r["shirts_qty"],
+                r["services_qty"],
+                f"{r['revenue']:.2f}".replace(".", ","),
+            ])
+        writer.writerow([])
+        writer.writerow(["TOTAL", "", grand_orders, f"{grand_textil:.2f}".replace(".", ","), f"{grand_uv:.2f}".replace(".", ","), grand_shirts, grand_services, f"{grand_revenue:.2f}".replace(".", ",")])
+        return response
+
+
+class InkConsumptionReportView(LoginRequiredMixin, AdministratorRequiredMixin, TemplateView):
+    template_name = "reports/ink_consumption.html"
+
+    def get_dates(self) -> tuple[date, date, int, int]:
+        today = timezone.localdate()
+        year = int(self.request.GET.get("year", today.year))
+        month = int(self.request.GET.get("month", today.month))
+        try:
+            start_date = date(year, month, 1)
+            _, last_day = calendar.monthrange(year, month)
+            end_date = date(year, month, last_day)
+        except (ValueError, TypeError):
+            start_date = date(today.year, today.month, 1)
+            _, last_day = calendar.monthrange(today.year, today.month)
+            end_date = date(today.year, today.month, last_day)
+        return start_date, end_date, year, month
+
+    def post(self, request, *args, **kwargs):
+        """Baixa manual de tinta no estoque."""
+        item_id = request.POST.get("item_id")
+        raw_qty = request.POST.get("quantity", "1").replace(",", ".").strip()
+        motivo = request.POST.get("motivo", "Consumo em Produção / Reposição de Tanque").strip()
+
+        try:
+            item = SupplyItem.objects.get(pk=item_id)
+            qty = max(Decimal(raw_qty), Decimal("0.01"))
+            prev = item.quantity
+            item.quantity = max(Decimal("0.00"), item.quantity - qty)
+            item.save(update_fields=["quantity", "updated_at"])
+
+            SupplyMovement.objects.create(
+                item=item,
+                movement_type=SupplyMovement.MovementType.OUTPUT,
+                quantity=qty,
+                previous_quantity=prev,
+                new_quantity=item.quantity,
+                description=f"Baixa Manual de Tinta: {motivo}",
+                user=request.user,
+            )
+            messages.success(request, f"Baixa de {qty} {item.get_unit_display()} em '{item.name}' realizada com sucesso!")
+        except Exception as e:
+            messages.error(request, f"Erro ao registrar baixa de tinta: {str(e)}")
+
+        return redirect(request.get_full_path())
+
+    def get(self, request, *args, **kwargs):
+        start_date, end_date, year, month = self.get_dates()
+        start_dt = timezone.make_aware(datetime.combine(start_date, time.min))
+        end_dt = timezone.make_aware(datetime.combine(end_date + timedelta(days=1), time.min))
+
+        ink_items = SupplyItem.objects.filter(
+            Q(name__icontains="tinta") | Q(name__icontains="verniz")
+        ).order_by("category", "name")
+
+        movements = SupplyMovement.objects.filter(
+            item__in=ink_items,
+            movement_type=SupplyMovement.MovementType.OUTPUT,
+            created_at__gte=start_dt,
+            created_at__lt=end_dt,
+        ).select_related("item", "user").order_by("-created_at")
+
+        orders = Order.objects.filter(
+            created_at__gte=start_dt,
+            created_at__lt=end_dt,
+            stage__in=[Order.Stage.READY, Order.Stage.DELIVERED],
+        ).exclude(stage=Order.Stage.CANCELLED).prefetch_related("items")
+
+        textil_m = Decimal("0.00")
+        uv_m = Decimal("0.00")
+        for o in orders:
+            for it in o.items.all():
+                mc = (it.material_code or "").lower()
+                mn = (it.material_name or "").lower()
+                m = Decimal("0.00")
+                if it.calculation_snapshot and "film_used_m" in it.calculation_snapshot:
+                    m = Decimal(str(it.calculation_snapshot["film_used_m"]))
+                elif "metro" in (it.billing_unit or "").lower():
+                    m = Decimal(str(it.billing_quantity))
+                elif it.used_length_cm:
+                    m = Decimal(str(it.used_length_cm)) / Decimal("100")
+                if "uv" in mc or "uv" in mn:
+                    uv_m += m
+                elif mc == "dtf_textil" or getattr(it, "kind", "") == OrderItem.Kind.MATERIAL:
+                    textil_m += m
+
+        ink_summary = []
+        for ink in ink_items:
+            movs = [m for m in movements if m.item_id == ink.id]
+            consumed = sum((m.quantity for m in movs), Decimal("0.00"))
+            ink_summary.append({
+                "item": ink,
+                "current_stock": ink.quantity,
+                "consumed": consumed,
+                "unit": ink.get_unit_display(),
+                "movements_count": len(movs),
+            })
+
+        month_names = ["", "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"]
+        month_label = f"{month_names[month]} de {year}"
+        prev_month_date = start_date - timedelta(days=1)
+        next_month_date = end_date + timedelta(days=1)
+
+        context = self.get_context_data(
+            year=year,
+            month=month,
+            month_label=month_label,
+            current_month_str=f"{year:04d}-{month:02d}",
+            prev_month_str=prev_month_date.strftime("%Y-%m"),
+            next_month_str=next_month_date.strftime("%Y-%m"),
+            ink_summary=ink_summary,
+            movements=movements,
+            textil_meters=textil_m,
+            uv_meters=uv_m,
+            total_consumed=sum((i["consumed"] for i in ink_summary), Decimal("0.00")),
+        )
+        return self.render_to_response(context)
+
 

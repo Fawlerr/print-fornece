@@ -14,7 +14,11 @@ ACTIVE_STAGES = (
     Order.Stage.PAYMENT_CONFIRMED,
     Order.Stage.PRE_PRESS,
     Order.Stage.PRODUCTION,
+)
+
+COMPLETED_STAGES = (
     Order.Stage.READY,
+    Order.Stage.DELIVERED,
 )
 
 
@@ -42,6 +46,8 @@ class ShiftCapacityStatus:
     percentage: float
     is_exceeded: bool
     is_warning: bool
+    completed_meters: Decimal = Decimal("0.00")
+    completed_percentage: float = 0.0
 
     def as_dict(self) -> dict:
         return {
@@ -56,6 +62,8 @@ class ShiftCapacityStatus:
             "percentage": self.percentage,
             "is_exceeded": self.is_exceeded,
             "is_warning": self.is_warning,
+            "completed_meters": float(self.completed_meters),
+            "completed_percentage": self.completed_percentage,
         }
 
 
@@ -65,12 +73,13 @@ def get_used_meters_for_shift(
     shift: str,
     material_code: str,
     exclude_order_id: int | None = None,
+    stages: tuple = ACTIVE_STAGES,
 ) -> Decimal:
     """Calculate total DTF meters scheduled for production in a specific shift & date."""
     queryset = OrderItem.objects.filter(
         kind=OrderItem.Kind.MATERIAL,
         material_code=material_code,
-        order__stage__in=ACTIVE_STAGES,
+        order__stage__in=stages,
         order__shift=shift,
     )
 
@@ -101,9 +110,18 @@ def get_shift_capacity_status(
         shift=shift,
         material_code=material_code,
         exclude_order_id=exclude_order_id,
+        stages=ACTIVE_STAGES,
+    )
+    completed = get_used_meters_for_shift(
+        target_date=target_date,
+        shift=shift,
+        material_code=material_code,
+        exclude_order_id=exclude_order_id,
+        stages=COMPLETED_STAGES,
     )
     remaining = max(Decimal("0.00"), limit - used)
     percentage = min(100.0, round(float(used / limit * 100), 1)) if limit > 0 else 0.0
+    completed_percentage = min(100.0, round(float(completed / limit * 100), 1)) if limit > 0 else 0.0
     shift_label = Order.Shift(shift).label if shift in Order.Shift.values else shift.capitalize()
     material_name = MATERIAL_LABELS.get(material_code, material_code)
 
@@ -119,6 +137,8 @@ def get_shift_capacity_status(
         percentage=percentage,
         is_exceeded=used > limit,
         is_warning=used >= (limit * Decimal("0.80")),
+        completed_meters=completed,
+        completed_percentage=completed_percentage,
     )
 
 

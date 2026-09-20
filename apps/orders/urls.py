@@ -15,4 +15,5 @@ urlpatterns = [
     path("<int:pk>/art-preview/", views.art_preview_view, name="art_preview"),
     path("quote/<str:token>/", views.public_quote_view, name="public_quote"),
     path("quote/<str:token>/approve/", views.approve_quote_action, name="approve_quote"),
+    path("fatura-agrupada/", views.grouped_invoice_view, name="grouped_invoice"),
 ]

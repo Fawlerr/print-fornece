@@ -113,12 +113,16 @@ def _parse_items_from_payload(payload, cliente=None) -> list[Quote | ShirtQuote 
                         quantity=item.get("quantity", 1),
                     )
                 )
-            elif kind == "servico" or mat_code in ("ajuste_preparacao_arquivo", "formato_halftone"):
+            elif kind == "servico" or mat_code in ("ajuste_preparacao_arquivo", "formato_halftone", "servico_avulso", "item_avulso", "avulso"):
                 service_code = str(item.get("service_code") or mat_code)
+                custom_name = str(item.get("name") or item.get("material_name") or "")
+                custom_price = item.get("unit_price") or item.get("custom_price") or item.get("price")
                 calculated_items.append(
                     calculate_service_quote(
                         service_code=service_code,
                         quantity=item.get("quantity", 1),
+                        custom_name=custom_name,
+                        custom_price=custom_price,
                     )
                 )
             else:

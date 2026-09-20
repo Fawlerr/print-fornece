@@ -35,6 +35,7 @@ class Order(models.Model):
         TRANSFER = "transferencia", "Transferência"
         ON_DELIVERY = "na_retirada", "Pagamento na Retirada"
         CREDIT_BALANCE = "saldo_credito", "Saldo do Plano / Crédito"
+        MULTIPLE = "multiplo", "Múltiplas Formas"
         OTHER = "outro", "Outro"
 
     class Priority(models.TextChoices):
@@ -91,6 +92,7 @@ class Order(models.Model):
     is_correction = models.BooleanField("pedido de correção / garantia", default=False)
     correction_reason = models.CharField("motivo da correção / defeito", max_length=255, blank=True, default="")
     discount_advance = models.DecimalField("abatimento / entrada já paga", max_digits=12, decimal_places=2, default=0)
+    discount_reason = models.CharField("motivo do abatimento / desconto", max_length=255, blank=True, default="")
     notified_whatsapp = models.BooleanField("cliente avisado no WhatsApp", default=False)
     notified_whatsapp_at = models.DateTimeField("cliente avisado em", null=True, blank=True)
     notified_whatsapp_by = models.ForeignKey(
@@ -344,4 +346,34 @@ class OrderStageHistory(models.Model):
         db_table = "pf_order_stage_history"
         ordering = ["-created_at", "-pk"]
         indexes = [models.Index(fields=["order", "created_at"], name="pf_stage_order_date")]
+
+
+class OrderPayment(models.Model):
+    """Representa cada parcela ou pagamento individual de um pedido (suporta pagamentos múltiplos)."""
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="payments", verbose_name="pedido")
+    payment_method = models.CharField("forma de pagamento", max_length=20, choices=Order.PaymentMethod.choices)
+    amount = models.DecimalField("valor pago", max_digits=12, decimal_places=2)
+    notes = models.CharField("observação", max_length=255, blank=True, default="")
+    recorded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="recorded_order_payments",
+        verbose_name="registrado por",
+    )
+    created_at = models.DateTimeField("registrado em", auto_now_add=True)
+
+    class Meta:
+        db_table = "pf_order_payments"
+        ordering = ["created_at", "pk"]
+        verbose_name = "Pagamento do Pedido"
+        verbose_name_plural = "Pagamentos do Pedido"
+        indexes = [
+            models.Index(fields=["order", "created_at"], name="pf_pay_order_created"),
+            models.Index(fields=["payment_method"], name="pf_pay_method"),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.order.number} - {self.get_payment_method_display()}: R$ {self.amount:.2f}"
 

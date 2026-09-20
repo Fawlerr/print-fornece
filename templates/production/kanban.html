@@ -37,13 +37,23 @@
                 {{ cap.used_meters|floatformat:1 }}m / {{ cap.limit_meters|floatformat:0 }}m
               </span>
             </div>
-            <div style="height: 6px; background: rgba(255,255,255,0.1); border-radius: 999px; overflow: hidden;">
+            <!-- Barra Principal: Fila / Em Produção (libera ao ir para Pronto p/ Retirada) -->
+            <div style="height: 6px; background: rgba(255,255,255,0.1); border-radius: 999px; overflow: hidden;" title="Fila / Em Produção: {{ cap.used_meters|floatformat:1 }}m">
               <div style="width: {{ cap.percentage }}%; height: 100%; background-color: {% if cap.is_exceeded %}#ef4444{% elif cap.is_warning %}#f59e0b{% else %}#10b981{% endif %}; transition: width 0.3s;"></div>
             </div>
             <div style="display: flex; justify-content: space-between; margin-top: 4px; font-size: 0.72rem; color: var(--muted, #9ca3af);">
-              <span>{{ cap.percentage }}% ocupado</span>
+              <span>{{ cap.percentage }}% em fila/produção</span>
               <span>{% if cap.is_exceeded %}<b style="color: #ef4444;">Limite Excedido!</b>{% else %}{{ cap.remaining_meters|floatformat:1 }}m disponível{% endif %}</span>
             </div>
+            <!-- Sub-barra: Concluído / Pronto p/ Retirada -->
+            {% if cap.completed_meters > 0 %}
+              <div style="margin-top: 6px; padding-top: 6px; border-top: 1px dashed rgba(255,255,255,0.08); display: flex; justify-content: space-between; align-items: center; font-size: 0.70rem;">
+                <span style="color: #38bdf8; display: flex; align-items: center; gap: 4px;">
+                  <i class="fa-solid fa-circle-check"></i> Pronto p/ Retirada (Liberado):
+                </span>
+                <strong style="color: #38bdf8;">{{ cap.completed_meters|floatformat:1 }}m</strong>
+              </div>
+            {% endif %}
           </div>
         {% endfor %}
       </div>

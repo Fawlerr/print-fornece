@@ -9,11 +9,20 @@
     <a href="{% url 'reports:index' %}" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 8px; font-weight: 600; background: #2563eb; border-color: #1d4ed8;">
       <i class="fa-solid fa-chart-line"></i> Visão Geral & Financeiro
     </a>
+    <a href="{% url 'reports:product_sales' %}" class="btn btn-secondary" style="display: inline-flex; align-items: center; gap: 8px; font-weight: 500;">
+      <i class="fa-solid fa-boxes-stacked"></i> Vendas por Produto
+    </a>
+    <a href="{% url 'reports:daily_consumption' %}" class="btn btn-secondary" style="display: inline-flex; align-items: center; gap: 8px; font-weight: 500;">
+      <i class="fa-solid fa-calendar-day"></i> Consumo Diário
+    </a>
+    <a href="{% url 'reports:ink_consumption' %}" class="btn btn-secondary" style="display: inline-flex; align-items: center; gap: 8px; font-weight: 500;">
+      <i class="fa-solid fa-droplet"></i> Consumo de Tintas
+    </a>
     <a href="{% url 'reports:production' %}" class="btn btn-secondary" style="display: inline-flex; align-items: center; gap: 8px; font-weight: 500;">
       <i class="fa-solid fa-print"></i> Produção Diária (Metros)
     </a>
     <a href="{% url 'reports:materials' %}" class="btn btn-secondary" style="display: inline-flex; align-items: center; gap: 8px; font-weight: 500;">
-      <i class="fa-solid fa-boxes-stacked"></i> Consumo de Materiais
+      <i class="fa-solid fa-layer-group"></i> Consumo de Rolos
     </a>
     <a href="{% url 'reports:team_ranking' %}" class="btn btn-secondary" style="display: inline-flex; align-items: center; gap: 8px; font-weight: 500;">
       <i class="fa-solid fa-trophy"></i> Ranking da Equipe

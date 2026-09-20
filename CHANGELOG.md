@@ -4,6 +4,40 @@ Todas as atualizações e correções notáveis do sistema Print Fornece são re
 
 ---
 
+## [20/09/2026] — Módulo Financeiro Avançado, Relatórios Gerenciais, Fatura Agrupada & Planos de Volume
+
+### ✨ Novas Funcionalidades
+- **Relatório de Vendas por Produto (`/reports/produtos/`):**
+  - Apuração consolidada de quantidades vendidas, métricas por material/camisa e ticket faturado por item no período selecionado, com exportação para planilha CSV.
+- **Relatório de Consumo Diário (`/reports/consumo-diario/`):**
+  - Visão diária detalhada da saída de metros de DTF Têxtil, DTF UV, camisetas confeccionadas, serviços prestados e faturamento gerado dia a dia.
+- **Relatório de Consumo de Tintas (`/reports/tintas/`):**
+  - Painel de controle de estoque de tintas têxteis e UV com saldos atuais, histórico de saídas e modal de baixa rápida manual integrada ao módulo de insumos.
+- **Pagamento Múltiplo por Pedido:**
+  - Possibilidade de lançar e ratear múltiplos meios de pagamento no mesmo pedido (ex.: parte no PIX e parte no Dinheiro ou Cartão), com registro individualizado por parcela em `OrderPayment` e conciliação exata no fechamento de caixa.
+- **Cupom Térmico Não Fiscal de Fechamento de Caixa:**
+  - Layout especializado de impressão para impressoras térmicas de 80mm e 58mm no fechamento diário de caixa, com detalhamento das formas de pagamento, despesas e conferência de gaveta.
+- **Item e Serviço Avulso no Orçamento:**
+  - Nova aba "Item / Serviço Avulso" na calculadora de pedidos para inserção de valores extras, taxas de entrega, acabamentos manuais ou produtos personalizados diretamente na proposta.
+- **Justificativa de Desconto e Abatimento (`discount_reason`):**
+  - Campo auditável para documentar o motivo de concessão de descontos e abatimentos em orçamentos e pedidos.
+- **Fatura Agrupada de Pedidos (`/orders/fatura-agrupada/`):**
+  - Seleção de múltiplos pedidos de um mesmo cliente através de checkboxes no cadastro para emissão de fatura consolidada em formato A4 ou cupom térmico.
+- **Aba de Plano de Volume e Assinatura no Cliente:**
+  - Nova aba organizada no perfil do cliente para acompanhamento do saldo de metros, condições comerciais contratadas e formulário de recarga de créditos.
+- **Status do Plano no Orçamento Público:**
+  - Exibição transparente no link do cliente (`public_quote.html`) com o saldo consumido e a metragem restante do pacote contratado.
+- **Liberação Automática da Capacidade da Impressora:**
+  - Atualização do algoritmo de cálculo de capacidade do dia: pedidos avançados para "Pronto para Retirada" ou "Entregue" liberam a capacidade nominal da máquina, com barra secundária indicando o volume já concluído.
+- **Bloqueio de Segurança Pós-Pagamento:**
+  - Trava operacional que impede alteração indevida de pedidos com pagamento já confirmado ou em etapas avançadas, liberando a edição apenas com senha de Administrador/Gerente.
+- **Navegação Segura e Botão Voltar:**
+  - Botão de voltar e salvamento contínuo de rascunho em `sessionStorage` para não perder dados digitados na formulação de novos pedidos.
+- **Mensagem Enxuta de WhatsApp para Orçamentos:**
+  - Template minimalista e direto com medidas (cm e metros), total financeiro, prazo estimado e link de aprovação online.
+
+---
+
 ## [29/08/2026] — Módulo de Fechamento de Caixa, Uploads em Tempo Real & Monitoramento de Usuários Online
 
 ### ✨ Novas Funcionalidades

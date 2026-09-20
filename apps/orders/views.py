@@ -128,11 +128,68 @@ class OrderUpdateView(LoginRequiredMixin, UpdateView):
         kwargs["user"] = self.request.user
         return kwargs
 
+    def _is_post_payment_locked(self, order: Order) -> bool:
+        """Verifica se o pedido está bloqueado para edição pós-pagamento."""
+        is_paid_stage = (
+            order.stage in [
+                Order.Stage.PAYMENT_CONFIRMED,
+                Order.Stage.PRE_PRESS,
+                Order.Stage.PRODUCTION,
+                Order.Stage.READY,
+                Order.Stage.DELIVERED,
+            ]
+            or order.payment_status == Order.PaymentStatus.PAID
+            or bool(order.payment_confirmed_at)
+        )
+        if not is_paid_stage:
+            return False
+
+        user = self.request.user
+        is_admin = (
+            getattr(user, "is_admin", False)
+            or getattr(user, "is_dev", False)
+            or getattr(user, "is_superuser", False)
+            or getattr(user, "role", "") == "administrador"
+        )
+        if is_admin:
+            return False
+
+        admin_pass = self.request.POST.get("admin_unlock_password", "").strip()
+        admin_email = self.request.POST.get("admin_unlock_email", "").strip()
+        if admin_pass:
+            from django.contrib.auth import authenticate
+            target_email = admin_email or user.email
+            auth_user = authenticate(request=self.request, email=target_email, password=admin_pass)
+            if auth_user and (
+                getattr(auth_user, "is_admin", False)
+                or getattr(auth_user, "is_dev", False)
+                or getattr(auth_user, "is_superuser", False)
+                or getattr(auth_user, "role", "") == "administrador"
+            ):
+                return False
+
+        return True
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["calculator_materials"] = material_catalogue()
         context["catalogue"] = full_catalogue()
         context["calculator_endpoint"] = reverse("orders:calculate_quote")
+        is_locked = self._is_post_payment_locked(self.object)
+        is_post_payment = (
+            self.object.stage in [
+                Order.Stage.PAYMENT_CONFIRMED,
+                Order.Stage.PRE_PRESS,
+                Order.Stage.PRODUCTION,
+                Order.Stage.READY,
+                Order.Stage.DELIVERED,
+            ]
+            or self.object.payment_status == Order.PaymentStatus.PAID
+            or bool(self.object.payment_confirmed_at)
+        )
+        context["is_post_payment_locked"] = is_locked
+        context["is_post_payment"] = is_post_payment
+
         existing_items = []
         if self.request.POST.get("calculation_payload"):
             try:
@@ -164,6 +221,14 @@ class OrderUpdateView(LoginRequiredMixin, UpdateView):
 
     def form_valid(self, form):
         is_ajax = self.request.headers.get("X-Requested-With") == "XMLHttpRequest" or self.request.headers.get("Accept") == "application/json"
+        if self._is_post_payment_locked(self.object):
+            msg = "Edição bloqueada: este pedido já possui Pagamento Confirmado. Apenas administradores ou gerentes com autorização de senha podem alterar os dados."
+            if is_ajax:
+                return JsonResponse({"success": False, "errors": [msg]}, status=403)
+            messages.error(self.request, msg)
+            form.add_error(None, msg)
+            return self.form_invalid(form)
+
         try:
             self.object = update_order(
                 order=self.object,
@@ -189,12 +254,11 @@ class OrderUpdateView(LoginRequiredMixin, UpdateView):
         if is_ajax:
             return JsonResponse({
                 "success": True,
+                "order_id": self.object.pk,
                 "redirect_url": redirect_url,
-                "order_number": self.object.number,
-                "whatsapp_quote_url": whatsapp_quote_url,
+                "whatsapp_share_url": whatsapp_quote_url,
             })
-        if whatsapp_quote_url:
-            self.request.session["auto_open_whatsapp_url"] = whatsapp_quote_url
+
         return redirect(redirect_url)
 
     def form_invalid(self, form):
@@ -212,23 +276,66 @@ class OrderUpdateView(LoginRequiredMixin, UpdateView):
 @login_required
 @require_POST
 def register_payment(request, pk: int):
-    """Quick partial or full payment registration for an order."""
+    """Quick partial, multiple, or full payment registration for an order."""
     order = get_object_or_404(Order, pk=pk)
     require_order_access(request.user, order)
     from .forms import QuickPaymentForm
+    from .models import OrderPayment
     from .services import _snapshot_receipt_on_payment
     form = QuickPaymentForm(request.POST)
     if form.is_valid():
-        payment_amount = form.cleaned_data["paid_amount"]
-        payment_method = form.cleaned_data["payment_method"]
-        notes = form.cleaned_data.get("notes") or ""
+        payments_payload = form.cleaned_data.get("payments_payload")
+        payments_to_add = []
 
-        new_paid = (order.paid_amount or Decimal("0.00")) + payment_amount
+        if payments_payload:
+            try:
+                parsed = json.loads(payments_payload)
+                if isinstance(parsed, list):
+                    for p in parsed:
+                        m = p.get("method")
+                        raw_a = str(p.get("amount", "0")).strip().replace("R$", "").replace(" ", "")
+                        if "," in raw_a:
+                            raw_a = raw_a.replace(".", "").replace(",", ".")
+                        amt = Decimal(raw_a)
+                        if amt > Decimal("0.00") and m:
+                            payments_to_add.append((m, amt, p.get("notes", "")))
+            except Exception:
+                pass
+
+        if not payments_to_add and form.cleaned_data.get("paid_amount"):
+            amt = form.cleaned_data["paid_amount"]
+            m = form.cleaned_data.get("payment_method") or Order.PaymentMethod.PIX
+            n = form.cleaned_data.get("notes") or ""
+            payments_to_add.append((m, amt, n))
+
+        if not payments_to_add:
+            messages.error(request, "Informe ao menos uma forma de pagamento com valor maior que zero.")
+            return redirect("production:detail", pk=pk)
+
+        created_payments = []
+        for m, amt, n in payments_to_add:
+            op = OrderPayment.objects.create(
+                order=order,
+                payment_method=m,
+                amount=amt,
+                notes=n,
+                recorded_by=request.user,
+            )
+            created_payments.append(op)
+
+        total_added = sum((p[1] for p in payments_to_add), Decimal("0.00"))
+        new_paid = (order.paid_amount or Decimal("0.00")) + total_added
         if new_paid > order.total_amount:
             new_paid = order.total_amount
 
         order.paid_amount = new_paid
-        order.payment_method = payment_method
+
+        all_splits = list(order.payments.all())
+        distinct_methods = set(sp.payment_method for sp in all_splits)
+        if len(distinct_methods) > 1:
+            order.payment_method = Order.PaymentMethod.MULTIPLE
+        elif distinct_methods:
+            order.payment_method = list(distinct_methods)[0]
 
         if order.paid_amount >= order.total_amount and order.total_amount > Decimal("0.00"):
             order.payment_status = Order.PaymentStatus.PAID
@@ -243,12 +350,14 @@ def register_payment(request, pk: int):
             order.payment_status = Order.PaymentStatus.PARTIAL
 
         order.save()
-        desc = f"Pagamento registrado: R$ {payment_amount:.2f} via {order.get_payment_method_display()} (Total pago: R$ {order.paid_amount:.2f} de R$ {order.total_amount:.2f}). {notes}".strip()
+
+        summary_parts = [f"R$ {amt:.2f} via {dict(Order.PaymentMethod.choices).get(m, m)}" for m, amt, _ in payments_to_add]
+        desc = f"Pagamento(s) registrado(s): {', '.join(summary_parts)} (Total pago: R$ {order.paid_amount:.2f} de R$ {order.total_amount:.2f}).".strip()
         OrderHistory.objects.create(order=order, user=request.user, action="pagamento_registrado", description=desc)
-        record_audit(request.user, "registro_pagamento", "pedido", order.pk, after={"valor_pago": str(payment_amount), "total_pago": str(order.paid_amount), "status": order.payment_status}, request=request)
-        messages.success(request, f"Pagamento de R$ {payment_amount:.2f} registrado com sucesso!")
+        record_audit(request.user, "registro_pagamento", "pedido", order.pk, after={"adicionado": str(total_added), "total_pago": str(order.paid_amount), "status": order.payment_status}, request=request)
+        messages.success(request, f"Pagamento de R$ {total_added:.2f} registrado com sucesso!")
     else:
-        messages.error(request, "Erro ao registrar pagamento. Verifique o valor informado.")
+        messages.error(request, "Erro ao registrar pagamento. Verifique o formulário.")
 
     return redirect("production:detail", pk=pk)
 
@@ -382,11 +491,15 @@ def calculate_order_quote(request):
                 size=str(payload.get("size") or payload.get("product_size", "M")),
                 quantity=payload.get("quantity", 1),
             )
-        elif kind == "servico" or mat_code in ("ajuste_preparacao_arquivo", "formato_halftone"):
+        elif kind == "servico" or mat_code in ("ajuste_preparacao_arquivo", "formato_halftone", "servico_avulso", "item_avulso", "avulso"):
             service_code = str(payload.get("service_code") or mat_code)
+            custom_name = str(payload.get("name") or payload.get("material_name") or payload.get("custom_name") or "")
+            custom_price = payload.get("unit_price") or payload.get("custom_price") or payload.get("price")
             quote = calculate_service_quote(
                 service_code=service_code,
                 quantity=payload.get("quantity", 1),
+                custom_name=custom_name,
+                custom_price=custom_price,
             )
         else:
             quote = calculate_quote(
@@ -454,3 +567,86 @@ def approve_quote_action(request, token: str):
         messages.info(request, "Este orçamento já foi aprovado anteriormente.")
 
     return redirect("orders:public_quote", token=token)
+
+
+@login_required
+def grouped_invoice_view(request):
+    """Visualização consolidada de 2 ou mais pedidos vinculados do mesmo cliente em fatura única."""
+    order_ids_raw = request.GET.get("ids", "") or request.POST.get("ids", "")
+    cliente_id = request.GET.get("cliente_id")
+    
+    order_ids = []
+    if order_ids_raw:
+        for val in order_ids_raw.split(","):
+            val = val.strip()
+            if val.isdigit():
+                order_ids.append(int(val))
+
+    if not order_ids and request.GET.getlist("order_id"):
+        order_ids = [int(i) for i in request.GET.getlist("order_id") if i.isdigit()]
+
+    if not order_ids and request.POST.getlist("order_id"):
+        order_ids = [int(i) for i in request.POST.getlist("order_id") if i.isdigit()]
+
+    if not order_ids:
+        messages.error(request, "Selecione ao menos 2 pedidos para gerar a fatura agrupada.")
+        if cliente_id:
+            return redirect("payments:customer_detail", pk=cliente_id)
+        return redirect("dashboard:index")
+
+    orders = Order.objects.filter(id__in=order_ids).select_related("cliente", "responsible", "created_by").prefetch_related("items", "payments").order_by("created_at")
+    if not orders.exists():
+        messages.error(request, "Nenhum pedido encontrado com os IDs fornecidos.")
+        return redirect("dashboard:index")
+
+    first_order = orders.first()
+    cliente = first_order.cliente
+    client_name = cliente.nome if cliente else first_order.client_name
+    client_phone = cliente.telefone if cliente else first_order.client_whatsapp
+
+    total_amount = sum((o.total_amount for o in orders), Decimal("0.00"))
+    total_paid = sum((o.paid_amount for o in orders), Decimal("0.00"))
+    remaining_amount = max(Decimal("0.00"), total_amount - total_paid)
+    total_meters = sum((o.total_meters for o in orders), Decimal("0.00"))
+
+    all_items = []
+    for o in orders:
+        for it in o.items.all():
+            all_items.append({
+                "order_number": o.number,
+                "order_pk": o.pk,
+                "kind": it.kind,
+                "material_name": it.material_name,
+                "product_color": it.product_color,
+                "product_size": it.product_size,
+                "quantity": it.art_quantity or it.billing_quantity,
+                "unit": it.billing_unit,
+                "unit_price": it.unit_price,
+                "total": it.line_total,
+                "detail": it.calculation_detail or it.pricing_rule,
+            })
+
+    all_payments = []
+    for o in orders:
+        for p in o.payments.all():
+            all_payments.append(p)
+
+    invoice_number = f"FAT-{timezone.localdate().strftime('%Y%m%d')}-{cliente.id if cliente else first_order.id}"
+
+    context = {
+        "invoice_number": invoice_number,
+        "date_issued": timezone.now(),
+        "cliente": cliente,
+        "client_name": client_name,
+        "client_phone": client_phone,
+        "orders": orders,
+        "orders_count": len(orders),
+        "order_ids_str": ",".join(str(o.id) for o in orders),
+        "all_items": all_items,
+        "all_payments": all_payments,
+        "total_amount": total_amount,
+        "total_paid": total_paid,
+        "remaining_amount": remaining_amount,
+        "total_meters": total_meters,
+    }
+    return render(request, "orders/grouped_invoice.html", context)

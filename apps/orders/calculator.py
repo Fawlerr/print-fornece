@@ -444,11 +444,45 @@ def calculate_shirt_quote(*, shirt_code: str, color: str, size: str, quantity: i
     )
 
 
-def calculate_service_quote(*, service_code: str, quantity: int | str = 1) -> ServiceQuote:
+def calculate_service_quote(
+    *,
+    service_code: str,
+    quantity: int | str = 1,
+    custom_name: str = "",
+    custom_price: Decimal | str | float | None = None,
+) -> ServiceQuote:
+    qty = _as_quantity(quantity)
+    if service_code in ("servico_avulso", "item_avulso", "avulso", "custom"):
+        name = (custom_name or "").strip() or "Item / Serviço Avulso"
+        if custom_price is None:
+            price = Decimal("0.00")
+        else:
+            raw_p = str(custom_price).strip().replace("R$", "").replace(" ", "")
+            if "," in raw_p:
+                raw_p = raw_p.replace(".", "").replace(",", ".")
+            try:
+                price = Decimal(raw_p).quantize(MONEY_CENT)
+            except Exception:
+                price = Decimal("0.00")
+        service = CalculatorService(
+            code="item_avulso",
+            name=name,
+            category="Serviços Extras / Avulsos",
+            unit="Unidade",
+            unit_price=price,
+        )
+        total = (Decimal(qty) * price).quantize(MONEY_CENT, rounding=ROUND_HALF_UP)
+        return ServiceQuote(
+            service=service,
+            quantity=qty,
+            unit_price=price,
+            total=total,
+            pricing_rule=f"Valor unitário avulso de R$ {price:.2f}".replace(".", ","),
+        )
+
     service = SERVICES.get(service_code)
     if not service:
         raise CalculatorValidationError("Selecione um serviço válido.")
-    qty = _as_quantity(quantity)
     unit_price = service.unit_price
     total = (Decimal(qty) * unit_price).quantize(MONEY_CENT, rounding=ROUND_HALF_UP)
     return ServiceQuote(

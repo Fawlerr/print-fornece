@@ -50,11 +50,12 @@ class OrderForm(forms.ModelForm):
         model = Order
         fields = [
             "cliente", "client_name", "client_whatsapp", "description", "total_amount", "payment_status", "paid_amount",
-            "discount_advance", "is_correction", "correction_reason", "payment_method", "due_at", "shift", "priority", "responsible", "internal_notes",
+            "discount_advance", "discount_reason", "is_correction", "correction_reason", "payment_method", "due_at", "shift", "priority", "responsible", "internal_notes",
         ]
         labels = {
             "cliente": "Cliente Cadastrado", "client_name": "Nome do cliente", "client_whatsapp": "WhatsApp do cliente", "description": "Descrição detalhada",
             "is_correction": "Pedido de Correção / Reposição por Defeito (R$ 0,00)", "correction_reason": "Motivo da Correção / Defeito",
+            "discount_reason": "Motivo do Abatimento / Desconto",
             "payment_status": "Situação do pagamento", "payment_method": "Forma de pagamento", "due_at": "Data prevista para entrega",
             "shift": "Turno de produção", "priority": "Prioridade", "responsible": "Responsável", "internal_notes": "Observações internas",
         }
@@ -65,6 +66,7 @@ class OrderForm(forms.ModelForm):
             "total_amount": forms.TextInput(attrs={"data-money": "", "inputmode": "decimal"}),
             "paid_amount": forms.TextInput(attrs={"data-money": "", "inputmode": "decimal"}),
             "discount_advance": forms.TextInput(attrs={"data-money": "", "inputmode": "decimal"}),
+            "discount_reason": forms.TextInput(attrs={"placeholder": "Ex: Desconto por volume, cortesia aprovada por gerente..."}),
             "due_at": forms.DateTimeInput(attrs={"type": "datetime-local"}, format="%Y-%m-%dT%H:%M"),
         }
 
@@ -139,18 +141,21 @@ class QuickPaymentForm(forms.Form):
     paid_amount = BrazilianMoneyField(
         label="Valor do Pagamento (R$)",
         min_value=Decimal("0.01"),
+        required=False,
         widget=forms.TextInput(attrs={"data-money": "", "inputmode": "decimal"}),
     )
     payment_method = forms.ChoiceField(
         label="Forma de Pagamento",
         choices=Order.PaymentMethod.choices,
         initial=Order.PaymentMethod.PIX,
+        required=False,
     )
     notes = forms.CharField(
         label="Observação do Pagamento",
         required=False,
         widget=forms.TextInput(attrs={"placeholder": "Ex: Entrada de 50%, pago via PIX..."}),
     )
+    payments_payload = forms.CharField(required=False, widget=forms.HiddenInput())
 
 
 class OrderNoteForm(forms.Form):

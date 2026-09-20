@@ -567,10 +567,10 @@ class PrintForneceTestCase(TestCase):
         )
         quote_msg = build_quote_whatsapp_message(self.order, "https://exemplo.com/orders/quote/token123/")
         self.assertIn("PRINT FORNECE", quote_msg)
-        self.assertIn("Valor unitário/metro:", quote_msg)
+        self.assertIn("Medida:", quote_msg)
         self.assertIn("TOTAL: R$", quote_msg)
         self.assertIn("Prazo estimado:", quote_msg)
-        self.assertIn("preview", quote_msg.lower())
+        self.assertIn("Aprove seu orçamento pelo link:", quote_msg)
         # Ensure zero emojis in the message
         for emoji in ["🍀", "📏", "💰", "🟢", "✅", "⏰", "💳", "⚠️", "😊", "👋", "🎉", "📦", "📍", "🖼️"]:
             self.assertNotIn(emoji, quote_msg)

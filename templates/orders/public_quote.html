@@ -85,6 +85,27 @@
         </div>
         {% endif %}
       </div>
+
+      {% if order.cliente and order.cliente.metros_saldo or order.cliente.saldo_credito %}
+        <div style="margin-top: 14px; background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 10px; padding: 14px 16px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; color: #38bdf8; font-weight: 700; font-size: 0.95rem;">
+            <i class="fa-solid fa-layer-group"></i> Status do seu Plano de Volume
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.86rem;">
+            <div>
+              <span style="color: #94a3b8; display: block;">Metragem Deste Pedido:</span>
+              <strong style="color: #fff; font-size: 0.95rem;">{{ order.total_meters|floatformat:2 }} metros</strong>
+            </div>
+            <div>
+              <span style="color: #94a3b8; display: block;">Saldo Restante no Pacote:</span>
+              <strong style="color: #22c55e; font-size: 0.95rem;">{{ order.cliente.metros_saldo|floatformat:1 }} metros</strong>
+              {% if order.cliente.saldo_credito > 0 %}
+                <small style="color: #94a3b8; display: block;">(R$ {{ order.cliente.saldo_credito|floatformat:2 }} em crédito)</small>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      {% endif %}
     </div>
 
     <div>
