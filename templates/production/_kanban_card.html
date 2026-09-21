@@ -1,4 +1,4 @@
-<article class="order-card stage-{{ order.stage }}{% if order.is_late %} is-late{% endif %}" draggable="true" data-order-id="{{ order.pk }}" data-stage="{{ order.stage }}" data-detail-url="{% url 'production:detail' pk=order.pk %}" data-kanban-endpoint="{% url 'production:move_stage' pk=order.pk %}">
+<article class="order-card stage-{{ order.stage }}{% if order.is_late %} is-late{% endif %}" draggable="true" data-order-id="{{ order.pk }}" data-stage="{{ order.stage }}" data-payment-status="{{ order.payment_status }}" data-remaining-amount="{{ order.remaining_amount }}" data-detail-url="{% url 'production:detail' pk=order.pk %}" data-kanban-endpoint="{% url 'production:move_stage' pk=order.pk %}">
   <div class="order-card-header" style="display: flex; justify-content: space-between; align-items: center; gap: 6px; margin-bottom: 6px;">
     <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
       <span class="order-number" style="font-weight: 700; color: #f8fafc;">#{{ order.number }}</span>
@@ -22,15 +22,31 @@
         <i class="fa-solid fa-check"></i> Pago
       </span>
     {% elif order.payment_status == "parcial" %}
-      <span class="badge badge-parcial" style="font-size: 0.72rem; font-weight: 700; padding: 2px 8px; border-radius: 4px;">Parcial</span>
+      <span class="badge badge-parcial" style="font-size: 0.72rem; font-weight: 700; padding: 2px 8px; border-radius: 4px; background: rgba(245, 185, 66, 0.2); color: #ffd678; border: 1px solid rgba(245, 185, 66, 0.45);" title="Resta pagar: R$ {{ order.remaining_amount|floatformat:2 }}">
+        <i class="fa-solid fa-circle-half-stroke"></i> Resta R$ {{ order.remaining_amount|floatformat:2 }}
+      </span>
+    {% elif order.payment_method == "na_retirada" %}
+      <span class="badge badge-na_retirada" style="font-size: 0.72rem; font-weight: 700; padding: 2px 8px; border-radius: 4px; background: rgba(245, 158, 11, 0.22); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.5);" title="Pagamento acordado na retirada: R$ {{ order.remaining_amount|floatformat:2 }}">
+        <i class="fa-solid fa-hand-holding-dollar"></i> Na Retirada
+      </span>
     {% else %}
-      <span class="badge badge-nao_pago" style="font-size: 0.72rem; font-weight: 700; padding: 2px 8px; border-radius: 4px;">Não pago</span>
+      <span class="badge badge-nao_pago" style="font-size: 0.72rem; font-weight: 700; padding: 2px 8px; border-radius: 4px; background: rgba(239, 68, 68, 0.22); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.45);" title="Pagamento pendente: R$ {{ order.remaining_amount|floatformat:2 }}">
+        <i class="fa-solid fa-triangle-exclamation"></i> Não pago
+      </span>
     {% endif %}
   </div>
 
   <h3 class="order-card-title" style="margin: 0 0 6px 0; font-size: 0.98rem;">
     <a href="{% url 'production:detail' pk=order.pk %}" title="{{ order.client_name }}">{{ order.client_name }}</a>
   </h3>
+
+  <!-- Alerta Chamativo de Pagamento Pendente na Retirada -->
+  {% if order.remaining_amount > 0 %}
+    <div class="kanban-unpaid-ready-alert" style="{% if order.stage != 'pronto_retirada' %}display: none;{% else %}display: flex;{% endif %} margin-bottom: 8px; padding: 5px 8px; border-radius: 6px; background: rgba(239, 68, 68, 0.18); border: 1px solid #ef4444; color: #fca5a5; font-size: 0.75rem; font-weight: 700; align-items: center; justify-content: space-between; gap: 4px;">
+      <span><i class="fa-solid fa-triangle-exclamation" style="color: #ef4444;"></i> Cobrar na Retirada:</span>
+      <strong style="color: #ffffff; font-size: 0.80rem; background: rgba(239,68,68,0.35); padding: 1px 6px; border-radius: 4px; border: 1px solid rgba(239,68,68,0.5);">R$ {{ order.remaining_amount|floatformat:2 }}</strong>
+    </div>
+  {% endif %}
 
   <!-- Resumo de Itens / Medidas -->
   {% if order.items.all %}

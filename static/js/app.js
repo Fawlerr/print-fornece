@@ -140,11 +140,10 @@
     const actionsDiv = card.querySelector(".order-stage-actions");
     if (!actionsDiv) return;
 
-    // Atualiza badge de pagamento se estava como Não Pago
-    const badge = card.querySelector(".badge-nao_pago");
-    if (badge && (newStage === "pagamento_confirmado" || newStage === "pre_impressao" || newStage === "em_producao" || newStage === "pronto_retirada" || newStage === "entregue")) {
-      badge.className = "badge badge-pago";
-      badge.textContent = "Pago";
+    // Sincroniza visibilidade do alerta de cobrança na retirada se o pedido possuir saldo devedor
+    const unpaidAlert = card.querySelector(".kanban-unpaid-ready-alert");
+    if (unpaidAlert) {
+      unpaidAlert.style.display = (newStage === "pronto_retirada") ? "flex" : "none";
     }
 
     const orderId = card.dataset.orderId;

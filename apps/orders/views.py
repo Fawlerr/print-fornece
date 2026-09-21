@@ -364,6 +364,45 @@ def register_payment(request, pk: int):
 
 @login_required
 @require_POST
+def update_order_payment_method(request, pk: int, payment_id: int):
+    """Permite ao administrador ou desenvolvedor corrigir a forma de pagamento de uma parcela lançada."""
+    order = get_object_or_404(Order, pk=pk)
+    require_order_access(request.user, order)
+    if not (request.user.is_administrator or getattr(request.user, "is_dev", False)):
+        raise PermissionDenied("Somente administradores ou desenvolvedores podem alterar parcelas já lançadas.")
+
+    from .models import OrderPayment
+    payment = get_object_or_404(OrderPayment, pk=payment_id, order=order)
+    new_method = request.POST.get("payment_method")
+
+    if new_method in Order.PaymentMethod.values:
+        old_method_label = payment.get_payment_method_display()
+        payment.payment_method = new_method
+        payment.save(update_fields=["payment_method"])
+
+        # Recalcula a forma predominante no cabeçalho do pedido
+        all_splits = list(order.payments.all())
+        distinct_methods = set(sp.payment_method for sp in all_splits)
+        if len(distinct_methods) > 1:
+            order.payment_method = Order.PaymentMethod.MULTIPLE
+        elif distinct_methods:
+            order.payment_method = list(distinct_methods)[0]
+        else:
+            order.payment_method = new_method
+        order.save(update_fields=["payment_method", "updated_at"])
+
+        desc = f"Forma de pagamento da parcela de R$ {payment.amount:.2f} alterada de '{old_method_label}' para '{payment.get_payment_method_display()}' por {request.user.name or request.user.email}."
+        OrderHistory.objects.create(order=order, user=request.user, action="edicao_pagamento", description=desc)
+        record_audit(request.user, "edicao_pagamento", "pedido", order.pk, after={"payment_id": payment.pk, "metodo": new_method}, request=request)
+        messages.success(request, f"Forma de pagamento atualizada para {payment.get_payment_method_display()} com sucesso!")
+    else:
+        messages.error(request, "Forma de pagamento inválida.")
+
+    return redirect("production:detail", pk=pk)
+
+
+@login_required
+@require_POST
 def mark_order_as_paid(request, pk: int):
     """Ação rápida manual para alterar o status do pedido para Pedido Pago."""
     order = get_object_or_404(Order, pk=pk)

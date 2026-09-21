@@ -1894,6 +1894,85 @@ class PrintForneceTestCase(TestCase):
             res = self.client.get(reverse(route_name))
             self.assertEqual(res.status_code, 403, f"A rota {route_name} deve retornar 403 Forbidden para funcionários")
 
+    def test_kanban_unpaid_badge_and_order_payment_sync(self):
+        from apps.orders.models import OrderPayment
+        from apps.orders.forms import OrderForm
+        from apps.orders.services import update_order
+
+        order = Order.objects.create(
+            number="PF-TEST-SYNC",
+            client_name="Cliente Sync",
+            client_whatsapp="84988887777",
+            total_amount=Decimal("200.00"),
+            paid_amount=Decimal("200.00"),
+            payment_status=Order.PaymentStatus.PAID,
+            payment_method=Order.PaymentMethod.PIX,
+            stage=Order.Stage.READY,
+            created_by=self.admin,
+        )
+        pay = OrderPayment.objects.create(
+            order=order,
+            payment_method=Order.PaymentMethod.PIX,
+            amount=Decimal("200.00"),
+            recorded_by=self.admin,
+        )
+
+        self.login_as(self.admin)
+        res = self.client.get(reverse("production:kanban"))
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "PF-TEST-SYNC")
+
+        form = OrderForm(
+            instance=order,
+            data={
+                "client_name": "Cliente Sync",
+                "client_whatsapp": "84988887777",
+                "total_amount": "200,00",
+                "payment_status": Order.PaymentStatus.PAID,
+                "paid_amount": "200,00",
+                "payment_method": Order.PaymentMethod.CASH,
+                "shift": order.shift,
+                "priority": order.priority,
+            },
+            user=self.admin,
+        )
+        self.assertTrue(form.is_valid(), form.errors)
+        updated = update_order(order=order, form=form, actor=self.admin, files=[])
+        pay.refresh_from_db()
+        self.assertEqual(updated.payment_method, Order.PaymentMethod.CASH)
+        self.assertEqual(pay.payment_method, Order.PaymentMethod.CASH)
+
+    def test_update_order_payment_method_view(self):
+        from apps.orders.models import OrderPayment
+        order = Order.objects.create(
+            number="PF-TEST-PAY-VIEW",
+            client_name="Cliente Teste",
+            client_whatsapp="84988887777",
+            total_amount=Decimal("150.00"),
+            paid_amount=Decimal("150.00"),
+            payment_status=Order.PaymentStatus.PAID,
+            payment_method=Order.PaymentMethod.PIX,
+            stage=Order.Stage.READY,
+            created_by=self.admin,
+        )
+        pay = OrderPayment.objects.create(
+            order=order,
+            payment_method=Order.PaymentMethod.PIX,
+            amount=Decimal("150.00"),
+            recorded_by=self.admin,
+        )
+
+        self.login_as(self.admin)
+        url = reverse("orders:update_payment_method", kwargs={"pk": order.pk, "payment_id": pay.pk})
+        res = self.client.post(url, {"payment_method": "dinheiro"})
+        self.assertRedirects(res, reverse("production:detail", kwargs={"pk": order.pk}))
+
+        pay.refresh_from_db()
+        order.refresh_from_db()
+        self.assertEqual(pay.payment_method, "dinheiro")
+        self.assertEqual(order.payment_method, "dinheiro")
+        self.assertTrue(order.history.filter(action="edicao_pagamento").exists())
+
 
 
 

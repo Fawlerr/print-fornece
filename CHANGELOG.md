@@ -4,6 +4,20 @@ Todas as atualizações e correções notáveis do sistema Print Fornece são re
 
 ---
 
+## [21/09/2026] — Correção do Bug #27, Alertas de Pagamento Pendente na Retirada & Sincronização de Parcelas de Caixa
+
+### 🐛 Correções de Bugs & Melhorias Operacionais
+- **Bug #27 (Desacoplamento Visual e Destaque de Pagamento Pendente no Kanban):**
+  - Removido código JavaScript legado que forçava a badge para "Pago" quando um card era movimentado no Kanban para etapas avançadas (Em Produção, Pronto pra Retirada, Entregue). O card agora reflete rigorosamente a situação financeira real do pedido.
+  - Implementado destaque visual de alto contraste para pedidos não pagos e marcados com "Pagamento na Retirada".
+  - Adicionada tarja de advertência destacada na coluna **Pronto pra Retirada** (`⚠️ COBRAR NA RETIRADA: R$ XX,XX`) para impedir a entrega de pedidos sem o devido acerto financeiro.
+  - Inserido banner de alerta reforçado de cobrança no cabeçalho financeiro do detalhe da produção.
+- **Sincronização e Ajuste de Parcelas de Pagamento no Caixa:**
+  - Sincronização automática em `update_order`: ao editar a forma de pagamento de um pedido com parcela única (ex: de PIX para Dinheiro), a parcela em `OrderPayment` é atualizada automaticamente para refletir com exatidão na conciliação diária de caixa.
+  - Adicionada ferramenta no detalhe do pedido para administradores e desenvolvedores corrigirem a forma de pagamento de parcelas registradas em caso de digitação incorreta pelo operador.
+
+---
+
 ## [20/09/2026] — Módulo Financeiro Avançado, Relatórios Gerenciais, Fatura Agrupada & Planos de Volume
 
 ### ✨ Novas Funcionalidades

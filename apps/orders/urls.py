@@ -11,6 +11,7 @@ urlpatterns = [
     path("<int:order_pk>/attachments/<int:pk>/download/", views.download_attachment, name="download_attachment"),
     path("<int:pk>/receipt/pdf/", views.download_receipt_pdf, name="download_receipt"),
     path("<int:pk>/register-payment/", views.register_payment, name="register_payment"),
+    path("<int:pk>/payments/<int:payment_id>/update-method/", views.update_order_payment_method, name="update_payment_method"),
     path("<int:pk>/mark-as-paid/", views.mark_order_as_paid, name="mark_as_paid"),
     path("<int:pk>/art-preview/", views.art_preview_view, name="art_preview"),
     path("quote/<str:token>/", views.public_quote_view, name="public_quote"),

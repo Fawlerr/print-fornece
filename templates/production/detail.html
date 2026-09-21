@@ -143,6 +143,24 @@
 
       {% if order.stage != "cancelado" %}
         <div style="background: rgba(245, 185, 66, 0.06); border: 1px solid rgba(245, 185, 66, 0.25); border-radius: 8px; padding: 14px; margin-bottom: 20px;">
+          {% if order.remaining_amount > 0 %}
+            <div style="background: rgba(239, 68, 68, 0.16); border: 1px solid #ef4444; border-radius: 6px; padding: 9px 12px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;">
+              <span style="color: #fca5a5; font-size: 0.86rem; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
+                <i class="fa-solid fa-triangle-exclamation" style="color: #ef4444; font-size: 1rem;"></i>
+                {% if order.stage == "pronto_retirada" %}
+                  PAGAMENTO PENDENTE PARA COBRANÇA NA RETIRADA!
+                {% elif order.payment_method == "na_retirada" %}
+                  PAGAMENTO ACORDADO NA RETIRADA!
+                {% else %}
+                  PAGAMENTO PENDENTE / NÃO QUITADO!
+                {% endif %}
+              </span>
+              <strong style="color: #ffffff; background: #ef4444; padding: 2px 8px; border-radius: 4px; font-size: 0.88rem; white-space: nowrap;">
+                Cobrar: R$ {{ order.remaining_amount|floatformat:2 }}
+              </strong>
+            </div>
+          {% endif %}
+
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
             <strong style="font-size: 0.92rem; color: #ffd678; display: flex; align-items: center; gap: 6px;">
               <i class="fa-solid fa-hand-holding-dollar"></i> Situação de Pagamento
@@ -176,9 +194,16 @@
             <div style="margin-top: 10px; background: rgba(0,0,0,0.2); border-radius: 6px; padding: 8px 10px; font-size: 0.82rem;">
               <small style="color: var(--muted); font-weight: 700; display: block; margin-bottom: 4px;">Pagamentos Registrados:</small>
               {% for p in order.payments.all %}
-                <div style="display: flex; justify-content: space-between; padding: 2px 0; border-bottom: 1px dashed rgba(255,255,255,0.06);">
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 4px 0; border-bottom: 1px dashed rgba(255,255,255,0.06);">
                   <span><i class="fa-solid fa-check" style="color: #22c55e;"></i> {{ p.get_method_display }}:</span>
-                  <strong>R$ {{ p.amount|floatformat:2 }} <small class="text-muted">({{ p.created_at|date:"d/m H:i" }})</small></strong>
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <strong>R$ {{ p.amount|floatformat:2 }} <small class="text-muted">({{ p.created_at|date:"d/m H:i" }})</small></strong>
+                    {% if request.user.is_administrator or request.user.is_dev %}
+                      <button type="button" class="btn btn-secondary btn-small" onclick="openEditPaymentMethodModal('{{ p.pk }}', '{{ p.payment_method }}', '{{ p.amount|floatformat:2 }}')" style="font-size: 0.68rem; padding: 2px 6px; border-radius: 4px;" title="Corrigir forma de pagamento desta parcela">
+                        <i class="fa-solid fa-pen-to-square"></i>
+                      </button>
+                    {% endif %}
+                  </div>
                 </div>
               {% endfor %}
             </div>
@@ -794,4 +819,56 @@
     }
   }
 </script>
+
+{% if request.user.is_administrator or request.user.is_dev %}
+<div id="editPaymentMethodModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 9999; align-items: center; justify-content: center; backdrop-filter: blur(3px);">
+  <div style="background: var(--panel, #151917); border: 1px solid var(--line, #2a332d); border-radius: 12px; padding: 22px; width: min(92vw, 420px); box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+    <h3 style="margin: 0 0 10px; font-size: 1.05rem; color: #fff; display: flex; align-items: center; gap: 8px;">
+      <i class="fa-solid fa-pen-to-square" style="color: #38bdf8;"></i> Corrigir Forma da Parcela
+    </h3>
+    <p style="font-size: 0.84rem; color: var(--muted, #94a3b8); margin-bottom: 14px;">
+      Valor da parcela: <strong id="modalPaymentAmount" style="color: #34d399; font-size: 0.95rem;"></strong>
+    </p>
+    <form method="post" id="editPaymentMethodForm" action="">
+      {% csrf_token %}
+      <label style="display: block; font-size: 0.82rem; font-weight: 700; margin-bottom: 6px; color: #cbd5e1;">Nova Forma de Pagamento:</label>
+      <select name="payment_method" id="modalPaymentMethodSelect" style="width: 100%; margin-bottom: 18px; padding: 10px 12px; border-radius: 8px; background: #0e120f; border: 1px solid #354039; color: #fff; font-size: 0.9rem;">
+        <option value="dinheiro">Dinheiro (À Vista / Gaveta)</option>
+        <option value="pix">PIX</option>
+        <option value="cartao_credito">Cartão de Crédito</option>
+        <option value="cartao_debito">Cartão de Débito</option>
+        <option value="cartao">Cartão (Geral)</option>
+        <option value="transferencia">Transferência</option>
+        <option value="na_retirada">Pagamento na Retirada</option>
+        <option value="saldo_credito">Saldo do Plano / Crédito</option>
+        <option value="outro">Outro</option>
+      </select>
+      <div style="display: flex; justify-content: flex-end; gap: 10px;">
+        <button type="button" class="btn btn-secondary btn-small" onclick="closeEditPaymentMethodModal()">Cancelar</button>
+        <button type="submit" class="btn btn-primary btn-small" style="background: #38bdf8; border-color: #0284c7; color: #082f49;">
+          <i class="fa-solid fa-check"></i> Salvar Correção
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+<script>
+function openEditPaymentMethodModal(paymentId, currentMethod, amount) {
+  const modal = document.getElementById('editPaymentMethodModal');
+  const form = document.getElementById('editPaymentMethodForm');
+  const select = document.getElementById('modalPaymentMethodSelect');
+  const amountEl = document.getElementById('modalPaymentAmount');
+  if (modal && form && select && amountEl) {
+    form.action = `/orders/{{ order.pk }}/payments/${paymentId}/update-method/`;
+    select.value = currentMethod || 'pix';
+    amountEl.textContent = 'R$ ' + amount;
+    modal.style.display = 'flex';
+  }
+}
+function closeEditPaymentMethodModal() {
+  const modal = document.getElementById('editPaymentMethodModal');
+  if (modal) modal.style.display = 'none';
+}
+</script>
+{% endif %}
 {% endblock %}

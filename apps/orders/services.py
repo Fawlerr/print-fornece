@@ -354,6 +354,21 @@ def update_order(*, order: Order, form, actor, files, request=None, previous_sta
             _snapshot_receipt_on_payment(updated, actor)
         updated.save()
 
+        # Sincroniza parcela única de OrderPayment se a forma de pagamento for alterada no formulário
+        if updated.payment_method and updated.payment_method != Order.PaymentMethod.MULTIPLE:
+            splits = list(updated.payments.all())
+            if len(splits) == 1:
+                single_split = splits[0]
+                dirty = False
+                if single_split.payment_method != updated.payment_method:
+                    single_split.payment_method = updated.payment_method
+                    dirty = True
+                if updated.paid_amount and single_split.amount != updated.paid_amount:
+                    single_split.amount = updated.paid_amount
+                    dirty = True
+                if dirty:
+                    single_split.save(update_fields=["payment_method", "amount"])
+
         if items:
             _sync_order_items(updated, items)
 
