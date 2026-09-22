@@ -6,4 +6,7 @@ __pycache__/
 staticfiles/
 media/
 reports/migration-*.json
+teste_stone/
+.DS_Store
+
 

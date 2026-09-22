@@ -1,0 +1,210 @@
+{% extends 'payments/stone/base.html' %}
+{% load static %}
+
+{% block title %}Pagamento #{{ pagamento.pk }} — Stone Sandbox{% endblock %}
+{% block page_id %}pagamento-detalhe{% endblock %}
+{% block nav_pagamentos %}is-active{% endblock %}
+
+{% block content %}
+  <section class="page-heading">
+    <div>
+      <p class="eyebrow">Pagamento #{{ pagamento.pk }}</p>
+      <h1>Detalhes da cobrança</h1>
+      <p class="page-intro">O status abaixo corresponde ao último dado persistido após consulta ou webhook da Stone.</p>
+    </div>
+    <div class="button-row">
+      <a class="button-link" href="{% url 'payments:stone_pagamentos' %}">Voltar ao histórico</a>
+      {% if pagamento.stone_payment_id %}
+        <form method="post" action="{% url 'payments:stone_atualizar_pagamento' pagamento.pk %}">
+          {% csrf_token %}
+          <button class="button button--primary" type="submit">Atualizar status</button>
+        </form>
+      {% endif %}
+    </div>
+  </section>
+
+  <section class="payment-hero">
+    <div>
+      <span class="muted">Valor da cobrança</span>
+      <strong class="payment-hero__amount numeric">R$ {{ pagamento.valor|floatformat:2 }}</strong>
+    </div>
+    <div>
+      <span class="status-pill status-pill--{{ pagamento.status|default:'unknown' }}">{{ pagamento.get_status_display|default:pagamento.status|default:'Status não informado' }}</span>
+      <p class="muted" style="margin: .5rem 0 0;">Última atualização: {{ pagamento.updated_at|date:'d/m/Y H:i' }}</p>
+    </div>
+  </section>
+
+  {% if pagamento.status == 'failed' %}
+    <section class="card" style="margin-top: 1rem;" aria-labelledby="payment-failure-title">
+      <div class="card__header">
+        <div>
+          <p class="eyebrow">Diagnóstico Stone</p>
+          <h2 id="payment-failure-title">Não foi possível concluir a transação</h2>
+        </div>
+      </div>
+      <div class="card__body">
+        <p>O status foi retornado pela Stone como falha. Nenhum PIX é apresentado sem uma transação e QR Code válidos.</p>
+        <dl class="details-list">
+          <div>
+            <dt>Status Stone</dt>
+            <dd>{{ pagamento.response_data.transaction_status|default:pagamento.response_data.charge_status|default:'Falha' }}</dd>
+          </div>
+          {% if pagamento.response_data.provider_error.code %}
+            <div>
+              <dt>Código</dt>
+              <dd>{{ pagamento.response_data.provider_error.code }}</dd>
+            </div>
+          {% endif %}
+          {% if pagamento.response_data.provider_error.type %}
+            <div>
+              <dt>Tipo</dt>
+              <dd>{{ pagamento.response_data.provider_error.type }}</dd>
+            </div>
+          {% endif %}
+          {% if pagamento.response_data.provider_error.message or pagamento.last_error_message %}
+            <div>
+              <dt>Motivo</dt>
+              <dd>{{ pagamento.response_data.provider_error.message|default:pagamento.last_error_message }}</dd>
+            </div>
+          {% endif %}
+        </dl>
+      </div>
+    </section>
+  {% endif %}
+
+  {% if pagamento.metodo == 'pix' and pagamento.pix_qr_code %}
+    <section class="card" style="margin-top: 1rem;">
+      <div class="card__header">
+        <div>
+          <p class="eyebrow">PIX</p>
+          <h2>Dados retornados pela Stone</h2>
+        </div>
+      </div>
+      <div class="card__body pix-panel">
+        {% if pagamento.pix_qr_code %}
+          <div>
+            <img src="{% url 'payments:stone_pix_qr' pagamento.pk %}" alt="QR Code PIX da cobrança #{{ pagamento.pk }}" width="220" height="220">
+          </div>
+        {% endif %}
+        <div>
+          <label class="field-label" for="pix-copia-e-cola">Código PIX copia e cola</label>
+          <textarea id="pix-copia-e-cola" class="pix-code" readonly data-pix-copy-code>{{ pagamento.pix_qr_code }}</textarea>
+          <div class="button-row" style="margin-top: .65rem;">
+            <button class="button" type="button" data-copy-pix>Copiar PIX</button>
+            <span class="field-help" data-copy-feedback aria-live="polite"></span>
+          </div>
+        </div>
+      </div>
+    </section>
+  {% elif pagamento.metodo == 'pix' %}
+    <section class="card" style="margin-top: 1rem;">
+      <div class="card__body">
+        {% if pagamento.status == 'failed' %}
+          <p class="muted">A Stone não retornou um QR Code PIX utilizável para esta cobrança falhada.</p>
+        {% else %}
+          <p class="muted">Os dados do PIX serão exibidos apenas após serem retornados e armazenados com segurança pela Stone.</p>
+        {% endif %}
+      </div>
+    </section>
+  {% endif %}
+
+  <section class="card" style="margin-top: 1rem;">
+    <div class="card__header">
+      <h2>Informações da transação</h2>
+    </div>
+    <div class="card__body">
+      <dl class="details-list">
+        <div>
+          <dt>Cliente</dt>
+          <dd>{% if pagamento.cliente %}<a href="{% url 'payments:customer_detail' pagamento.cliente.pk %}">{{ pagamento.cliente.nome }}</a>{% else %}Não informado{% endif %}</dd>
+        </div>
+        <div>
+          <dt>Método</dt>
+          <dd>{{ pagamento.get_metodo_display|default:pagamento.metodo|default:'Não informado' }}</dd>
+        </div>
+        <div>
+          <dt>Referência</dt>
+          <dd>{{ pagamento.referencia|default:'Não informada' }}</dd>
+        </div>
+        <div>
+          <dt>Parcelas</dt>
+          <dd>{{ pagamento.parcelas|default:'—' }}</dd>
+        </div>
+        <div>
+          <dt>Cobrança Stone</dt>
+          <dd>{{ pagamento.stone_payment_id|default:'Ainda não disponível' }}</dd>
+        </div>
+        <div>
+          <dt>Pedido Stone</dt>
+          <dd>{{ pagamento.stone_order_id|default:'Não aplicável' }}</dd>
+        </div>
+        <div>
+          <dt>Transação Stone</dt>
+          <dd>{{ pagamento.stone_transaction_id|default:'Não retornada' }}</dd>
+        </div>
+        <div>
+          <dt>Criado em</dt>
+          <dd>{{ pagamento.created_at|date:'d/m/Y H:i' }}</dd>
+        </div>
+        <div>
+          <dt>Pago em</dt>
+          <dd>{% if pagamento.paid_at %}{{ pagamento.paid_at|date:'d/m/Y H:i' }}{% else %}Ainda não confirmado{% endif %}</dd>
+        </div>
+      </dl>
+      {% if pagamento.metodo == 'cartao' %}
+        <p class="secure-notice" style="margin: 1rem 0 0;">Dados de cartão não são exibidos nem armazenados nesta tela. Apenas um token de uso único é enviado ao backend.</p>
+      {% endif %}
+    </div>
+  </section>
+
+  <!-- SEÇÃO DE INSPEÇÃO TÉCNICA E TELEMETRIA -->
+  {% if pagamento.response_data %}
+    <section class="card" style="margin-top: 1rem;">
+      <div class="card__header">
+        <div>
+          <p class="eyebrow">Observabilidade</p>
+          <h2>Dados Técnicos da API (Inspeção)</h2>
+        </div>
+        <button class="button button--quiet" type="button" onclick="navigator.clipboard.writeText(document.getElementById('raw-response-code').textContent); alert('Dados copiados!');">
+          📋 Copiar Dados Técnicos
+        </button>
+      </div>
+      <div class="card__body">
+        <details>
+          <summary style="cursor: pointer; font-weight: 600; color: #38bdf8; margin-bottom: 0.5rem;">
+            ▶ Visualizar Estrutura JSON Armazenada
+          </summary>
+          <pre id="raw-response-code" class="log-entry__codeblock" style="max-height: 350px;">{{ pagamento.response_data|pprint }}</pre>
+        </details>
+      </div>
+    </section>
+  {% endif %}
+
+  <section class="card" style="margin-top: 1rem;">
+    <div class="card__header">
+      <h2>Histórico de atualizações</h2>
+    </div>
+    <div class="card__body">
+      <ol class="timeline">
+        {% for evento in eventos %}
+          <li>
+            <strong>{{ evento.descricao|default:evento.tipo }}</strong>
+            <time datetime="{{ evento.created_at|date:'c' }}">{{ evento.created_at|date:'d/m/Y H:i' }}</time>
+            {% if evento.dados %}
+              <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.2rem;">
+                Trace / Detalhes: <code>{{ evento.dados }}</code>
+              </div>
+            {% endif %}
+          </li>
+        {% empty %}
+          <li><span class="muted">Nenhum evento de auditoria está disponível para esta cobrança.</span></li>
+        {% endfor %}
+      </ol>
+    </div>
+  </section>
+
+{% endblock %}
+
+{% block extra_js %}
+  <script src="{% static 'pagamentos/js/payment-detail.js' %}" defer></script>
+{% endblock %}

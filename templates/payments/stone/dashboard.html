@@ -1,0 +1,164 @@
+{% extends 'payments/stone/base.html' %}
+
+{% block title %}Stone / Pagar.me V5 — Painel de Integração{% endblock %}
+{% block page_id %}dashboard{% endblock %}
+{% block nav_dashboard %}is-active{% endblock %}
+
+{% block content %}
+  <section class="page-heading">
+    <div>
+      <p class="eyebrow">Diagnóstico e Observabilidade</p>
+      <h1>Painel de Integração Stone / Pagar.me V5</h1>
+      <p class="page-intro">Monitore o status da conexão, latência, integridade das credenciais de sandbox e o fluxo das requisições em tempo real.</p>
+    </div>
+    <div class="inline-actions">
+      <a class="button-link button--primary" href="{% url 'payments:stone_criar_pedido' %}">🚀 Criar Pedido V5</a>
+      <a class="button-link button--quiet" href="{% url 'payments:stone_testes' %}">🧪 Executar Testes</a>
+      <button class="button button--quiet" type="button" data-open-logs>📋 Abrir Logs</button>
+    </div>
+  </section>
+
+  <!-- PAINEL DE STATUS DA CONEXÃO & AMBIENTE -->
+  <section class="card" style="margin-bottom: 1.5rem; background: linear-gradient(180deg, #131c2a 0%, #0e1522 100%); border-color: var(--border-strong);">
+    <div class="card__body" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.25rem;">
+      <div>
+        <span class="metric-card__label">Ambiente</span>
+        <div style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.35rem;">
+          <span class="badge-status badge-status--pass">🟢 SANDBOX</span>
+          <small class="muted">STONE_ENVIRONMENT=test</small>
+        </div>
+      </div>
+
+      <div>
+        <span class="metric-card__label">Status da Conexão</span>
+        <div style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.35rem;">
+          {% if stone_server_configured %}
+            <span class="badge-status badge-status--pass">✓ CONECTADA</span>
+            <small class="muted">{{ stone_secret_key_masked }}</small>
+          {% else %}
+            <span class="badge-status badge-status--fail">✕ AUSENTE</span>
+            <small class="muted">sk_test_ não configurada</small>
+          {% endif %}
+        </div>
+      </div>
+
+      <div>
+        <span class="metric-card__label">Último HTTP Status</span>
+        <div style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.35rem;">
+          {% if last_log and last_log.http_status %}
+            <span class="badge-status {% if last_log.http_status < 400 %}badge-status--pass{% else %}badge-status--fail{% endif %}">
+              HTTP {{ last_log.http_status }}
+            </span>
+            <small class="muted">{{ last_log.duracao_ms|default:0 }}ms</small>
+          {% else %}
+            <span class="badge-status badge-status--skip">NENHUM</span>
+          {% endif %}
+        </div>
+      </div>
+
+      <div>
+        <span class="metric-card__label">Última Requisição</span>
+        <div style="margin-top: 0.35rem;">
+          {% if last_log %}
+            <strong style="font-size: 0.88rem; color: var(--text);">{{ last_log.timestamp|date:'d/m/Y H:i:s' }}</strong>
+            <div style="font-size: 0.72rem; color: var(--text-muted);">{{ last_log.tipo_evento }}</div>
+          {% else %}
+            <span class="muted" style="font-size: 0.85rem;">Nenhuma chamada registrada</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CARDS DE MÉTRICAS -->
+  <section class="metrics-grid" aria-label="Indicadores de teste">
+    <article class="metric-card">
+      <span class="metric-card__label">Total de Logs</span>
+      <strong class="metric-card__value numeric">{{ total_logs|default:'0' }}</strong>
+      <small class="muted">Eventos de auditoria</small>
+    </article>
+    <article class="metric-card metric-card--danger">
+      <span class="metric-card__label">Erros Detectados</span>
+      <strong class="metric-card__value numeric">{{ error_logs|default:'0' }}</strong>
+      <small class="muted">Falhas de integração</small>
+    </article>
+    <article class="metric-card">
+      <span class="metric-card__label">Cobranças Registradas</span>
+      <strong class="metric-card__value numeric">{{ cobrancas_hoje|default:'0' }}</strong>
+      <small class="muted">Hoje no sistema</small>
+    </article>
+    <article class="metric-card metric-card--warning">
+      <span class="metric-card__label">PIX Pendentes</span>
+      <strong class="metric-card__value numeric">{{ pix_pendentes|default:'0' }}</strong>
+      <small class="muted">Aguardando pagamento</small>
+    </article>
+    <article class="metric-card metric-card--success">
+      <span class="metric-card__label">Aprovados</span>
+      <strong class="metric-card__value numeric">{{ pagamentos_aprovados|default:'0' }}</strong>
+      <small class="muted">Confirmados pela Stone</small>
+    </article>
+    <article class="metric-card metric-card--danger">
+      <span class="metric-card__label">Recusados</span>
+      <strong class="metric-card__value numeric">{{ pagamentos_recusados|default:'0' }}</strong>
+      <small class="muted">Transações negadas</small>
+    </article>
+  </section>
+
+  <!-- ÚLTIMAS TRANSAÇÕES E TESTES -->
+  <section class="card">
+    <div class="card__header">
+      <div>
+        <p class="eyebrow">Histórico Local</p>
+        <h2>Últimas Cobranças no Ambiente de Testes</h2>
+      </div>
+      <div class="inline-actions">
+        <a class="button-link button--quiet" href="{% url 'payments:stone_pagamentos' %}">Ver histórico completo</a>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">ID / Tentativa</th>
+            <th scope="col">Cliente</th>
+            <th scope="col">Order ID</th>
+            <th scope="col">Método</th>
+            <th scope="col">Valor</th>
+            <th scope="col">Status</th>
+            <th scope="col">Data</th>
+            <th scope="col">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for pagamento in ultimos_pagamentos %}
+            <tr>
+              <td><a href="{% url 'payments:stone_pagamento_detalhe' pagamento.pk %}">#{{ pagamento.pk }}</a></td>
+              <td>{{ pagamento.cliente.nome|default:'Cliente não informado' }}</td>
+              <td>
+                {% if pagamento.stone_order_id %}
+                  <code style="color: #6ee7b7; font-size: 0.78rem;">{{ pagamento.stone_order_id }}</code>
+                {% else %}
+                  <span class="muted">—</span>
+                {% endif %}
+              </td>
+              <td>{{ pagamento.get_metodo_display|default:pagamento.metodo|default:'—' }}</td>
+              <td class="numeric">R$ {{ pagamento.valor|floatformat:2 }}</td>
+              <td><span class="status-pill status-pill--{{ pagamento.status|default:'unknown' }}">{{ pagamento.get_status_display|default:pagamento.status|default:'Não informado' }}</span></td>
+              <td class="numeric">{{ pagamento.created_at|date:'d/m/Y H:i' }}</td>
+              <td>
+                <a class="button-link button--quiet" href="{% url 'payments:stone_pagamento_detalhe' pagamento.pk %}" style="font-size: 0.75rem; padding: 0.25rem 0.55rem;">Inspecionar</a>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="8" class="muted" style="text-align: center; padding: 2rem;">
+                Ainda não há pagamentos registrados. Utilize o botão <strong>Criar Pedido V5</strong> para testar a integração com a Stone.
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+{% endblock %}
+

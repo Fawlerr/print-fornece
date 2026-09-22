@@ -1,0 +1,43 @@
+{% extends 'payments/stone/base.html' %}
+
+{% block title %}{% if cliente %}Editar cliente{% else %}Novo cliente{% endif %} — Stone Sandbox{% endblock %}
+{% block page_id %}cliente-form{% endblock %}
+{% block nav_clientes %}is-active{% endblock %}
+
+{% block content %}
+  <section class="page-heading">
+    <div>
+      <p class="eyebrow">Cadastros</p>
+      <h1>{% if cliente %}Editar cliente{% else %}Novo cliente{% endif %}</h1>
+      <p class="page-intro">Os dados são validados no servidor. CPF/CNPJ é armazenado apenas em formato normalizado.</p>
+    </div>
+    <a class="button-link" href="{% if cliente %}{% url 'payments:customer_detail' cliente.pk %}{% else %}{% url 'payments:customer_list' %}{% endif %}">Cancelar</a>
+  </section>
+
+  <form class="card form-card" method="post" novalidate>
+    {% csrf_token %}
+    <div class="card__body form-stack">
+      {% if form.non_field_errors %}
+        <div class="form-errors" role="alert">{{ form.non_field_errors }}</div>
+      {% endif %}
+
+      <div class="form-grid">
+        {% for field in form %}
+          <div class="field {% if field.name == 'nome' or field.name == 'email' %}field--full{% endif %}">
+            <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} <span aria-label="obrigatório">*</span>{% endif %}</label>
+            {{ field }}
+            {% if field.help_text %}<span class="field-help">{{ field.help_text }}</span>{% endif %}
+            {% if field.errors %}<div class="field-error" role="alert">{{ field.errors }}</div>{% endif %}
+          </div>
+        {% endfor %}
+      </div>
+
+      <p class="secure-notice"><strong>Privacidade:</strong> este cadastro não armazena dados de cartão. A associação com a Stone só é feita pelo backend quando a integração estiver disponível.</p>
+
+      <div class="button-row">
+        <button class="button button--primary" type="submit">{% if cliente %}Salvar alterações{% else %}Cadastrar cliente{% endif %}</button>
+        <a class="button-link" href="{% url 'payments:customer_list' %}">Voltar para clientes</a>
+      </div>
+    </div>
+  </form>
+{% endblock %}

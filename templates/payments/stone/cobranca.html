@@ -1,0 +1,197 @@
+{% extends 'payments/stone/base.html' %}
+{% load static %}
+
+{% block title %}Nova cobrança — Stone Sandbox{% endblock %}
+{% block page_id %}cobranca{% endblock %}
+{% block nav_cobranca %}is-active{% endblock %}
+
+{% block content %}
+  <section class="page-heading">
+    <div>
+      <p class="eyebrow">Stone — ambiente de testes</p>
+      <h1>Gerar cobrança</h1>
+      <p class="page-intro">Selecione um cliente existente e crie uma cobrança PIX ou cartão. Nenhum pagamento é marcado como aprovado pelo navegador.</p>
+    </div>
+  </section>
+
+  <div class="checkout-layout">
+    <div class="form-stack">
+      <section class="card" aria-labelledby="cliente-cobranca-title">
+        <div class="card__header">
+          <div>
+            <p class="eyebrow">1. Cliente</p>
+            <h2 id="cliente-cobranca-title">Localizar cliente</h2>
+          </div>
+          <a class="button-link button--quiet" href="{% url 'payments:customer_create' %}">Cadastrar cliente</a>
+        </div>
+        <div class="card__body">
+          <form class="search-bar" method="get" action="{% url 'payments:stone_cobranca' %}" role="search">
+            <label class="sr-only" for="cliente-cobranca-busca">CPF/CNPJ, telefone ou nome do cliente</label>
+            <input id="cliente-cobranca-busca" type="search" name="q" value="{{ client_query|default:query|default:'' }}" placeholder="CPF/CNPJ, telefone ou nome" autocomplete="off">
+            <button class="button" type="submit">Buscar</button>
+          </form>
+
+          {% if selected_cliente %}
+            <div class="selected-client" style="margin-top: .85rem;">
+              <div>
+                <span class="selected-client__name">✓ {{ selected_cliente.nome }}</span>
+                <span class="selected-client__meta">{{ selected_cliente.cpf_cnpj_mascarado|default:selected_cliente.cpf_cnpj }}{% if selected_cliente.telefone %} · {{ selected_cliente.telefone_formatado|default:selected_cliente.telefone }}{% endif %}{% if selected_cliente.email %} · {{ selected_cliente.email }}{% endif %}</span>
+              </div>
+              <a class="button-link button--quiet" href="{% url 'payments:stone_cobranca' %}">Alterar</a>
+            </div>
+          {% elif clientes_encontrados|default:clients %}
+            <div class="client-search-results" aria-live="polite">
+              {% for cliente in clientes_encontrados|default:clients %}
+                <article class="client-search-result">
+                  <div>
+                    <strong>{{ cliente.nome }}</strong>
+                    <small>{{ cliente.cpf_cnpj_mascarado|default:cliente.cpf_cnpj }}{% if cliente.telefone %} · {{ cliente.telefone_formatado|default:cliente.telefone }}{% endif %}</small>
+                  </div>
+                  <a class="button-link button-link--primary" href="{% url 'payments:stone_cobranca' %}?cliente={{ cliente.pk }}">Usar este cliente</a>
+                </article>
+              {% endfor %}
+            </div>
+          {% elif client_query or query %}
+            <p class="muted" style="margin: .85rem 0 0;">Nenhum cliente encontrado. Verifique o termo ou cadastre um novo cliente.</p>
+          {% else %}
+            <p class="muted" style="margin: .85rem 0 0;">Busque por CPF/CNPJ, telefone ou nome para selecionar um cliente.</p>
+          {% endif %}
+        </div>
+      </section>
+
+      <form id="charge-form" class="card" method="post" data-stone-public-key="{{ stone_public_key|default:'' }}" novalidate>
+        {% csrf_token %}
+        <input type="hidden" name="cliente_id" value="{% if selected_cliente %}{{ selected_cliente.pk }}{% else %}{{ form.cliente_id.value|default:'' }}{% endif %}">
+        <input type="hidden" name="idempotency_key" value="{{ form.idempotency_key.value|default:'' }}">
+        <input id="card_token" type="hidden" name="card_token" value="">
+
+        <div class="card__header">
+          <div>
+            <p class="eyebrow">2. Cobrança</p>
+            <h2>Dados e forma de pagamento</h2>
+          </div>
+        </div>
+        <div class="card__body form-stack">
+          {% if form.non_field_errors %}
+            <div class="form-errors" role="alert">{{ form.non_field_errors }}</div>
+          {% endif %}
+
+          {% if form.cliente_id.errors %}<div class="field-error" role="alert">{{ form.cliente_id.errors }}</div>{% endif %}
+          {% if form.card_token.errors %}<div class="field-error" role="alert">{{ form.card_token.errors }}</div>{% endif %}
+
+          <div class="form-grid">
+            <div class="field">
+              <label for="{{ form.valor.id_for_label }}">Valor <span aria-label="obrigatório">*</span></label>
+              {{ form.valor }}
+              {% if form.valor.errors %}<div class="field-error" role="alert">{{ form.valor.errors }}</div>{% endif %}
+            </div>
+            <div class="field">
+              <label for="{{ form.referencia.id_for_label }}">Referência</label>
+              {{ form.referencia }}
+              {% if form.referencia.errors %}<div class="field-error" role="alert">{{ form.referencia.errors }}</div>{% endif %}
+            </div>
+          </div>
+
+          <fieldset class="field" style="border: 0; padding: 0; margin: 0;">
+            <legend class="field-label">Forma de pagamento <span aria-label="obrigatório">*</span></legend>
+            <div class="payment-methods">
+              <label class="payment-method">
+                <input type="radio" name="metodo" value="pix" {% if not form.metodo.value or form.metodo.value == 'pix' %}checked{% endif %} data-payment-method>
+                <span>
+                  <strong>PIX</strong>
+                  <small>QR Code e código copia e cola são exibidos apenas quando retornados pela Stone.</small>
+                </span>
+              </label>
+              <label class="payment-method">
+                <input type="radio" name="metodo" value="cartao" {% if form.metodo.value == 'cartao' %}checked{% endif %} data-payment-method>
+                <span>
+                  <strong>Cartão</strong>
+                  <small>Os dados são tokenizados diretamente no serviço da Pagar.me/Stone.</small>
+                </span>
+              </label>
+            </div>
+            {% if form.metodo.errors %}<div class="field-error" role="alert">{{ form.metodo.errors }}</div>{% endif %}
+          </fieldset>
+
+          {% if saved_methods %}
+            <div class="saved-methods" data-saved-methods>
+              <label class="field-label" for="saved_method">Método já autorizado</label>
+              <select id="saved_method" name="saved_method_id" data-saved-method>
+                <option value="">Usar um novo cartão</option>
+                {% for method in saved_methods %}
+                  <option value="{{ method.pk }}" {% if form.saved_method_id.value|stringformat:'s' == method.pk|stringformat:'s' %}selected{% endif %}>
+                    {{ method.bandeira|default:'Cartão' }}{% if method.ultimos_4 %} •••• {{ method.ultimos_4 }}{% endif %}
+                  </option>
+                {% endfor %}
+              </select>
+              <span class="field-help">Somente métodos explicitamente disponibilizados pela integração podem ser reutilizados.</span>
+              {% if form.saved_method_id.errors %}<div class="field-error" role="alert">{{ form.saved_method_id.errors }}</div>{% endif %}
+            </div>
+          {% endif %}
+
+          <section id="card-payment-panel" class="card-payment-panel" data-card-payment-panel {% if form.metodo.value != 'cartao' %}hidden{% endif %} aria-labelledby="cartao-title">
+            <hr class="divider">
+            <div class="form-stack">
+              <div>
+                <p class="eyebrow">Tokenização segura</p>
+                <h3 id="cartao-title">Cartão de crédito</h3>
+              </div>
+              <p class="secure-notice"><strong>Proteção de dados:</strong> número, validade e CVV vão somente para a tokenização no navegador. O Django recebe apenas o token de uso único retornado pela Stone.</p>
+              {% if not stone_account_type %}
+                <p class="secure-notice"><strong>Configuração pendente:</strong> confirme se sua conta é Gateway ou PSP e defina <code>STONE_ACCOUNT_TYPE</code> antes de criar uma cobrança por cartão.</p>
+              {% endif %}
+              <div id="card-tokenization-error" class="form-errors" role="alert" hidden></div>
+              <div class="field">
+                <label for="card-number">Número do cartão</label>
+                <input id="card-number" type="text" inputmode="numeric" autocomplete="cc-number" placeholder="0000 0000 0000 0000" data-card-sensitive data-card-number maxlength="23" disabled>
+              </div>
+              <div class="field">
+                <label for="card-holder-name">Nome no cartão</label>
+                <input id="card-holder-name" type="text" autocomplete="cc-name" placeholder="Como impresso no cartão" data-card-sensitive data-card-holder-name maxlength="120" disabled>
+              </div>
+              <div class="form-grid form-grid--three">
+                <div class="field">
+                  <label for="card-expiry">Validade</label>
+                  <input id="card-expiry" type="text" inputmode="numeric" autocomplete="cc-exp" placeholder="MM/AA" data-card-sensitive data-card-expiry maxlength="5" disabled>
+                </div>
+                <div class="field">
+                  <label for="card-cvv">CVV</label>
+                  <input id="card-cvv" type="password" inputmode="numeric" autocomplete="cc-csc" placeholder="000" data-card-sensitive data-card-cvv maxlength="4" disabled>
+                </div>
+                <div class="field">
+                  <label for="{{ form.parcelas.id_for_label }}">Parcelas</label>
+                  {{ form.parcelas }}
+                  {% if form.parcelas.errors %}<div class="field-error" role="alert">{{ form.parcelas.errors }}</div>{% endif %}
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <div class="button-row">
+            <button id="charge-submit" class="button button--primary" type="submit" data-charge-submit>Gerar cobrança</button>
+            <span id="charge-submit-help" class="field-help">O status é confirmado apenas por consulta ou webhook da Stone.</span>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <aside class="card checkout-summary" aria-label="Resumo de segurança">
+      <div class="card__body">
+        <p class="eyebrow">Ambiente seguro</p>
+        <h2>Antes de gerar</h2>
+        <p class="muted">Confira o cliente e o valor. Esta página opera apenas no ambiente de testes da Stone.</p>
+        <hr class="divider">
+        <ul class="timeline">
+          <li>Cliente selecionado</li>
+          <li>Dados validados no backend</li>
+          <li>Stone cria ou processa a cobrança</li>
+          <li>Status é consultado ou recebido por webhook</li>
+        </ul>
+      </div>
+    </aside>
+  </div>
+{% endblock %}
+
+{% block extra_js %}
+  <script src="{% static 'pagamentos/js/checkout.js' %}" defer></script>
+{% endblock %}

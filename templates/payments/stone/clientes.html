@@ -1,0 +1,64 @@
+{% extends 'payments/stone/base.html' %}
+
+{% block title %}Clientes — Stone Sandbox{% endblock %}
+{% block page_id %}clientes{% endblock %}
+{% block nav_clientes %}is-active{% endblock %}
+
+{% block content %}
+  <section class="page-heading">
+    <div>
+      <p class="eyebrow">Cadastros</p>
+      <h1>Clientes</h1>
+      <p class="page-intro">Pesquise, cadastre e reutilize os dados de clientes em novas cobranças.</p>
+    </div>
+    <a class="button-link button-link--primary" href="{% url 'payments:customer_create' %}">+ Novo cliente</a>
+  </section>
+
+  <section class="card">
+    <div class="card__body">
+      <form class="search-bar" method="get" action="{% url 'payments:customer_list' %}" role="search">
+        <label class="sr-only" for="cliente-busca">Buscar clientes</label>
+        <input id="cliente-busca" type="search" name="q" value="{{ query|default:'' }}" placeholder="Buscar por nome, CPF/CNPJ, telefone ou e-mail" autocomplete="off">
+        <button class="button button--primary" type="submit">Buscar</button>
+      </form>
+    </div>
+  </section>
+
+  <section class="clients-list" aria-label="Lista de clientes">
+    {% for cliente in clients|default:page_obj %}
+      <article class="client-row">
+        <div>
+          <a class="client-row__name" href="{% url 'payments:customer_detail' cliente.pk %}">{{ cliente.nome }}</a>
+          <div class="client-row__meta">
+            <span>CPF/CNPJ: {{ cliente.cpf_cnpj_mascarado|default:cliente.cpf_cnpj }}</span>
+            {% if cliente.telefone %}<span>Telefone: {{ cliente.telefone_formatado|default:cliente.telefone }}</span>{% endif %}
+            {% if cliente.email %}<span>E-mail: {{ cliente.email }}</span>{% endif %}
+          </div>
+        </div>
+        <div class="inline-actions">
+          <a class="button-link button--quiet" href="{% url 'payments:customer_detail' cliente.pk %}">Visualizar</a>
+          <a class="button-link button--quiet" href="{% url 'payments:customer_edit' cliente.pk %}">Editar</a>
+          <a class="button-link button-link--primary" href="{% url 'payments:stone_cobranca' %}?cliente={{ cliente.pk }}">Gerar cobrança</a>
+        </div>
+      </article>
+    {% empty %}
+      <div class="empty-state">
+        <h2>Nenhum cliente encontrado</h2>
+        <p>{% if query %}Tente usar outro termo de busca ou{% else %}Comece{% endif %} cadastrando um cliente para criar sua primeira cobrança.</p>
+        <a class="button-link button-link--primary" href="{% url 'payments:customer_create' %}">Cadastrar cliente</a>
+      </div>
+    {% endfor %}
+  </section>
+
+  {% if page_obj and page_obj.paginator.num_pages > 1 %}
+    <nav class="pagination" aria-label="Paginação de clientes">
+      {% if page_obj.has_previous %}
+        <a class="button-link button--quiet" href="?q={{ query|default:'' }}&amp;page={{ page_obj.previous_page_number }}">← Anterior</a>
+      {% endif %}
+      <span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+      {% if page_obj.has_next %}
+        <a class="button-link button--quiet" href="?q={{ query|default:'' }}&amp;page={{ page_obj.next_page_number }}">Próxima →</a>
+      {% endif %}
+    </nav>
+  {% endif %}
+{% endblock %}

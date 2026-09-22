@@ -1,0 +1,105 @@
+{% extends 'payments/stone/base.html' %}
+
+{% block title %}Pagamentos — Stone Sandbox{% endblock %}
+{% block page_id %}pagamentos{% endblock %}
+{% block nav_pagamentos %}is-active{% endblock %}
+
+{% block content %}
+  <section class="page-heading">
+    <div>
+      <p class="eyebrow">Histórico</p>
+      <h1>Pagamentos</h1>
+      <p class="page-intro">Consulte os registros locais e o status mais recente recebido da Stone.</p>
+    </div>
+    <a class="button-link button-link--primary" href="{% url 'payments:stone_cobranca' %}">+ Nova cobrança</a>
+  </section>
+
+  <section class="card" style="margin-bottom: 1rem;">
+    <div class="card__body">
+      <form class="filters-grid" method="get" action="{% url 'payments:stone_pagamentos' %}">
+        <div class="field">
+          <label for="filter-cliente">Cliente</label>
+          <input id="filter-cliente" type="search" name="cliente" value="{{ filters.cliente|default:'' }}" placeholder="Nome, CPF/CNPJ, telefone ou e-mail">
+        </div>
+        <div class="field">
+          <label for="filter-metodo">Método</label>
+          <select id="filter-metodo" name="metodo">
+            <option value="">Todos os métodos</option>
+            {% for method_value, method_label in methods %}
+              <option value="{{ method_value }}" {% if filters.metodo == method_value %}selected{% endif %}>{{ method_label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label for="filter-status">Status</label>
+          <select id="filter-status" name="status">
+            <option value="">Todos os status</option>
+            {% for status_value, status_label in statuses %}
+              <option value="{{ status_value }}" {% if filters.status == status_value %}selected{% endif %}>{{ status_label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label for="filter-data-inicial">De</label>
+          <input id="filter-data-inicial" type="date" name="inicio" value="{{ filters.inicio|default:'' }}">
+        </div>
+        <div class="field">
+          <label for="filter-data-final">Até</label>
+          <input id="filter-data-final" type="date" name="fim" value="{{ filters.fim|default:'' }}">
+        </div>
+        <button class="button button--primary" type="submit">Filtrar</button>
+      </form>
+    </div>
+  </section>
+
+  <section class="table-wrap" aria-label="Histórico de pagamentos">
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">Pagamento</th>
+          <th scope="col">Cliente</th>
+          <th scope="col">Método</th>
+          <th scope="col">Valor</th>
+          <th scope="col">Status</th>
+          <th scope="col">Criado em</th>
+          <th scope="col"><span class="sr-only">Ações</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for pagamento in page_obj %}
+          <tr>
+            <td class="numeric">#{{ pagamento.pk }}</td>
+            <td>
+              {% if pagamento.cliente %}
+                <a href="{% url 'payments:customer_detail' pagamento.cliente.pk %}">{{ pagamento.cliente.nome }}</a>
+              {% else %}
+                <span class="muted">Cliente não informado</span>
+              {% endif %}
+            </td>
+            <td>{{ pagamento.get_metodo_display|default:pagamento.metodo|default:'—' }}</td>
+            <td class="numeric">R$ {{ pagamento.valor|floatformat:2 }}</td>
+            <td><span class="status-pill status-pill--{{ pagamento.status|default:'unknown' }}">{{ pagamento.get_status_display|default:pagamento.status|default:'Não informado' }}</span></td>
+            <td class="numeric">{{ pagamento.created_at|date:'d/m/Y H:i' }}</td>
+            <td><a class="button-link button--quiet" href="{% url 'payments:stone_pagamento_detalhe' pagamento.pk %}">Detalhes</a></td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="7" class="muted">Nenhum pagamento corresponde aos filtros selecionados.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+
+  {% if page_obj and page_obj.paginator.num_pages > 1 %}
+    <nav class="pagination" aria-label="Paginação de pagamentos">
+      {% if page_obj.has_previous %}
+        <a class="button-link button--quiet" href="?cliente={{ filters.cliente|default:'' }}&amp;metodo={{ filters.metodo|default:'' }}&amp;status={{ filters.status|default:'' }}&amp;inicio={{ filters.inicio|default:'' }}&amp;fim={{ filters.fim|default:'' }}&amp;page={{ page_obj.previous_page_number }}">← Anterior</a>
+      {% endif %}
+      <span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+      {% if page_obj.has_next %}
+        <a class="button-link button--quiet" href="?cliente={{ filters.cliente|default:'' }}&amp;metodo={{ filters.metodo|default:'' }}&amp;status={{ filters.status|default:'' }}&amp;inicio={{ filters.inicio|default:'' }}&amp;fim={{ filters.fim|default:'' }}&amp;page={{ page_obj.next_page_number }}">Próxima →</a>
+      {% endif %}
+    </nav>
+  {% endif %}
+{% endblock %}

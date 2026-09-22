@@ -1,0 +1,129 @@
+{% extends 'payments/stone/base.html' %}
+
+{% block title %}Configuração e Documentação — Stone / Pagar.me V5{% endblock %}
+{% block page_id %}configuracao{% endblock %}
+{% block nav_configuracao %}is-active{% endblock %}
+
+{% block content %}
+  <section class="page-heading">
+    <div>
+      <p class="eyebrow">Parâmetros e Segurança</p>
+      <h1>Configurações da Integração</h1>
+      <p class="page-intro">Visualize os parâmetros ativos no arquivo <code>.env</code>, status de mascaramento de credenciais privadas e a documentação interna da arquitetura Stone / Pagar.me V5.</p>
+    </div>
+    <div class="inline-actions">
+      <button class="button button--quiet" type="button" data-open-logs>📋 Abrir Logs</button>
+    </div>
+  </section>
+
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+    <!-- CARD DE CREDENCIAIS & AMBIENTE -->
+    <section class="card">
+      <div class="card__header">
+        <div>
+          <p class="eyebrow">Ambiente & Chaves</p>
+          <h2>Parâmetros de Conexão</h2>
+        </div>
+      </div>
+      <div class="card__body">
+        <div class="details-list" style="grid-template-columns: 1fr;">
+          <div>
+            <dt>Ambiente (STONE_ENVIRONMENT)</dt>
+            <dd>
+              <span class="badge-status badge-status--pass">🟢 {{ stone_environment }} (SANDBOX)</span>
+            </dd>
+          </div>
+          <div>
+            <dt>API Base URL</dt>
+            <dd><code style="color: #60a5fa;">{{ stone_api_base_url }}</code></dd>
+          </div>
+          <div>
+            <dt>Chave Secreta de Servidor (STONE_SECRET_KEY)</dt>
+            <dd>
+              {% if stone_server_configured %}
+                <code style="color: #4ade80;">{{ stone_secret_key_masked }}</code>
+                <span class="badge-status badge-status--pass" style="margin-left: 0.4rem;">CONFIGURADA</span>
+              {% else %}
+                <span class="badge-status badge-status--fail">NÃO CONFIGURADA</span>
+              {% endif %}
+            </dd>
+          </div>
+          <div>
+            <dt>Chave Pública de Tokenização (STONE_PUBLIC_KEY)</dt>
+            <dd>
+              {% if stone_public_key %}
+                <code>{{ stone_public_key_masked }}</code>
+                <span class="badge-status badge-status--pass" style="margin-left: 0.4rem;">DISPONÍVEL NO BROWSER</span>
+              {% else %}
+                <span class="badge-status badge-status--warn">NÃO CONFIGURADA</span>
+              {% endif %}
+            </dd>
+          </div>
+          <div>
+            <dt>Tipo de Conta Stone (STONE_ACCOUNT_TYPE)</dt>
+            <dd>{{ stone_account_type|default:'Não especificado (confirme gateway ou psp)' }}</dd>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CARD DE VARIÁVEIS ADICIONAIS -->
+    <section class="card">
+      <div class="card__header">
+        <div>
+          <p class="eyebrow">Timeouts & Políticas</p>
+          <h2>Políticas de Transação</h2>
+        </div>
+      </div>
+      <div class="card__body">
+        <div class="details-list" style="grid-template-columns: 1fr;">
+          <div>
+            <dt>Expiração do PIX (STONE_PIX_EXPIRES_IN)</dt>
+            <dd>{{ stone_pix_expires_in|default:86400 }} segundos (24 horas)</dd>
+          </div>
+          <div>
+            <dt>Janela de Idempotência (STONE_IDEMPOTENCY_TTL_SECONDS)</dt>
+            <dd>{{ stone_idempotency_ttl|default:300 }} segundos (5 minutos)</dd>
+          </div>
+          <div>
+            <dt>Timeout de Conexão HTTP (STONE_TIMEOUT_SECONDS)</dt>
+            <dd>{{ stone_timeout_seconds|default:15 }} segundos</dd>
+          </div>
+
+          <div>
+            <dt>Proteção PCI de Cartão</dt>
+            <dd><span class="badge-status badge-status--pass">TOKENIZAÇÃO NO CLIENTE ATIVA</span></dd>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- DOCUMENTAÇÃO INTERNA DA INTEGRAÇÃO -->
+  <section class="card">
+    <div class="card__header">
+      <div>
+        <p class="eyebrow">Referência Técnica</p>
+        <h2>Sobre esta Integração</h2>
+      </div>
+    </div>
+    <div class="card__body" style="font-size: 0.92rem; line-height: 1.6; color: var(--text-muted);">
+      <h3 style="color: var(--text); margin-top: 0.5rem;">Arquitetura & Conformidade</h3>
+      <p>
+        Esta integração foi construída em estrita conformidade com a <strong>API V5 Oficial do Pagar.me / Stone</strong>. Ela opera em arquitetura de observabilidade completa, registrando telemetria detalhada para cada chamada externa:
+      </p>
+      <ul>
+        <li><strong>Criação de Pedidos (Orders)</strong>: Endpoint <code>POST https://api.pagar.me/core/v5/orders</code> com suporte a itens detalhados, identificação de cliente e pagamento simultâneo.</li>
+        <li><strong>Autenticação de Servidor</strong>: Cabeçalho <code>Authorization: Basic base64(sk_test_...:)</code> utilizado unicamente no backend.</li>
+        <li><strong>Tokenização no Navegador (PCI Compliance)</strong>: Endpoint <code>POST https://api.pagar.me/core/v5/tokens?appId=pk_...</code>. PAN, CVV e validade do cartão de crédito nunca trafegam nem são salvos no Django.</li>
+        <li><strong>Telemetria e Diagnóstico</strong>: Todos os erros da API retornam códigos originais (ex: <code>invalid_parameter</code>), campo responsável e tempo de latência em milissegundos.</li>
+      </ul>
+
+      <h3 style="color: var(--text); margin-top: 1.25rem;">Links e Documentação Oficial</h3>
+      <div class="inline-actions" style="margin-top: 0.5rem;">
+        <a class="button-link button--quiet" href="https://docs.pagar.me/reference/criar-pedido-2" target="_blank" rel="noopener">📖 Docs Pagar.me: Criar Pedido</a>
+        <a class="button-link button--quiet" href="https://docs.pagar.me/reference/visao-geral-api" target="_blank" rel="noopener">📖 Visão Geral da API V5</a>
+      </div>
+    </div>
+  </section>
+{% endblock %}

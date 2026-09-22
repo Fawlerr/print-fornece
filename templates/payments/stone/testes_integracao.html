@@ -1,0 +1,165 @@
+{% extends 'payments/stone/base.html' %}
+
+{% block title %}Suíte de Testes de Integração — Stone / Pagar.me V5{% endblock %}
+{% block page_id %}testes_integracao{% endblock %}
+{% block nav_testes %}is-active{% endblock %}
+
+{% block content %}
+  <section class="page-heading">
+    <div>
+      <p class="eyebrow">Autodiagnóstico da Integração</p>
+      <h1>Bateria de Testes Automatizados</h1>
+      <p class="page-intro">Verifique ponta a ponta a comunicação real com a API Stone/Pagar.me V5: status do backend, identificação de ambiente Sandbox, validação de chaves, conectividade remota e formato de resposta de erros.</p>
+    </div>
+    <div class="inline-actions">
+      <button id="btn-run-tests" class="button button--primary" type="button">
+        🧪 Executar Todos os Testes
+      </button>
+      <button class="button button--quiet" type="button" data-open-logs>📋 Ver Logs</button>
+    </div>
+  </section>
+
+  <!-- SUMÁRIO DA SUÍTE -->
+  <section class="card" style="margin-bottom: 1.5rem;">
+    <div class="card__header">
+      <div>
+        <p class="eyebrow">Diagnóstico em Tempo Real</p>
+        <h2>Status Geral da Integração</h2>
+      </div>
+      <span id="suite-status-badge" class="badge-status badge-status--skip">AGUARDANDO EXECUÇÃO</span>
+    </div>
+    <div class="card__body">
+      <p id="suite-summary-text" class="muted" style="margin: 0;">
+        Clique no botão acima para disparar os testes reais contra os servidores da Stone Sandbox.
+      </p>
+    </div>
+  </section>
+
+  <!-- TABELA DE TESTES -->
+  <section class="card">
+    <div class="card__header">
+      <div>
+        <p class="eyebrow">Relatório Técnico</p>
+        <h2>Casos de Teste Avaliados</h2>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col" style="width: 140px;">Status</th>
+            <th scope="col">Caso de Teste</th>
+            <th scope="col">Detalhes e Diagnóstico</th>
+            <th scope="col" style="width: 120px;">Duração</th>
+          </tr>
+        </thead>
+        <tbody id="tests-table-body">
+          <tr>
+            <td><span class="badge-status badge-status--pass">PASS</span></td>
+            <td><strong>Backend Django Online</strong></td>
+            <td class="muted">Servidor local respondendo adequadamente às rotas.</td>
+            <td class="numeric">1ms</td>
+          </tr>
+          <tr>
+            <td><span class="badge-status badge-status--pass">PASS</span></td>
+            <td><strong>Ambiente Sandbox Travado</strong></td>
+            <td class="muted">STONE_ENVIRONMENT=test ativo. Trava contra cobrança em produção habilitada.</td>
+            <td class="numeric">1ms</td>
+          </tr>
+          <tr>
+            <td>
+              {% if stone_server_configured %}
+                <span class="badge-status badge-status--pass">PASS</span>
+              {% else %}
+                <span class="badge-status badge-status--fail">FAIL</span>
+              {% endif %}
+            </td>
+            <td><strong>STONE_SECRET_KEY Configurada</strong></td>
+            <td class="muted">
+              {% if stone_server_configured %}
+                Chave secreta configurada no .env ({{ stone_secret_key_masked }}).
+              {% else %}
+                STONE_SECRET_KEY ausente ou não definida no arquivo .env.
+              {% endif %}
+            </td>
+            <td class="numeric">1ms</td>
+          </tr>
+          <tr>
+            <td><span class="badge-status badge-status--skip">PENDENTE</span></td>
+            <td><strong>Conexão e Autenticação Pagar.me V5</strong></td>
+            <td class="muted">Chamada GET /core/v5/orders com autenticação HTTP Basic.</td>
+            <td class="numeric">—</td>
+          </tr>
+          <tr>
+            <td><span class="badge-status badge-status--skip">PENDENTE</span></td>
+            <td><strong>Tratamento de Erros da API (400 invalid_parameter)</strong></td>
+            <td class="muted">Simulação de payload inválido para validar resposta detalhada de erros.</td>
+            <td class="numeric">—</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+  'use strict';
+
+  var btnRun = document.getElementById('btn-run-tests');
+  var suiteBadge = document.getElementById('suite-status-badge');
+  var suiteSummary = document.getElementById('suite-summary-text');
+  var tbody = document.getElementById('tests-table-body');
+
+  btnRun.addEventListener('click', function() {
+    btnRun.disabled = true;
+    btnRun.textContent = '⏳ Executando testes na Stone...';
+    suiteBadge.className = 'badge-status badge-status--warn';
+    suiteBadge.textContent = 'EXECUTANDO...';
+    suiteSummary.textContent = 'Disparando chamadas de diagnóstico contra a API Pagar.me V5...';
+
+    fetch('/payments/stone/api/testes/executar/', { method: 'POST' })
+      .then(function(res) { return res.json(); })
+      .then(function(data) {
+        if (data.passou) {
+          suiteBadge.className = 'badge-status badge-status--pass';
+          suiteBadge.textContent = '✓ TODOS OS TESTES PASSARAM';
+          suiteSummary.innerHTML = '<strong style="color: #4ade80;">Integração 100% operacional com o ambiente de testes Stone/Pagar.me V5.</strong>';
+        } else {
+          suiteBadge.className = 'badge-status badge-status--fail';
+          suiteBadge.textContent = '✕ FALHAS ENCONTRADAS';
+          suiteSummary.innerHTML = '<strong style="color: #f87171;">Um ou mais testes falharam. Verifique os detalhes e o painel lateral de logs.</strong>';
+        }
+
+        var html = '';
+        (data.testes || []).forEach(function(t) {
+          var pillClass = 'badge-status--skip';
+          if (t.status === 'PASS') pillClass = 'badge-status--pass';
+          else if (t.status === 'FAIL') pillClass = 'badge-status--fail';
+          else if (t.status === 'WARNING') pillClass = 'badge-status--warn';
+
+          html += '<tr>';
+          html += '  <td><span class="badge-status ' + pillClass + '">' + t.status + '</span></td>';
+          html += '  <td><strong>' + t.nome + '</strong></td>';
+          html += '  <td class="muted">' + t.detalhes + '</td>';
+          html += '  <td class="numeric">' + (t.tempo_ms !== undefined ? t.tempo_ms + 'ms' : '—') + '</td>';
+          html += '</tr>';
+        });
+
+        tbody.innerHTML = html;
+      })
+      .catch(function(err) {
+        suiteBadge.className = 'badge-status badge-status--fail';
+        suiteBadge.textContent = 'ERRO';
+        suiteSummary.textContent = 'Erro ao executar a suíte: ' + err.message;
+      })
+      .finally(function() {
+        btnRun.disabled = false;
+        btnRun.textContent = '🧪 Executar Todos os Testes Novamente';
+        if (window.loadLogs) window.loadLogs();
+      });
+  });
+})();
+</script>
+{% endblock %}

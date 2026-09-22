@@ -1,0 +1,113 @@
+{% extends 'payments/stone/base.html' %}
+
+{% block title %}{{ cliente.nome }} — Cliente{% endblock %}
+{% block page_id %}cliente-detalhe{% endblock %}
+{% block nav_clientes %}is-active{% endblock %}
+
+{% block content %}
+  <section class="page-heading">
+    <div>
+      <p class="eyebrow">Cliente</p>
+      <h1>{{ cliente.nome }}</h1>
+      <p class="page-intro">Cadastro reutilizável para cobranças no ambiente de testes.</p>
+    </div>
+    <div class="button-row">
+      <a class="button-link" href="{% url 'payments:customer_edit' cliente.pk %}">Editar</a>
+      <a class="button-link button-link--primary" href="{% url 'payments:stone_cobranca' %}?cliente={{ cliente.pk }}">Gerar cobrança</a>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card__header">
+      <h2>Dados do cliente</h2>
+      {% if cliente.stone_customer_id %}<span class="status-pill status-pill--success">Sincronizado</span>{% endif %}
+    </div>
+    <div class="card__body">
+      <dl class="details-list">
+        <div>
+          <dt>CPF/CNPJ</dt>
+          <dd>{{ cliente.cpf_cnpj_mascarado|default:cliente.cpf_cnpj }}</dd>
+        </div>
+        <div>
+          <dt>Telefone</dt>
+          <dd>{{ cliente.telefone_formatado|default:cliente.telefone|default:'Não informado' }}</dd>
+        </div>
+        <div>
+          <dt>E-mail</dt>
+          <dd>{{ cliente.email|default:'Não informado' }}</dd>
+        </div>
+        <div>
+          <dt>Identificador Stone</dt>
+          <dd>{{ cliente.stone_customer_id|default:'Ainda não disponível' }}</dd>
+        </div>
+        <div>
+          <dt>Criado em</dt>
+          <dd>{{ cliente.created_at|date:'d/m/Y H:i' }}</dd>
+        </div>
+        <div>
+          <dt>Atualizado em</dt>
+          <dd>{{ cliente.updated_at|date:'d/m/Y H:i' }}</dd>
+        </div>
+      </dl>
+    </div>
+  </section>
+
+  <section class="card" style="margin-top: 1rem;">
+    <div class="card__header">
+      <div>
+        <p class="eyebrow">Reutilização</p>
+        <h2>Métodos de pagamento salvos</h2>
+      </div>
+    </div>
+    <div class="card__body">
+      {% for method in saved_methods|default:metodos_pagamento %}
+        <div class="client-row">
+          <div>
+            <strong>{{ method.get_tipo_display|default:method.tipo|default:'Método de pagamento' }}</strong>
+            <div class="client-row__meta">
+              {% if method.bandeira %}<span>{{ method.bandeira }}</span>{% endif %}
+              {% if method.ultimos_4 %}<span>Final {{ method.ultimos_4 }}</span>{% endif %}
+              {% if method.validade_mes and method.validade_ano %}<span>Validade {{ method.validade_mes|stringformat:'02d' }}/{{ method.validade_ano }}</span>{% endif %}
+            </div>
+          </div>
+          {% if method.ativo %}<span class="status-pill status-pill--success">Ativo</span>{% endif %}
+        </div>
+      {% empty %}
+        <p class="muted">Nenhum método reutilizável foi disponibilizado pela integração. Dados sensíveis de cartão nunca são armazenados aqui.</p>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="card" style="margin-top: 1rem;">
+    <div class="card__header">
+      <h2>Últimos pagamentos</h2>
+      <a class="button-link button--quiet" href="{% url 'payments:stone_pagamentos' %}?cliente={{ cliente.pk }}">Ver todos</a>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">#</th>
+            <th scope="col">Método</th>
+            <th scope="col">Valor</th>
+            <th scope="col">Status</th>
+            <th scope="col">Data</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for pagamento in pagamentos %}
+            <tr>
+              <td><a href="{% url 'payments:stone_pagamento_detalhe' pagamento.pk %}">#{{ pagamento.pk }}</a></td>
+              <td>{{ pagamento.get_metodo_display|default:pagamento.metodo }}</td>
+              <td class="numeric">R$ {{ pagamento.valor|floatformat:2 }}</td>
+              <td><span class="status-pill status-pill--{{ pagamento.status|default:'unknown' }}">{{ pagamento.get_status_display|default:pagamento.status }}</span></td>
+              <td>{{ pagamento.created_at|date:'d/m/Y H:i' }}</td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="5" class="muted">Ainda não há pagamentos para este cliente.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+{% endblock %}

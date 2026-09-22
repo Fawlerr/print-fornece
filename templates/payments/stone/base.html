@@ -1,0 +1,148 @@
+{% load static %}
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="robots" content="noindex, nofollow">
+  <title>{% block title %}Stone — ambiente de testes{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'pagamentos/css/base.css' %}">
+  <link rel="stylesheet" href="{% static 'pagamentos/css/components.css' %}">
+  <link rel="stylesheet" href="{% static 'pagamentos/css/pages.css' %}">
+  <script>window.STONE_API_BASE = "{% url 'payments:stone_dashboard' %}api";</script>
+  {% block extra_css %}{% endblock %}
+</head>
+<body data-page="{% block page_id %}default{% endblock %}">
+  <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
+
+  <header class="site-header">
+    <div class="header-inner container">
+      <a class="brand" href="{% url 'payments:stone_dashboard' %}" aria-label="Stone Sandbox, ir para dashboard">
+        <span class="brand-mark" aria-hidden="true">S</span>
+        <span>
+          <strong>Stone / Pagar.me V5</strong>
+          <small>Beta / Validação Técnica</small>
+        </span>
+      </a>
+
+      <div class="badge-sandbox" role="status" title="Ambiente exclusivo de testes Stone/Pagar.me">
+        <span class="pulse-dot" aria-hidden="true"></span>
+        <span>SANDBOX</span>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 0.65rem;">
+        <a href="{% url 'production:kanban' %}" class="button button--quiet" style="font-size: 0.8rem; padding: 0.4rem 0.75rem; border-color: var(--border);" title="Voltar ao Kanban de Produção">
+          ⬅ Voltar ao Sistema
+        </a>
+        <button class="button button--quiet" type="button" data-open-logs style="font-size: 0.8rem; padding: 0.4rem 0.75rem; border-color: var(--border);">
+          📋 Logs <span id="logs-counter-badge" style="background: var(--surface-hover); padding: 0.1rem 0.4rem; border-radius: 999px; font-size: 0.7rem;">{{ total_logs|default:0 }}</span>
+        </button>
+
+        <button class="nav-toggle" type="button" data-nav-toggle aria-controls="main-navigation" aria-expanded="false">
+          <span class="sr-only">Abrir navegação</span>
+          <span aria-hidden="true"></span>
+          <span aria-hidden="true"></span>
+          <span aria-hidden="true"></span>
+        </button>
+      </div>
+
+      <nav class="main-navigation" id="main-navigation" aria-label="Navegação principal">
+        <a class="nav-link {% block nav_dashboard %}{% endblock %}" href="{% url 'payments:stone_dashboard' %}">Dashboard</a>
+        <a class="nav-link {% block nav_criar_pedido %}{% endblock %}" href="{% url 'payments:stone_criar_pedido' %}">Criar Pedido</a>
+        <a class="nav-link {% block nav_cobranca %}{% endblock %}" href="{% url 'payments:stone_cobranca' %}">Pagamento</a>
+        <a class="nav-link {% block nav_testes %}{% endblock %}" href="{% url 'payments:stone_testes' %}">Testes</a>
+        <a class="nav-link {% block nav_pagamentos %}{% endblock %}" href="{% url 'payments:stone_pagamentos' %}">Histórico</a>
+        <a class="nav-link" href="{% url 'payments:customer_list' %}" target="_blank">Clientes ↗</a>
+        <a class="nav-link {% block nav_configuracao %}{% endblock %}" href="{% url 'payments:stone_configuracao' %}">Configuração</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="conteudo" class="page-shell container" tabindex="-1">
+    <div style="background: rgba(234, 179, 8, 0.12); border: 1px solid #eab308; color: #fef08a; padding: 12px 18px; border-radius: 8px; margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <span style="font-size: 1.3rem;">🧪</span>
+        <div>
+          <strong>AMBIENTE DE HOMOLOGAÇÃO STONE V5 (SANDBOX)</strong>
+          <div style="font-size: 0.85rem; color: #fef9c3; margin-top: 2px;">
+            Módulo em teste inserido pelo desenvolvedor exclusivamente para validação técnica da integração. Nenhuma cobrança real é efetuada.
+          </div>
+        </div>
+      </div>
+      <a href="{% url 'production:kanban' %}" class="button button--quiet" style="font-size: 0.8rem; border-color: rgba(234,179,8,0.4); color: #fef08a;">
+        ⬅ Sair dos Testes
+      </a>
+    </div>
+
+    {% if messages %}
+      <section class="messages" aria-label="Mensagens do sistema" aria-live="polite">
+        {% for message in messages %}
+          <div class="message message--{{ message.tags|default:'info' }}" role="status">
+            <span>{{ message }}</span>
+            <button class="message-close" type="button" data-dismiss-message aria-label="Fechar mensagem">×</button>
+          </div>
+        {% endfor %}
+      </section>
+    {% endif %}
+
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- DRAWER LATERAL DE LOGS EXPANSÍVEL -->
+  <div id="logs-drawer-overlay" class="logs-drawer__overlay"></div>
+  <aside id="logs-drawer" class="logs-drawer" aria-labelledby="logs-drawer-title">
+    <div class="logs-drawer__header">
+      <h2 id="logs-drawer-title" class="logs-drawer__header-title">
+        <span>⚡ Telemetria & Logs</span>
+      </h2>
+      <div style="display: flex; align-items: center; gap: 0.5rem;">
+        <button class="button-link button--quiet" type="button" onclick="loadLogs()" title="Recarregar logs" style="padding: 0.3rem 0.5rem;">🔄</button>
+        <button class="button-link button--quiet" type="button" data-close-logs style="font-size: 1.2rem; padding: 0.2rem 0.6rem;">&times;</button>
+      </div>
+    </div>
+
+    <div class="logs-drawer__controls">
+      <div class="logs-filter-tabs" role="tablist">
+        <button type="button" class="filter-tab is-active" data-log-filter="">Todos</button>
+        <button type="button" class="filter-tab" data-log-filter="SUCCESS">Sucesso</button>
+        <button type="button" class="filter-tab" data-log-filter="ERROR">Erro</button>
+        <button type="button" class="filter-tab" data-log-filter="REQUEST">Request</button>
+        <button type="button" class="filter-tab" data-log-filter="RESPONSE">Response</button>
+        <button type="button" class="filter-tab" data-log-filter="WARNING">Warning</button>
+        <button type="button" class="filter-tab" data-log-filter="INFO">Info</button>
+      </div>
+      <input id="logs-search" class="logs-search-input" type="search" placeholder="Pesquisar por order_id, charge_id, trace ou texto..." autocomplete="off">
+    </div>
+
+    <div id="logs-list" class="logs-drawer__list">
+      <div style="padding: 2rem 1rem; text-align: center; color: var(--text-muted); font-family: sans-serif;">Carregando logs de telemetria...</div>
+    </div>
+
+    <div class="logs-drawer__footer">
+      <div style="display: flex; gap: 0.4rem;">
+        <a class="button-link button--quiet" href="{% url 'payments:stone_api_exportar_logs' %}?format=json" target="_blank" download style="font-size: 0.75rem; padding: 0.35rem 0.65rem;">JSON</a>
+        <a class="button-link button--quiet" href="{% url 'payments:stone_api_exportar_logs' %}?format=txt" target="_blank" download style="font-size: 0.75rem; padding: 0.35rem 0.65rem;">TXT</a>
+      </div>
+
+      <button id="btn-clear-logs" class="button-link button--quiet" type="button" style="font-size: 0.75rem; color: var(--danger); padding: 0.35rem 0.65rem;">Limpar logs</button>
+    </div>
+  </aside>
+
+  <footer class="site-footer">
+    <div class="container" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.85rem;">
+      <div>
+        <span>Stone / Pagar.me V5 Integration Tester.</span>
+        <span style="margin-left: 0.5rem; color: var(--text-muted);">Ambiente restrito a <strong>SANDBOX</strong>.</span>
+      </div>
+      <div>
+        <button class="button-link button--quiet" type="button" data-open-logs style="font-size: 0.78rem;">Abrir Painel de Logs (Ctrl+L)</button>
+      </div>
+    </div>
+  </footer>
+
+  <script src="{% static 'pagamentos/js/main.js' %}" defer></script>
+  {% block extra_js %}{% endblock %}
+</body>
+</html>
+

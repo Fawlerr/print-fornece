@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import include, path
 from . import views
 
 app_name = "payments"
@@ -12,5 +12,7 @@ urlpatterns = [
     path("clientes/<int:pk>/arquivos/adicionar/", views.cliente_add_arquivo, name="customer_add_arquivo"),
     path("clientes/<int:pk>/credito/adicionar/", views.cliente_add_credito, name="customer_add_credito"),
     path("clientes/api/search/", views.api_clientes_search, name="api_customer_search"),
+    path("stone/", include("apps.payments.stone.urls")),
     path("stone/webhook/", views.stone_webhook, name="stone_webhook"),
 ]
+

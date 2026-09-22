@@ -1,0 +1,491 @@
+{% extends 'payments/stone/base.html' %}
+{% load static %}
+
+{% block title %}Criar Pedido — Stone / Pagar.me V5{% endblock %}
+{% block page_id %}criar_pedido{% endblock %}
+{% block nav_criar_pedido %}is-active{% endblock %}
+
+{% block content %}
+  <section class="page-heading">
+    <div>
+      <p class="eyebrow">Endpoint: POST /core/v5/orders</p>
+      <h1>Criar Pedido de Teste (Pagar.me V5)</h1>
+      <p class="page-intro">Monte uma requisição de pedido completa ou personalizada. Acompanhe a prévia do JSON em tempo real e inspecione detalhadamente o Request, Response e eventuais erros da API Stone.</p>
+    </div>
+    <div class="inline-actions">
+      <button class="button button--quiet" type="button" data-open-logs>📋 Ver Logs</button>
+      <button class="button button--quiet" type="button" id="btn-prefill-valid">✨ Preencher Dados Válidos (PIX)</button>
+      <button class="button button--quiet" type="button" id="btn-prefill-invalid" style="color: var(--danger);">⚠️ Simular Erro (400)</button>
+    </div>
+  </section>
+
+  <div style="display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 1.5rem; align-items: start;">
+    <!-- FORMULÁRIO DE MONTAGEM DO PEDIDO -->
+    <div class="form-stack">
+      <!-- 1. IDENTIFICAÇÃO DO PEDIDO -->
+      <section class="card">
+        <div class="card__header">
+          <div>
+            <p class="eyebrow">1. Identificação</p>
+            <h2>Dados do Pedido (Order)</h2>
+          </div>
+        </div>
+        <div class="card__body form-stack">
+          <div class="form-grid">
+            <div class="field">
+              <label for="order-code">Código do Pedido (code) <span aria-label="obrigatório">*</span></label>
+              <input id="order-code" type="text" value="ORD-{{ now|date:'U' }}" placeholder="Ex: PEDIDO-1001" required>
+              <span class="field-help">Identificador único no seu sistema para conciliação.</span>
+            </div>
+            <div class="field">
+              <label for="order-closed">Fechar Pedido Imediatamente (closed)</label>
+              <select id="order-closed">
+                <option value="true" selected>true (Fechado - impede novas cobranças)</option>
+                <option value="false">false (Aberto)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. CLIENTE (CUSTOMER) -->
+      <section class="card">
+        <div class="card__header">
+          <div>
+            <p class="eyebrow">2. Comprador</p>
+            <h2>Cliente (Customer)</h2>
+          </div>
+          {% if clientes %}
+            <select id="select-existing-client" style="font-size: 0.78rem; padding: 0.3rem 0.5rem; max-width: 200px;">
+              <option value="">Carregar cliente local...</option>
+              {% for c in clientes %}
+                <option value="{{ c.pk }}" data-name="{{ c.nome }}" data-email="{{ c.email }}" data-doc="{{ c.cpf_cnpj }}" data-phone="{{ c.telefone }}" data-stone-id="{{ c.stone_customer_id }}">
+                  {{ c.nome }} ({{ c.cpf_cnpj }})
+                </option>
+              {% endfor %}
+            </select>
+          {% endif %}
+        </div>
+        <div class="card__body form-stack">
+          <div class="form-grid">
+            <div class="field">
+              <label for="cust-name">Nome Completo</label>
+              <input id="cust-name" type="text" value="Cliente Teste Stone" placeholder="Ex: João da Silva">
+            </div>
+            <div class="field">
+              <label for="cust-email">E-mail</label>
+              <input id="cust-email" type="email" value="teste.stone@exemplo.com" placeholder="Ex: joao@email.com">
+            </div>
+          </div>
+
+          <div class="form-grid form-grid--three">
+            <div class="field">
+              <label for="cust-doc">CPF ou CNPJ</label>
+              <input id="cust-doc" type="text" value="11144477735" placeholder="Somente dígitos">
+            </div>
+            <div class="field">
+              <label for="cust-type">Tipo de Pessoa</label>
+              <select id="cust-type">
+                <option value="individual" selected>individual (Pessoa Física - CPF)</option>
+                <option value="company">company (Pessoa Jurídica - CNPJ)</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="cust-phone">Celular (com DDD)</label>
+              <input id="cust-phone" type="text" value="11988887777" placeholder="Ex: 11988887777">
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. ITENS DO PEDIDO (ITEMS) -->
+      <section class="card">
+        <div class="card__header">
+          <div>
+            <p class="eyebrow">3. Carrinho / Produtos</p>
+            <h2>Itens do Pedido (items)</h2>
+          </div>
+        </div>
+        <div class="card__body form-stack">
+          <div class="form-grid">
+            <div class="field">
+              <label for="item-desc">Descrição do Item</label>
+              <input id="item-desc" type="text" value="Assinatura Mensal / Serviço Teste" placeholder="Nome do produto">
+            </div>
+            <div class="field">
+              <label for="item-amount">Valor Unitário (R$)</label>
+              <input id="item-amount" type="number" step="0.01" value="15.00" placeholder="15.00">
+            </div>
+          </div>
+          <div class="form-grid form-grid--three">
+            <div class="field">
+              <label for="item-qty">Quantidade</label>
+              <input id="item-qty" type="number" min="1" value="1">
+            </div>
+            <div class="field">
+              <label for="item-code">Código / SKU</label>
+              <input id="item-code" type="text" value="SKU-TEST-01">
+            </div>
+            <div class="field">
+              <label for="item-cat">Categoria</label>
+              <input id="item-cat" type="text" value="Serviços Digitais">
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4. PAGAMENTO (PAYMENTS) -->
+      <section class="card">
+        <div class="card__header">
+          <div>
+            <p class="eyebrow">4. Meio de Pagamento</p>
+            <h2>Configuração de Pagamento (payments)</h2>
+          </div>
+        </div>
+        <div class="card__body form-stack">
+          <fieldset class="field" style="border: 0; padding: 0; margin: 0;">
+            <legend class="field-label">Método</legend>
+            <div class="payment-methods">
+              <label class="payment-method">
+                <input type="radio" name="order_method" value="pix" checked>
+                <span>
+                  <strong>PIX Instantâneo</strong>
+                  <small>Gera QR Code e chave copia e cola via Stone.</small>
+                </span>
+              </label>
+              <label class="payment-method">
+                <input type="radio" name="order_method" value="credit_card">
+                <span>
+                  <strong>Cartão de Crédito</strong>
+                  <small>Requer token de cartão gerado previamente.</small>
+                </span>
+              </label>
+            </div>
+          </fieldset>
+
+          <div id="pix-params-panel" class="form-grid">
+            <div class="field">
+              <label for="pix-expires-in">Tempo de Expiração do PIX (segundos)</label>
+              <input id="pix-expires-in" type="number" value="86400">
+              <span class="field-help">Padrão: 86400 (24 horas).</span>
+            </div>
+          </div>
+
+          <div id="card-params-panel" class="form-grid" hidden>
+            <div class="field">
+              <label for="card-token-input">Token do Cartão (card_token)</label>
+              <input id="card-token-input" type="text" placeholder="tok_test_...">
+              <span class="field-help">Obtido via tokenização na Stone sem expor dados do cartão.</span>
+            </div>
+            <div class="field">
+              <label for="card-installments">Parcelas</label>
+              <input id="card-installments" type="number" min="1" max="12" value="1">
+            </div>
+          </div>
+
+          <div class="button-row" style="margin-top: 1rem;">
+            <button id="btn-submit-order" class="button button--primary" type="button" style="min-width: 220px; font-size: 0.95rem;">
+              ⚡ TESTAR INTEGRAÇÃO
+            </button>
+            <span class="field-help">Executa requisição real na API Pagar.me V5.</span>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- PREVIEW DO JSON REATIVO E RESULTADO -->
+    <div style="position: sticky; top: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem;">
+      <!-- CAIXA DE STATUS DE EXECUÇÃO -->
+      <section id="result-status-card" class="card" hidden>
+        <div class="card__header" style="background: #111823;">
+          <div>
+            <p class="eyebrow" id="result-badge-label">Resultado da Operação</p>
+            <h3 id="result-status-title" style="margin: 0;">Processando...</h3>
+          </div>
+          <span id="result-http-pill" class="badge-status"></span>
+        </div>
+        <div class="card__body" id="result-status-body">
+          <!-- Inserido dinamicamente via JS -->
+        </div>
+      </section>
+
+      <!-- PREVIEW REATIVO DO JSON -->
+      <section class="json-preview-container">
+        <div class="json-preview-header">
+          <span>📄 Payload JSON (POST /orders)</span>
+          <div style="display: flex; gap: 0.5rem;">
+            <button class="button-link button--quiet" type="button" id="btn-copy-json" style="font-size: 0.72rem; padding: 0.2rem 0.5rem;">📋 Copiar JSON</button>
+          </div>
+        </div>
+        <pre id="json-preview" class="json-preview-body"></pre>
+      </section>
+
+      <!-- RESULTADO DA RESPOSTA HTTP (RESPONSE) -->
+      <section id="response-preview-container" class="json-preview-container" hidden>
+        <div class="json-preview-header" style="background: #141c2b;">
+          <span style="color: #6ee7b7;">📥 Resposta da API Stone / Pagar.me</span>
+          <button class="button-link button--quiet" type="button" id="btn-copy-response" style="font-size: 0.72rem; padding: 0.2rem 0.5rem;">📋 Copiar Resposta</button>
+        </div>
+        <pre id="response-preview" class="json-preview-body" style="color: #a7f3d0; max-height: 300px;"></pre>
+      </section>
+    </div>
+  </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+  'use strict';
+
+  var orderCode = document.getElementById('order-code');
+  var orderClosed = document.getElementById('order-closed');
+  var custName = document.getElementById('cust-name');
+  var custEmail = document.getElementById('cust-email');
+  var custDoc = document.getElementById('cust-doc');
+  var custType = document.getElementById('cust-type');
+  var custPhone = document.getElementById('cust-phone');
+  var itemDesc = document.getElementById('item-desc');
+  var itemAmount = document.getElementById('item-amount');
+  var itemQty = document.getElementById('item-qty');
+  var itemCode = document.getElementById('item-code');
+  var itemCat = document.getElementById('item-cat');
+  var pixExpiresIn = document.getElementById('pix-expires-in');
+  var cardToken = document.getElementById('card-token-input');
+  var cardInstallments = document.getElementById('card-installments');
+  var jsonPreview = document.getElementById('json-preview');
+  var btnSubmit = document.getElementById('btn-submit-order');
+  var resultCard = document.getElementById('result-status-card');
+  var resultTitle = document.getElementById('result-status-title');
+  var resultHttpPill = document.getElementById('result-http-pill');
+  var resultBody = document.getElementById('result-status-body');
+  var responseContainer = document.getElementById('response-preview-container');
+  var responsePreview = document.getElementById('response-preview');
+  var lastResponseObj = null;
+
+  function getSelectedMethod() {
+    var radio = document.querySelector('input[name="order_method"]:checked');
+    return radio ? radio.value : 'pix';
+  }
+
+  function formatPhoneParts(phone) {
+    var digits = (phone || '').replace(/\D/g, '');
+    if (digits.length >= 10) {
+      return {
+        country_code: '55',
+        area_code: digits.slice(0, 2),
+        number: digits.slice(2)
+      };
+    }
+    return { country_code: '55', area_code: '11', number: '999999999' };
+  }
+
+  function buildPayload() {
+    var amountInCents = Math.round((parseFloat(itemAmount.value) || 0) * 100);
+    var method = getSelectedMethod();
+
+    var paymentObj = {
+      payment_method: method
+    };
+
+    if (method === 'pix') {
+      paymentObj.pix = {
+        expires_in: parseInt(pixExpiresIn.value, 10) || 86400
+      };
+    } else if (method === 'credit_card') {
+      paymentObj.credit_card = {
+        installments: parseInt(cardInstallments.value, 10) || 1,
+        card_token: cardToken.value.trim()
+      };
+    }
+
+    var payload = {
+      code: orderCode.value.trim() || 'ORD-DEFAULT',
+      closed: orderClosed.value === 'true',
+      items: [
+        {
+          amount: amountInCents,
+          description: itemDesc.value.trim() || 'Item Padrão',
+          quantity: parseInt(itemQty.value, 10) || 1,
+          code: itemCode.value.trim() || 'ITEM-01',
+          category: itemCat.value.trim() || 'Geral'
+        }
+      ],
+      customer: {
+        name: custName.value.trim() || 'Cliente Teste',
+        email: custEmail.value.trim() || 'teste@exemplo.com',
+        type: custType.value,
+        document: custDoc.value.replace(/\D/g, ''),
+        document_type: (custDoc.value.replace(/\D/g, '').length === 14) ? 'CNPJ' : 'CPF',
+        phones: {
+          mobile_phone: formatPhoneParts(custPhone.value)
+        }
+      },
+      payments: [paymentObj],
+      metadata: {
+        ambiente_teste: 'Stone Sandbox V5',
+        timestamp: new Date().toISOString()
+      }
+    };
+
+    return payload;
+  }
+
+  function updatePreview() {
+    var payload = buildPayload();
+    jsonPreview.textContent = JSON.stringify(payload, null, 2);
+  }
+
+  // Monitorar todos os inputs para atualização reativa do JSON
+  document.querySelectorAll('input, select').forEach(function(el) {
+    el.addEventListener('input', updatePreview);
+    el.addEventListener('change', function() {
+      var method = getSelectedMethod();
+      document.getElementById('pix-params-panel').hidden = (method !== 'pix');
+      document.getElementById('card-params-panel').hidden = (method !== 'credit_card');
+      updatePreview();
+    });
+  });
+
+  // Preenchimento de cliente existente
+  var clientSelect = document.getElementById('select-existing-client');
+  if (clientSelect) {
+    clientSelect.addEventListener('change', function() {
+      var opt = clientSelect.selectedOptions[0];
+      if (opt && opt.value) {
+        custName.value = opt.getAttribute('data-name') || '';
+        custEmail.value = opt.getAttribute('data-email') || '';
+        custDoc.value = opt.getAttribute('data-doc') || '';
+        custPhone.value = opt.getAttribute('data-phone') || '';
+        custType.value = (opt.getAttribute('data-doc') || '').length === 14 ? 'company' : 'individual';
+        updatePreview();
+      }
+    });
+  }
+
+  // Botões de teste rápido
+  document.getElementById('btn-prefill-valid').addEventListener('click', function() {
+    orderCode.value = 'ORD-' + Date.now();
+    custName.value = 'Maria Oliveira Santos';
+    custEmail.value = 'maria.teste@exemplo.com';
+    custDoc.value = '11144477735';
+    custType.value = 'individual';
+    custPhone.value = '11987654321';
+    itemDesc.value = 'Assinatura Teste Stone V5';
+    itemAmount.value = '25.00';
+    document.querySelector('input[name="order_method"][value="pix"]').checked = true;
+    document.getElementById('pix-params-panel').hidden = false;
+    document.getElementById('card-params-panel').hidden = true;
+    updatePreview();
+  });
+
+  document.getElementById('btn-prefill-invalid').addEventListener('click', function() {
+    orderCode.value = 'ORD-INVALID-' + Date.now();
+    custName.value = ''; // Nome ausente causa HTTP 400
+    custEmail.value = 'invalido-email';
+    custDoc.value = '123'; // Documento inválido
+    updatePreview();
+  });
+
+  // Copiar JSON
+  document.getElementById('btn-copy-json').addEventListener('click', function() {
+    navigator.clipboard.writeText(jsonPreview.textContent).then(function() {
+      alert('JSON do pedido copiado para a área de transferência!');
+    });
+  });
+
+  document.getElementById('btn-copy-response').addEventListener('click', function() {
+    if (lastResponseObj) {
+      navigator.clipboard.writeText(JSON.stringify(lastResponseObj, null, 2)).then(function() {
+        alert('Resposta da Stone copiada!');
+      });
+    }
+  });
+
+  // Executar teste de integração
+  btnSubmit.addEventListener('click', function() {
+    var payload = buildPayload();
+    btnSubmit.disabled = true;
+    btnSubmit.textContent = '⏳ Enviando para Stone...';
+    resultCard.hidden = false;
+    resultTitle.textContent = 'Enviando requisição à API Stone...';
+    resultHttpPill.className = 'badge-status badge-status--warn';
+    resultHttpPill.textContent = 'PENDENTE';
+    resultBody.innerHTML = '<p class="muted">Aguardando resposta do servidor Pagar.me V5...</p>';
+
+    fetch('/payments/stone/api/pedidos/testar/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ payload: payload })
+    })
+      .then(function(res) {
+        return res.json().then(function(data) {
+          return { status: res.status, ok: res.ok, data: data };
+        });
+      })
+      .then(function(result) {
+        lastResponseObj = result.data.response_body || result.data;
+        responseContainer.hidden = false;
+        responsePreview.textContent = JSON.stringify(lastResponseObj, null, 2);
+
+        if (result.ok && result.data.sucesso) {
+          resultTitle.textContent = '✓ Pedido Criado com Sucesso!';
+          resultHttpPill.className = 'badge-status badge-status--pass';
+          resultHttpPill.textContent = 'HTTP ' + result.data.http_status + ' (' + result.data.duracao_ms + 'ms)';
+
+          var html = '<div class="details-list" style="margin-top: 0.5rem;">';
+          html += '<div><dt>Order ID</dt><dd><code style="color: #4ade80;">' + result.data.order_id + '</code></dd></div>';
+          html += '<div><dt>Status</dt><dd><span class="badge-status badge-status--pass">' + result.data.status_pedido + '</span></dd></div>';
+          if (result.data.charge_id) html += '<div><dt>Charge ID</dt><dd><code>' + result.data.charge_id + '</code></dd></div>';
+          if (result.data.transaction_id) html += '<div><dt>Transaction ID</dt><dd><code>' + result.data.transaction_id + '</code></dd></div>';
+          html += '</div>';
+
+          if (result.data.pix_qr_code) {
+            html += '<div style="margin-top: 1rem; padding: 0.85rem; background: #0a111a; border-radius: 8px;">';
+            html += '<strong style="color: #38bdf8;">PIX Copia e Cola retornado pela Stone:</strong>';
+            html += '<div style="display: flex; gap: 0.5rem; margin-top: 0.35rem;">';
+            html += '<input type="text" readonly value="' + result.data.pix_qr_code + '" style="font-size: 0.75rem; width: 100%;">';
+            html += '<button class="button button--quiet" type="button" onclick="navigator.clipboard.writeText(\'' + result.data.pix_qr_code + '\')">Copiar</button>';
+            html += '</div></div>';
+          }
+          resultBody.innerHTML = html;
+        } else {
+          var err = result.data.erro || {};
+          resultTitle.textContent = '✕ Falha na Integração com a Stone';
+          resultHttpPill.className = 'badge-status badge-status--fail';
+          resultHttpPill.textContent = 'HTTP ' + (result.data.http_status || result.status);
+
+          var html = '<div style="padding: 0.85rem; background: #261115; border-radius: 8px; border: 1px solid #7f1d1d; margin-top: 0.5rem;">';
+          html += '<strong style="color: #f87171; font-size: 0.95rem;">' + (err.tipo || 'Erro') + ': ' + (err.mensagem || 'Rejeição na requisição') + '</strong>';
+          if (err.parametro) {
+            html += '<p style="margin: 0.35rem 0 0; color: #fca5a5;">Campo com problema: <code>' + err.parametro + '</code></p>';
+          }
+          if (err.detalhes && err.detalhes.length) {
+            html += '<ul style="margin: 0.5rem 0 0; padding-left: 1.2rem; color: #fca5a5; font-size: 0.82rem;">';
+            err.detalhes.forEach(function(d) {
+              html += '<li><strong>' + (d.parameter_name || d.field || 'erro') + '</strong>: ' + d.message + '</li>';
+            });
+            html += '</ul>';
+          }
+          html += '</div>';
+          html += '<p style="margin-top: 0.75rem; font-size: 0.8rem; color: var(--text-muted);">Trace ID: <code>' + (result.data.trace_id || 'N/A') + '</code>. Consulte o painel lateral de logs para a telemetria detalhada.</p>';
+          resultBody.innerHTML = html;
+        }
+      })
+      .catch(function(err) {
+        resultTitle.textContent = '✕ Erro de Rede ou Conexão';
+        resultHttpPill.className = 'badge-status badge-status--fail';
+        resultHttpPill.textContent = 'FAIL';
+        resultBody.innerHTML = '<p style="color: var(--danger);">' + err.message + '</p>';
+      })
+      .finally(function() {
+        btnSubmit.disabled = false;
+        btnSubmit.textContent = '⚡ TESTAR INTEGRAÇÃO';
+        if (window.loadLogs) window.loadLogs();
+      });
+  });
+
+  // Inicializar preview
+  updatePreview();
+})();
+</script>
+{% endblock %}
