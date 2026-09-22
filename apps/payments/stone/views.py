@@ -45,10 +45,21 @@ SENSITIVE_CARD_POST_FIELDS = {
 }
 
 
+from functools import wraps
+from django.core.exceptions import PermissionDenied
+
+
 def dev_or_admin_required(view_func):
     """Restringe o acesso exclusivamente a Desenvolvedores e Administradores."""
-    actual_decorator = user_passes_test(lambda u: getattr(u, "is_dev", False) or getattr(u, "is_administrator", False))
-    return login_required(actual_decorator(view_func))
+
+    @wraps(view_func)
+    @login_required
+    def _wrapped_view(request: HttpRequest, *args, **kwargs):
+        if not (getattr(request.user, "is_dev", False) or getattr(request.user, "is_administrator", False)):
+            raise PermissionDenied("Acesso restrito a desenvolvedores e administradores.")
+        return view_func(request, *args, **kwargs)
+
+    return _wrapped_view
 
 
 def _base_context() -> dict:

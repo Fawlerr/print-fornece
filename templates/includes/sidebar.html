@@ -42,10 +42,10 @@
       </a>
     {% endif %}
     {% if user.is_dev or user.is_administrator %}
-      <a href="{% url 'payments:stone_dashboard' %}"{% if '/payments/stone/' in request.path %} class="active" aria-current="page"{% endif %} title="Ambiente de Homologação Stone V5 Sandbox">
+      <a href="{% url 'payments:stone_dashboard' %}"{% if '/payments/stone/' in request.path %} class="active" aria-current="page"{% endif %} title="Ambiente de Testes Stone V5 Sandbox (Acesso restrito a Devs e Administradores)">
         <i class="fa-solid fa-flask-vial" aria-hidden="true" style="color: #facc15;"></i>
-        <span>Stone (Beta)</span>
-        <span style="margin-left: auto; font-size: 0.65rem; background: rgba(234, 179, 8, 0.2); color: #fde047; padding: 1px 6px; border-radius: 4px; border: 1px solid rgba(234, 179, 8, 0.4); font-weight: 700;">BETA</span>
+        <span>Stone [BETA]</span>
+        <span style="margin-left: auto; font-size: 0.65rem; background: rgba(234, 179, 8, 0.25); color: #facc15; padding: 2px 7px; border-radius: 4px; border: 1px solid rgba(234, 179, 8, 0.5); font-weight: 800; letter-spacing: 0.5px;">BETA</span>
       </a>
     {% endif %}
 
