@@ -172,6 +172,7 @@ class StoneLogIntegracao(models.Model):
     order_id = models.CharField(max_length=100, blank=True, db_index=True)
     charge_id = models.CharField(max_length=100, blank=True, db_index=True)
     transaction_id = models.CharField(max_length=100, blank=True, db_index=True)
+    webhook_event_id = models.CharField(max_length=120, blank=True, db_index=True)
 
     # Detalhes de Erro da API
     error_code = models.CharField(max_length=80, blank=True)
@@ -193,6 +194,7 @@ class StoneLogIntegracao(models.Model):
             models.Index(fields=["trace_id", "timestamp"], name="pf_stone_log_tr_ts_idx"),
             models.Index(fields=["nivel", "timestamp"], name="pf_stone_log_nv_ts_idx"),
             models.Index(fields=["order_id", "timestamp"], name="pf_stone_log_ord_ts_idx"),
+            models.Index(fields=["webhook_event_id"], name="pf_stone_log_wb_idx"),
         ]
         verbose_name = "Log de Integração Stone"
         verbose_name_plural = "Logs de Integração Stone"
@@ -213,6 +215,14 @@ class StonePagamento(models.Model):
         CANCELED = "canceled", "Cancelado"
         REFUNDED = "refunded", "Estornado"
 
+    order = models.ForeignKey(
+        Order,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="stone_pagamentos",
+        verbose_name="pedido vinculado",
+    )
     cliente = models.ForeignKey(Cliente, on_delete=models.SET_NULL, null=True, blank=True, related_name="stone_pagamentos")
     cliente_nome = models.CharField("Nome do Cliente", max_length=120, blank=True)
     cliente_documento = models.CharField("CPF/CNPJ", max_length=20, blank=True)

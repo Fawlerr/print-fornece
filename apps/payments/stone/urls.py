@@ -15,6 +15,8 @@ urlpatterns = [
     path("webhook/", views.webhook_stone, name="stone_webhook_endpoint"),
 
     # APIs de Telemetria e Diagnóstico
+    path("dev/console/", views.dev_console, name="stone_dev_console"),
+    path("dev/ping/", views.dev_ping, name="stone_dev_ping"),
     path("api/logs/", views.api_logs, name="stone_api_logs"),
     path("api/logs/limpar/", views.api_limpar_logs, name="stone_api_limpar_logs"),
     path("api/logs/exportar/", views.api_exportar_logs, name="stone_api_exportar_logs"),

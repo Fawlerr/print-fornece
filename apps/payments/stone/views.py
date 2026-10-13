@@ -62,6 +62,23 @@ def dev_or_admin_required(view_func):
     return _wrapped_view
 
 
+def dev_only_required(view_func):
+    """Restringe o acesso ESTRITAMENTE a Desenvolvedores (role=dev) ou Superusers.
+    Bloqueia com 403 Forbidden para clientes, operadores e administradores comuns.
+    """
+
+    @wraps(view_func)
+    @login_required
+    def _wrapped_view(request: HttpRequest, *args, **kwargs):
+        is_dev = getattr(request.user, "is_dev", False)
+        is_su = getattr(request.user, "is_superuser", False)
+        if not (is_dev or is_su):
+            raise PermissionDenied("Acesso restrito exclusivamente ao perfil Desenvolvedor.")
+        return view_func(request, *args, **kwargs)
+
+    return _wrapped_view
+
+
 def _base_context() -> dict:
     from .services.logger import mask_secret
 
@@ -709,6 +726,71 @@ def api_configuracao(request: HttpRequest) -> JsonResponse:
 
 
 @csrf_exempt
+@require_POST
 def webhook_stone(request: HttpRequest) -> JsonResponse:
-    """Endpoint reservado de webhook Stone V5."""
-    return JsonResponse({"error": "Webhook Stone em ambiente de homologação."}, status=503)
+    """Endpoint oficial e idempotente de recebimento de webhooks Stone / Pagar.me V5."""
+    from .services.payments import process_stone_webhook
+    import hmac
+    import hashlib
+
+    # Verificação opcional de assinatura HMAC se STONE_WEBHOOK_SECRET estiver configurado
+    webhook_secret = getattr(settings, "STONE_WEBHOOK_SECRET", "") or ""
+    if webhook_secret:
+        sig = request.headers.get("X-Hub-Signature") or request.headers.get("X-Pagarme-Signature")
+        if sig:
+            expected = "sha1=" + hmac.new(webhook_secret.encode("utf-8"), request.body, hashlib.sha1).hexdigest()
+            if not hmac.compare_digest(sig, expected):
+                return JsonResponse({"error": "Assinatura do webhook inválida."}, status=401)
+
+    try:
+        payload = json.loads(request.body.decode("utf-8")) if request.body else {}
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return JsonResponse({"error": "Corpo da requisição JSON inválido."}, status=400)
+
+    headers = dict(request.headers)
+    try:
+        result = process_stone_webhook(payload, headers=headers)
+        return JsonResponse(result, status=200)
+    except Exception as exc:
+        logger.exception("Falha ao processar webhook Stone: %s", exc)
+        return JsonResponse({"error": "Erro interno ao processar webhook.", "detail": str(exc)}, status=500)
+
+
+@dev_only_required
+def dev_console(request: HttpRequest) -> HttpResponse:
+    """Painel de Observabilidade e Controle Avançado exclusivo para Desenvolvedores."""
+    context = _base_context()
+    context["recent_logs"] = StoneLogIntegracao.objects.order_by("-timestamp")[:100]
+    context["total_payments"] = Pagamento.objects.count()
+    context["paid_payments"] = Pagamento.objects.filter(status=Pagamento.Status.PAID).count()
+    context["pending_payments"] = Pagamento.objects.filter(status=Pagamento.Status.PENDING).count()
+    context["failed_payments"] = Pagamento.objects.filter(status=Pagamento.Status.FAILED).count()
+    return render(request, "payments/stone/dev_console.html", context)
+
+
+@dev_only_required
+def dev_ping(request: HttpRequest) -> JsonResponse:
+    """Ping de teste de conectividade Stone V5 com cálculo de latência."""
+    from .services.stone import StoneService
+    from time import perf_counter
+
+    service = StoneService()
+    start = perf_counter()
+    try:
+        res = service.test_connectivity()
+        latency = int((perf_counter() - start) * 1000)
+        return JsonResponse({
+            "success": True,
+            "latency_ms": latency,
+            "environment": getattr(settings, "STONE_ENVIRONMENT", "sandbox"),
+            "http_status": 200,
+            "response": res,
+        })
+    except Exception as exc:
+        latency = int((perf_counter() - start) * 1000)
+        return JsonResponse({
+            "success": False,
+            "latency_ms": latency,
+            "environment": getattr(settings, "STONE_ENVIRONMENT", "sandbox"),
+            "error": str(exc),
+        }, status=502)

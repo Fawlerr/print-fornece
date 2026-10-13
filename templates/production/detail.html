@@ -162,9 +162,16 @@
           {% endif %}
 
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-            <strong style="font-size: 0.92rem; color: #ffd678; display: flex; align-items: center; gap: 6px;">
-              <i class="fa-solid fa-hand-holding-dollar"></i> Situação de Pagamento
-            </strong>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <strong style="font-size: 0.92rem; color: #ffd678; display: flex; align-items: center; gap: 6px;">
+                <i class="fa-solid fa-hand-holding-dollar"></i> Situação de Pagamento
+              </strong>
+              {% if request.user.is_dev or request.user.is_superuser %}
+                <button type="button" class="btn btn-secondary btn-small" onclick="openDevStoneDrawer()" style="font-size: 0.7rem; padding: 2px 7px; background: rgba(56, 189, 248, 0.12); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.35); font-weight: 700; border-radius: 4px; display: inline-flex; align-items: center; gap: 4px;" title="Abrir painel de depuração técnica Stone V5">
+                  <i class="fa-solid fa-terminal"></i> Debug <span class="badge" style="font-size: 0.55rem; padding: 1px 4px; background: #0284c7; color: #fff;">DEV</span>
+                </button>
+              {% endif %}
+            </div>
             {% if order.payment_status == "pago" %}
               <span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #34d399; font-weight: 700; border: 1px solid rgba(16, 185, 129, 0.3);">
                 <i class="fa-solid fa-check"></i> 100% Quitado (R$ {{ order.total_amount|floatformat:2 }})
@@ -210,13 +217,79 @@
           {% endif %}
 
           <div id="quick-payment-form-box" style="{% if order.payment_status == 'pago' %}display: none;{% endif %} margin-top: 12px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 10px;">
-            <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+            <div style="display: flex; gap: 6px; margin-bottom: 10px;">
               <button type="button" class="btn btn-secondary btn-small" id="tab-single-pay" onclick="togglePaymentMode('single')" style="flex: 1; font-size: 0.78rem;">
-                Pagamento Único
+                Lançamento Manual
               </button>
               <button type="button" class="btn btn-secondary btn-small" id="tab-multi-pay" onclick="togglePaymentMode('multi')" style="flex: 1; font-size: 0.78rem;">
-                <i class="fa-solid fa-layer-group"></i> Pagamento Múltiplo
+                <i class="fa-solid fa-layer-group"></i> Múltiplo
               </button>
+              <button type="button" class="btn btn-secondary btn-small" id="tab-stone-pay" onclick="togglePaymentMode('stone')" style="flex: 1.15; font-size: 0.78rem; border: 1px solid rgba(16, 185, 129, 0.4); color: #34d399; font-weight: 700; background: rgba(16, 185, 129, 0.08);">
+                <i class="fa-solid fa-bolt"></i> Cobrança Stone
+              </button>
+            </div>
+
+            <!-- Seção de Cobrança Instantânea Stone V5 -->
+            <div id="stone-pay-section" style="display: none; margin-bottom: 10px;">
+              <div style="background: rgba(16, 185, 129, 0.04); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 8px; padding: 10px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                  <small style="color: #34d399; font-weight: 700; display: flex; align-items: center; gap: 5px;">
+                    <i class="fa-solid fa-bolt"></i> Gateway Stone V5
+                  </small>
+                  <span class="badge" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; font-size: 0.65rem;">Integrado &amp; Automático</span>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
+                  <div>
+                    <small style="display: block; color: var(--muted); margin-bottom: 2px;">Valor a Cobrar (R$):</small>
+                    <input type="number" step="0.01" min="0.50" id="stone_charge_amount" value="{{ order.remaining_amount|stringformat:'.2f' }}" style="width: 100%; padding: 7px 8px; font-size: 0.85rem; background: #0e120f; border: 1px solid #354039; color: #fff; border-radius: 6px;">
+                  </div>
+                  <div>
+                    <small style="display: block; color: var(--muted); margin-bottom: 2px;">Forma Stone:</small>
+                    <select id="stone_charge_method" style="width: 100%; padding: 7px 8px; font-size: 0.85rem; background: #0e120f; border: 1px solid #354039; color: #fff; border-radius: 6px;">
+                      <option value="pix" selected>PIX Dinâmico (QR Code)</option>
+                      <option value="cartao_credito">Cartão de Crédito</option>
+                    </select>
+                  </div>
+                </div>
+
+                <button type="button" class="btn btn-primary btn-small btn-block" id="btn-create-stone-charge" onclick="executarCobrancaStone()" style="background: linear-gradient(135deg, #059669, #10b981); border: none; font-weight: 700; padding: 8px; font-size: 0.82rem;">
+                  <i class="fa-solid fa-qrcode"></i> Gerar Cobrança Stone
+                </button>
+
+                <!-- Feedback de Erro Amigável da Stone -->
+                <div id="stone-charge-error" style="display: none; margin-top: 8px; padding: 8px 10px; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 6px; font-size: 0.78rem; color: #fca5a5;"></div>
+
+                <!-- Container do Resultado (QR Code PIX / Cartão) -->
+                <div id="stone-charge-result" style="display: none; margin-top: 10px; padding: 12px; background: rgba(0,0,0,0.3); border-radius: 6px; border: 1px dashed rgba(16, 185, 129, 0.35);">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <small style="color: var(--muted); font-weight: 700;">Status da Cobrança:</small>
+                    <span id="stone-charge-status-badge" class="badge" style="background: rgba(234, 179, 8, 0.2); color: #facc15; font-weight: 700;">AGUARDANDO PAGAMENTO</span>
+                  </div>
+
+                  <!-- Bloco PIX -->
+                  <div id="stone-pix-display" style="display: none; text-align: center;">
+                    <img id="stone-pix-qrcode-img" src="" alt="QR Code PIX" style="width: 170px; height: 170px; margin: 8px auto; display: block; border-radius: 8px; border: 4px solid #fff; background: #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.4);">
+                    <div style="position: relative; margin-top: 8px;">
+                      <input type="text" id="stone-pix-copia-cola" readonly style="width: 100%; font-size: 0.72rem; padding: 6px 75px 6px 8px; background: #000; border: 1px solid #333; color: #38bdf8; border-radius: 4px; font-family: monospace;">
+                      <button type="button" class="btn btn-secondary btn-small" id="btn-copy-pix" onclick="copiarPixCopiaCola()" style="position: absolute; right: 2px; top: 2px; bottom: 2px; font-size: 0.7rem; padding: 0 8px;">
+                        <i class="fa-regular fa-copy"></i> Copiar
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Bloco Cartão -->
+                  <div id="stone-card-display" style="display: none; padding: 6px; font-size: 0.82rem; color: #cbd5e1;">
+                    <p style="margin: 0 0 6px;">Cobrança Stone registrada. Aguardando processamento da adquirente.</p>
+                  </div>
+
+                  <!-- Indicador de Polling -->
+                  <div id="stone-polling-indicator" style="display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 10px; font-size: 0.75rem; color: #94a3b8;">
+                    <i class="fa-solid fa-spinner fa-spin" style="color: #10b981;"></i>
+                    <span>Monitorando confirmação bancária em tempo real...</span>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <form method="post" action="{% url 'orders:register_payment' pk=order.pk %}" id="payment-register-form">
@@ -252,10 +325,10 @@
                 </div>
               </div>
 
-              <div style="margin-bottom: 8px;">
+              <div id="payment-notes-div" style="margin-bottom: 8px;">
                 {{ payment_form.notes }}
               </div>
-              <button class="btn btn-primary btn-small btn-block" type="submit" onclick="preparePaymentSubmit(event)">
+              <button class="btn btn-primary btn-small btn-block" id="btn-submit-payment" type="submit" onclick="preparePaymentSubmit(event)">
                 <i class="fa-solid fa-check-circle"></i> Confirmar Lançamento de Pagamento
               </button>
             </form>
@@ -717,41 +790,209 @@
     { value: 'saldo_cliente', label: 'Saldo em Crédito do Cliente' }
   ];
 
+  function getCsrfToken() {
+    const token = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+    if (token) return token;
+    const match = document.cookie.match(/csrftoken=([^;]+)/);
+    return match ? match[1] : '';
+  }
+
   function togglePaymentMode(mode) {
     paymentMode = mode;
     const singleSec = document.getElementById('single-pay-section');
     const multiSec = document.getElementById('multi-pay-section');
+    const stoneSec = document.getElementById('stone-pay-section');
     const tabSingle = document.getElementById('tab-single-pay');
     const tabMulti = document.getElementById('tab-multi-pay');
+    const tabStone = document.getElementById('tab-stone-pay');
+    const submitBtn = document.getElementById('btn-submit-payment');
+    const notesDiv = document.getElementById('payment-notes-div');
 
     if (mode === 'multi') {
       if (singleSec) singleSec.style.display = 'none';
       if (multiSec) multiSec.style.display = 'block';
+      if (stoneSec) stoneSec.style.display = 'none';
+      if (submitBtn) submitBtn.style.display = 'block';
+      if (notesDiv) notesDiv.style.display = 'block';
       if (tabMulti) {
         tabMulti.style.background = 'rgba(56, 189, 248, 0.2)';
         tabMulti.style.color = '#38bdf8';
       }
-      if (tabSingle) {
-        tabSingle.style.background = '';
-        tabSingle.style.color = '';
-      }
+      if (tabSingle) { tabSingle.style.background = ''; tabSingle.style.color = ''; }
+      if (tabStone) { tabStone.style.background = 'rgba(16, 185, 129, 0.08)'; tabStone.style.color = '#34d399'; }
       const container = document.getElementById('multi-pay-rows');
       if (container && container.children.length === 0) {
         addMultiPayRow();
         addMultiPayRow();
       }
+    } else if (mode === 'stone') {
+      if (singleSec) singleSec.style.display = 'none';
+      if (multiSec) multiSec.style.display = 'none';
+      if (stoneSec) stoneSec.style.display = 'block';
+      if (submitBtn) submitBtn.style.display = 'none';
+      if (notesDiv) notesDiv.style.display = 'none';
+      if (tabStone) {
+        tabStone.style.background = 'rgba(16, 185, 129, 0.25)';
+        tabStone.style.color = '#34d399';
+      }
+      if (tabSingle) { tabSingle.style.background = ''; tabSingle.style.color = ''; }
+      if (tabMulti) { tabMulti.style.background = ''; tabMulti.style.color = ''; }
     } else {
       if (singleSec) singleSec.style.display = 'block';
       if (multiSec) multiSec.style.display = 'none';
+      if (stoneSec) stoneSec.style.display = 'none';
+      if (submitBtn) submitBtn.style.display = 'block';
+      if (notesDiv) notesDiv.style.display = 'block';
       if (tabSingle) {
         tabSingle.style.background = 'rgba(255, 255, 255, 0.1)';
         tabSingle.style.color = '#fff';
       }
-      if (tabMulti) {
-        tabMulti.style.background = '';
-        tabMulti.style.color = '';
+      if (tabMulti) { tabMulti.style.background = ''; tabMulti.style.color = ''; }
+      if (tabStone) { tabStone.style.background = 'rgba(16, 185, 129, 0.08)'; tabStone.style.color = '#34d399'; }
+    }
+  }
+
+  let stonePollTimer = null;
+  function iniciarPollingStone() {
+    if (stonePollTimer) clearInterval(stonePollTimer);
+    const statusBadge = document.getElementById('stone-charge-status-badge');
+    const indicator = document.getElementById('stone-polling-indicator');
+
+    stonePollTimer = setInterval(async () => {
+      try {
+        const resp = await fetch("{% url 'orders:stone_check_status' pk=order.pk %}");
+        if (!resp.ok) return;
+        const data = await resp.json();
+        if (data.is_paid || data.order_payment_status === 'pago') {
+          clearInterval(stonePollTimer);
+          if (statusBadge) {
+            statusBadge.textContent = 'PAGO COM SUCESSO';
+            statusBadge.style.background = 'rgba(16, 185, 129, 0.25)';
+            statusBadge.style.color = '#34d399';
+          }
+          if (indicator) {
+            indicator.innerHTML = '<span style="color: #34d399; font-weight: 700;"><i class="fa-solid fa-circle-check"></i> Pagamento confirmado pela Stone! Atualizando pedido...</span>';
+          }
+          setTimeout(() => {
+            window.location.reload();
+          }, 1400);
+        } else if (data.payment && data.payment.status === 'failed') {
+          clearInterval(stonePollTimer);
+          if (statusBadge) {
+            statusBadge.textContent = 'RECUSADO / FALHA';
+            statusBadge.style.background = 'rgba(239, 68, 68, 0.25)';
+            statusBadge.style.color = '#f87171';
+          }
+          if (indicator) {
+            indicator.innerHTML = '<span style="color: #f87171;"><i class="fa-solid fa-circle-xmark"></i> Transação recusada pela Stone. Verifique com seu banco.</span>';
+          }
+        }
+      } catch (e) {
+        console.warn('Polling Stone:', e);
+      }
+    }, 4000);
+  }
+
+  async function executarCobrancaStone() {
+    const amountEl = document.getElementById('stone_charge_amount');
+    const methodEl = document.getElementById('stone_charge_method');
+    const btn = document.getElementById('btn-create-stone-charge');
+    const errBox = document.getElementById('stone-charge-error');
+    const resultBox = document.getElementById('stone-charge-result');
+    const pixBox = document.getElementById('stone-pix-display');
+    const cardBox = document.getElementById('stone-card-display');
+    const qrImg = document.getElementById('stone-pix-qrcode-img');
+    const copiaCola = document.getElementById('stone-pix-copia-cola');
+    const statusBadge = document.getElementById('stone-charge-status-badge');
+
+    if (errBox) errBox.style.display = 'none';
+    const amount = parseFloat(amountEl.value);
+    const method = methodEl.value;
+
+    if (isNaN(amount) || amount <= 0) {
+      if (errBox) {
+        errBox.textContent = 'Informe um valor válido para a cobrança.';
+        errBox.style.display = 'block';
+      }
+      return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Comunicando com Stone V5...';
+
+    try {
+      const resp = await fetch("{% url 'orders:stone_create_charge' pk=order.pk %}", {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCsrfToken(),
+        },
+        body: JSON.stringify({ amount: amount, method: method })
+      });
+      const data = await resp.json();
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa-solid fa-qrcode"></i> Gerar Cobrança Stone';
+
+      if (!data.success) {
+        if (errBox) {
+          errBox.textContent = data.error || 'Não foi possível gerar a cobrança na Stone.';
+          errBox.style.display = 'block';
+        }
+        return;
+      }
+
+      if (resultBox) resultBox.style.display = 'block';
+      if (statusBadge) {
+        statusBadge.textContent = 'AGUARDANDO PAGAMENTO';
+        statusBadge.style.background = 'rgba(234, 179, 8, 0.2)';
+        statusBadge.style.color = '#facc15';
+      }
+
+      if (method === 'pix') {
+        if (pixBox) pixBox.style.display = 'block';
+        if (cardBox) cardBox.style.display = 'none';
+        if (copiaCola) copiaCola.value = data.pix_qr_code || '';
+        if (qrImg) {
+          if (data.pix_qr_code_url) {
+            qrImg.src = data.pix_qr_code_url;
+          } else if (data.pix_qr_code) {
+            qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(data.pix_qr_code)}`;
+          }
+        }
+      } else {
+        if (pixBox) pixBox.style.display = 'none';
+        if (cardBox) cardBox.style.display = 'block';
+      }
+
+      iniciarPollingStone();
+    } catch (err) {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa-solid fa-qrcode"></i> Gerar Cobrança Stone';
+      if (errBox) {
+        errBox.textContent = 'Falha na conexão com o servidor. Tente novamente.';
+        errBox.style.display = 'block';
       }
     }
+  }
+
+  function copiarPixCopiaCola() {
+    const inp = document.getElementById('stone-pix-copia-cola');
+    const btn = document.getElementById('btn-copy-pix');
+    if (!inp || !inp.value) return;
+    navigator.clipboard.writeText(inp.value).then(() => {
+      if (btn) {
+        const orig = btn.innerHTML;
+        btn.innerHTML = '<i class="fa-solid fa-check"></i> Copiado!';
+        btn.style.color = '#34d399';
+        setTimeout(() => {
+          btn.innerHTML = orig;
+          btn.style.color = '';
+        }, 2000);
+      }
+    }).catch(() => {
+      inp.select();
+      document.execCommand('copy');
+    });
   }
 
   function addMultiPayRow() {
@@ -867,6 +1108,369 @@ function openEditPaymentMethodModal(paymentId, currentMethod, amount) {
 }
 function closeEditPaymentMethodModal() {
   const modal = document.getElementById('editPaymentMethodModal');
+  if (modal) modal.style.display = 'none';
+}
+</script>
+{% endif %}
+
+{% if request.user.is_dev or request.user.is_superuser %}
+<!-- ========================================================================= -->
+<!-- DRAWER DE DEBUG STONE V5 (EXCLUSIVO PARA DESENVOLVEDOR / SUPERUSER)       -->
+<!-- ========================================================================= -->
+<div id="devStoneDrawerBackdrop" onclick="closeDevStoneDrawer()" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 10000; backdrop-filter: blur(2px);"></div>
+
+<div id="devStoneDrawer" style="position: fixed; top: 0; right: 0; bottom: 0; width: min(94vw, 760px); background: #0d1210; border-left: 1px solid #1f2c23; z-index: 10001; box-shadow: -15px 0 35px rgba(0,0,0,0.8); display: flex; flex-direction: column; transform: translateX(100%); transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);">
+  <!-- Drawer Header -->
+  <div style="padding: 16px 20px; border-bottom: 1px solid #1f2c23; background: #090e0c; display: flex; justify-content: space-between; align-items: center;">
+    <div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <i class="fa-solid fa-terminal" style="color: #38bdf8; font-size: 1.1rem;"></i>
+        <h3 style="margin: 0; font-size: 1.05rem; color: #fff; font-weight: 700;">Painel de Debug Stone V5</h3>
+        <span class="badge" style="background: #0284c7; color: #fff; font-size: 0.62rem; padding: 2px 6px;">DEV EXCLUSIVO</span>
+      </div>
+      <small style="color: #94a3b8; font-size: 0.78rem;">Pedido <strong>#{{ order.number }}</strong> (ID: {{ order.pk }}) · Total: R$ {{ order.total_amount|floatformat:2 }}</small>
+    </div>
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <a href="{% url 'payments:stone_dev_console' %}" target="_blank" class="btn btn-secondary btn-small" style="font-size: 0.72rem; padding: 4px 8px;" title="Abrir Console de Telemetria Geral da Stone">
+        <i class="fa-solid fa-arrow-up-right-from-square"></i> Console Geral
+      </a>
+      <button type="button" onclick="closeDevStoneDrawer()" style="background: transparent; border: none; color: #94a3b8; font-size: 1.25rem; cursor: pointer; padding: 4px 8px;">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Drawer Body -->
+  <div style="padding: 18px 20px; overflow-y: auto; flex: 1;">
+    <!-- Barra de Ações Rápidas de Simulação -->
+    <div style="background: #141b17; border: 1px solid #233328; border-radius: 8px; padding: 14px; margin-bottom: 16px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <strong style="font-size: 0.85rem; color: #ffd678; display: flex; align-items: center; gap: 6px;">
+          <i class="fa-solid fa-wand-magic-sparkles"></i> Ações Rápidas de Teste &amp; Simulação
+        </strong>
+        <span id="dev-ping-badge" class="badge" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; font-size: 0.7rem;">
+          <i class="fa-solid fa-signal"></i> Ping: aguardando teste
+        </span>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px;">
+        <button type="button" class="btn btn-small" onclick="devActionForceApprove()" style="background: rgba(16, 185, 129, 0.2); border: 1px solid rgba(16, 185, 129, 0.4); color: #34d399; font-weight: 700; font-size: 0.75rem;">
+          <i class="fa-solid fa-circle-check"></i> Forçar Aprovação
+        </button>
+        <button type="button" class="btn btn-small" onclick="devActionForceFail()" style="background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.4); color: #f87171; font-weight: 700; font-size: 0.75rem;">
+          <i class="fa-solid fa-ban"></i> Simular Recusa
+        </button>
+        <button type="button" class="btn btn-small" onclick="devActionReprocessWebhook()" style="background: rgba(56, 189, 248, 0.2); border: 1px solid rgba(56, 189, 248, 0.4); color: #38bdf8; font-weight: 700; font-size: 0.75rem;">
+          <i class="fa-solid fa-rotate-right"></i> Reprocessar Webhook
+        </button>
+        <button type="button" class="btn btn-small" onclick="devActionPing()" style="background: rgba(168, 85, 247, 0.2); border: 1px solid rgba(168, 85, 247, 0.4); color: #c084fc; font-weight: 700; font-size: 0.75rem;">
+          <i class="fa-solid fa-tower-broadcast"></i> Ping / Latência
+        </button>
+      </div>
+
+      <!-- Feedback de Ação Dev -->
+      <div id="dev-action-feedback" style="display: none; margin-top: 10px; padding: 8px 12px; border-radius: 6px; font-size: 0.78rem;"></div>
+    </div>
+
+    <!-- Seção de Pagamentos Stone Registrados -->
+    <div style="margin-bottom: 20px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+        <strong style="font-size: 0.88rem; color: #cbd5e1; display: flex; align-items: center; gap: 6px;">
+          <i class="fa-solid fa-receipt" style="color: #34d399;"></i> Pagamentos Stone (StonePagamento)
+        </strong>
+        <button type="button" class="btn btn-secondary btn-small" onclick="loadDevDrawerData()" style="font-size: 0.7rem; padding: 2px 7px;">
+          <i class="fa-solid fa-arrows-rotate"></i> Atualizar
+        </button>
+      </div>
+
+      <div style="background: #101613; border: 1px solid #1f2c23; border-radius: 6px; overflow: hidden;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 0.78rem; text-align: left;">
+          <thead>
+            <tr style="background: #090e0c; color: #94a3b8; border-bottom: 1px solid #1f2c23;">
+              <th style="padding: 8px 10px;">ID</th>
+              <th style="padding: 8px 10px;">Método</th>
+              <th style="padding: 8px 10px;">Valor</th>
+              <th style="padding: 8px 10px;">Status</th>
+              <th style="padding: 8px 10px;">Stone Charge ID</th>
+              <th style="padding: 8px 10px;">Data/Hora</th>
+            </tr>
+          </thead>
+          <tbody id="dev-payments-table-body">
+            <tr><td colspan="6" style="padding: 14px; text-align: center; color: #64748b;">Carregando pagamentos...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Seção de Histórico de Logs & Payloads -->
+    <div>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+        <strong style="font-size: 0.88rem; color: #cbd5e1; display: flex; align-items: center; gap: 6px;">
+          <i class="fa-solid fa-network-wired" style="color: #38bdf8;"></i> Telemetria &amp; Payloads (StoneLogIntegracao)
+        </strong>
+        <small style="color: #64748b; font-size: 0.72rem;">Últimos 30 eventos capturados</small>
+      </div>
+
+      <div style="background: #101613; border: 1px solid #1f2c23; border-radius: 6px; overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 0.76rem; text-align: left;">
+          <thead>
+            <tr style="background: #090e0c; color: #94a3b8; border-bottom: 1px solid #1f2c23;">
+              <th style="padding: 8px 10px;">Data/Hora</th>
+              <th style="padding: 8px 10px;">Evento</th>
+              <th style="padding: 8px 10px;">Endpoint / Rota</th>
+              <th style="padding: 8px 10px;">HTTP</th>
+              <th style="padding: 8px 10px;">Latência</th>
+              <th style="padding: 8px 10px; text-align: right;">Payloads</th>
+            </tr>
+          </thead>
+          <tbody id="dev-logs-table-body">
+            <tr><td colspan="6" style="padding: 14px; text-align: center; color: #64748b;">Carregando telemetria...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL VISUALIZADOR DE JSON (DEV ONLY) -->
+<div id="devJsonModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 10005; align-items: center; justify-content: center; backdrop-filter: blur(4px);">
+  <div style="background: #0a0e0c; border: 1px solid #233328; border-radius: 10px; width: min(90vw, 780px); max-height: 85vh; display: flex; flex-direction: column; box-shadow: 0 20px 40px rgba(0,0,0,0.8);">
+    <div style="padding: 12px 16px; border-bottom: 1px solid #233328; display: flex; justify-content: space-between; align-items: center; background: #060907;">
+      <strong style="color: #38bdf8; font-size: 0.9rem; display: flex; align-items: center; gap: 8px;">
+        <i class="fa-solid fa-code"></i> Inspetor de Payloads &amp; Headers JSON
+      </strong>
+      <button type="button" onclick="closeDevJsonModal()" style="background: transparent; border: none; color: #94a3b8; font-size: 1.1rem; cursor: pointer;">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+    <div style="padding: 16px; overflow-y: auto; flex: 1;">
+      <div style="margin-bottom: 12px;">
+        <strong style="display: block; color: #ffd678; font-size: 0.8rem; margin-bottom: 4px;">REQUEST (Enviado para a Stone):</strong>
+        <pre id="dev-modal-request" style="background: #000; color: #34d399; padding: 10px; border-radius: 6px; font-family: monospace; font-size: 0.74rem; overflow-x: auto; max-height: 200px; border: 1px solid #1f2c23;"></pre>
+      </div>
+      <div>
+        <strong style="display: block; color: #38bdf8; font-size: 0.8rem; margin-bottom: 4px;">RESPONSE / WEBHOOK (Recebido da Stone):</strong>
+        <pre id="dev-modal-response" style="background: #000; color: #67e8f9; padding: 10px; border-radius: 6px; font-family: monospace; font-size: 0.74rem; overflow-x: auto; max-height: 250px; border: 1px solid #1f2c23;"></pre>
+      </div>
+    </div>
+    <div style="padding: 10px 16px; border-top: 1px solid #233328; display: flex; justify-content: flex-end; gap: 8px;">
+      <button type="button" class="btn btn-secondary btn-small" onclick="closeDevJsonModal()">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let devCachedLogs = [];
+
+function openDevStoneDrawer() {
+  const drawer = document.getElementById('devStoneDrawer');
+  const backdrop = document.getElementById('devStoneDrawerBackdrop');
+  if (drawer && backdrop) {
+    backdrop.style.display = 'block';
+    drawer.style.display = 'flex';
+    setTimeout(() => {
+      drawer.style.transform = 'translateX(0)';
+    }, 10);
+    loadDevDrawerData();
+  }
+}
+
+function closeDevStoneDrawer() {
+  const drawer = document.getElementById('devStoneDrawer');
+  const backdrop = document.getElementById('devStoneDrawerBackdrop');
+  if (drawer && backdrop) {
+    drawer.style.transform = 'translateX(100%)';
+    setTimeout(() => {
+      drawer.style.display = 'none';
+      backdrop.style.display = 'none';
+    }, 250);
+  }
+}
+
+async function loadDevDrawerData() {
+  const pBody = document.getElementById('dev-payments-table-body');
+  const lBody = document.getElementById('dev-logs-table-body');
+  if (!pBody || !lBody) return;
+
+  pBody.innerHTML = '<tr><td colspan="6" style="padding: 14px; text-align: center; color: #64748b;"><i class="fa-solid fa-spinner fa-spin"></i> Atualizando dados...</td></tr>';
+  lBody.innerHTML = '<tr><td colspan="6" style="padding: 14px; text-align: center; color: #64748b;"><i class="fa-solid fa-spinner fa-spin"></i> Atualizando telemetria...</td></tr>';
+
+  try {
+    const resp = await fetch("{% url 'orders:stone_dev_logs' pk=order.pk %}");
+    if (!resp.ok) {
+      pBody.innerHTML = '<tr><td colspan="6" style="padding: 12px; color: #f87171; text-align: center;">Erro ao carregar dados (HTTP ' + resp.status + ')</td></tr>';
+      lBody.innerHTML = '<tr><td colspan="6" style="padding: 12px; color: #f87171; text-align: center;">Acesso negado ou erro interno.</td></tr>';
+      return;
+    }
+    const data = await resp.json();
+    devCachedLogs = data.logs || [];
+
+    // Render pagamentos
+    if (!data.payments || data.payments.length === 0) {
+      pBody.innerHTML = '<tr><td colspan="6" style="padding: 12px; text-align: center; color: #64748b;">Nenhuma transação Stone criada para este pedido até o momento.</td></tr>';
+    } else {
+      pBody.innerHTML = data.payments.map(p => `
+        <tr style="border-bottom: 1px solid #17211b;">
+          <td style="padding: 8px 10px; font-weight: 700;">#${p.id}</td>
+          <td style="padding: 8px 10px; text-transform: uppercase;">${p.metodo}</td>
+          <td style="padding: 8px 10px; color: #34d399; font-weight: 700;">R$ ${parseFloat(p.valor).toFixed(2)}</td>
+          <td style="padding: 8px 10px;">
+            <span class="badge" style="font-size: 0.65rem; background: ${p.status === 'paid' ? 'rgba(16,185,129,0.2)' : p.status === 'failed' ? 'rgba(239,68,68,0.2)' : 'rgba(234,179,8,0.2)'}; color: ${p.status === 'paid' ? '#34d399' : p.status === 'failed' ? '#f87171' : '#facc15'};">
+              ${p.status.toUpperCase()}
+            </span>
+          </td>
+          <td style="padding: 8px 10px; font-family: monospace; font-size: 0.72rem; color: #94a3b8;">${p.stone_payment_id || p.stone_order_id || 'N/A'}</td>
+          <td style="padding: 8px 10px; color: #94a3b8;">${p.created_at}</td>
+        </tr>
+      `).join('');
+    }
+
+    // Render logs
+    if (!data.logs || data.logs.length === 0) {
+      lBody.innerHTML = '<tr><td colspan="6" style="padding: 12px; text-align: center; color: #64748b;">Nenhum log registrado para este pedido.</td></tr>';
+    } else {
+      lBody.innerHTML = data.logs.map((l, idx) => `
+        <tr style="border-bottom: 1px solid #17211b;">
+          <td style="padding: 6px 10px; color: #94a3b8; white-space: nowrap;">${l.timestamp}</td>
+          <td style="padding: 6px 10px; font-weight: 600; color: #e2e8f0;">${l.tipo_evento}</td>
+          <td style="padding: 6px 10px; font-family: monospace; font-size: 0.72rem; color: #38bdf8;">${l.endpoint || l.metodo_http || '-'}</td>
+          <td style="padding: 6px 10px;">
+            <span style="font-family: monospace; font-weight: 700; color: ${l.http_status && l.http_status < 400 ? '#34d399' : '#f87171'};">
+              ${l.http_status || '-'}
+            </span>
+          </td>
+          <td style="padding: 6px 10px; color: #94a3b8;">${l.duracao_ms ? l.duracao_ms + 'ms' : '-'}</td>
+          <td style="padding: 6px 10px; text-align: right;">
+            <button type="button" class="btn btn-secondary btn-small" onclick="inspectDevJson(${idx})" style="font-size: 0.65rem; padding: 2px 6px;">
+              <i class="fa-solid fa-eye"></i> JSON
+            </button>
+          </td>
+        </tr>
+      `).join('');
+    }
+  } catch (err) {
+    pBody.innerHTML = '<tr><td colspan="6" style="padding: 12px; color: #f87171; text-align: center;">Falha de conexão com o servidor.</td></tr>';
+  }
+}
+
+function showDevFeedback(msg, isSuccess = true) {
+  const fb = document.getElementById('dev-action-feedback');
+  if (!fb) return;
+  fb.textContent = msg;
+  fb.style.display = 'block';
+  fb.style.background = isSuccess ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)';
+  fb.style.border = isSuccess ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid rgba(239, 68, 68, 0.4)';
+  fb.style.color = isSuccess ? '#34d399' : '#f87171';
+  setTimeout(() => {
+    fb.style.display = 'none';
+  }, 5000);
+}
+
+async function devActionForceApprove() {
+  if (!confirm('Dev: Forçar a aprovação desta cobrança Stone e liquidar o pedido agora?')) return;
+  try {
+    const resp = await fetch("{% url 'orders:stone_dev_force_approve' pk=order.pk %}", {
+      method: 'POST',
+      headers: { 'X-CSRFToken': getCsrfToken() }
+    });
+    const data = await resp.json();
+    if (data.success) {
+      showDevFeedback(data.message, true);
+      loadDevDrawerData();
+      setTimeout(() => { window.location.reload(); }, 1200);
+    } else {
+      showDevFeedback(data.error || 'Erro ao forçar aprovação.', false);
+    }
+  } catch (e) {
+    showDevFeedback('Falha de rede na simulação.', false);
+  }
+}
+
+async function devActionForceFail() {
+  if (!confirm('Dev: Simular recusa imediata do pagamento Stone?')) return;
+  try {
+    const resp = await fetch("{% url 'orders:stone_dev_force_fail' pk=order.pk %}", {
+      method: 'POST',
+      headers: { 'X-CSRFToken': getCsrfToken() }
+    });
+    const data = await resp.json();
+    if (data.success) {
+      showDevFeedback(data.message, true);
+      loadDevDrawerData();
+    } else {
+      showDevFeedback(data.error || 'Erro ao simular recusa.', false);
+    }
+  } catch (e) {
+    showDevFeedback('Falha de rede na simulação.', false);
+  }
+}
+
+async function devActionReprocessWebhook() {
+  try {
+    const resp = await fetch("{% url 'orders:stone_dev_reprocess' pk=order.pk %}", {
+      method: 'POST',
+      headers: { 'X-CSRFToken': getCsrfToken() }
+    });
+    const data = await resp.json();
+    if (data.success) {
+      showDevFeedback('Webhook reprocessado com sucesso: ' + JSON.stringify(data.result), true);
+      loadDevDrawerData();
+    } else {
+      showDevFeedback(data.error || 'Não foi possível reprocessar o webhook.', false);
+    }
+  } catch (e) {
+    showDevFeedback('Falha de rede no reprocessamento.', false);
+  }
+}
+
+async function devActionPing() {
+  const badge = document.getElementById('dev-ping-badge');
+  if (badge) badge.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Testando...';
+  try {
+    const resp = await fetch("{% url 'orders:stone_dev_ping' pk=order.pk %}");
+    const data = await resp.json();
+    if (badge) {
+      if (data.success) {
+        badge.innerHTML = `<i class="fa-solid fa-check"></i> Ping: ${data.latency_ms}ms (${data.environment})`;
+        badge.style.background = 'rgba(16, 185, 129, 0.2)';
+        badge.style.color = '#34d399';
+      } else {
+        badge.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> Erro: ${data.latency_ms}ms`;
+        badge.style.background = 'rgba(239, 68, 68, 0.2)';
+        badge.style.color = '#f87171';
+      }
+    }
+  } catch (e) {
+    if (badge) {
+      badge.innerHTML = '<i class="fa-solid fa-xmark"></i> Offline';
+      badge.style.background = 'rgba(239, 68, 68, 0.2)';
+      badge.style.color = '#f87171';
+    }
+  }
+}
+
+function inspectDevJson(logIndex) {
+  const item = devCachedLogs[logIndex];
+  if (!item) return;
+  const modal = document.getElementById('devJsonModal');
+  const reqEl = document.getElementById('dev-modal-request');
+  const respEl = document.getElementById('dev-modal-response');
+
+  let reqContent = '';
+  if (item.request_headers) reqContent += '--- HEADERS ---\n' + JSON.stringify(item.request_headers, null, 2) + '\n\n';
+  reqContent += '--- BODY ---\n' + (typeof item.request_body === 'object' ? JSON.stringify(item.request_body, null, 2) : (item.request_body || '(vazio)'));
+  reqEl.textContent = reqContent;
+
+  let respContent = '';
+  if (item.response_headers) respContent += '--- HEADERS ---\n' + JSON.stringify(item.response_headers, null, 2) + '\n\n';
+  respContent += '--- BODY ---\n' + (typeof item.response_body === 'object' ? JSON.stringify(item.response_body, null, 2) : (item.response_body || '(vazio)'));
+  respEl.textContent = respContent;
+
+  if (modal) modal.style.display = 'flex';
+}
+
+function closeDevJsonModal() {
+  const modal = document.getElementById('devJsonModal');
   if (modal) modal.style.display = 'none';
 }
 </script>

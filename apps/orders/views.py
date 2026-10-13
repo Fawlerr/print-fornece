@@ -689,3 +689,317 @@ def grouped_invoice_view(request):
         "total_meters": total_meters,
     }
     return render(request, "orders/grouped_invoice.html", context)
+
+
+# ==============================================================================
+# Integração Stone / Pagar.me V5 nos Pedidos (Ordens)
+# ==============================================================================
+
+@login_required
+@require_POST
+def order_stone_create_charge(request, pk: int) -> JsonResponse:
+    """Cria uma cobrança Stone V5 (PIX ou Cartão) diretamente vinculada ao pedido."""
+    order = get_object_or_404(Order, pk=pk)
+    require_order_access(request.user, order)
+
+    try:
+        body = json.loads(request.body.decode("utf-8")) if request.body else {}
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        body = request.POST
+
+    method = body.get("method") or "pix"
+    raw_amount = body.get("amount")
+    installments = int(body.get("installments", 1) or 1)
+    card_token = body.get("card_token")
+
+    if raw_amount:
+        try:
+            cleaned = str(raw_amount).replace("R$", "").replace(" ", "").strip()
+            if "," in cleaned and "." in cleaned:
+                cleaned = cleaned.replace(".", "").replace(",", ".")
+            elif "," in cleaned:
+                cleaned = cleaned.replace(",", ".")
+            amount = Decimal(cleaned)
+        except Exception:
+            amount = order.remaining_amount
+    else:
+        amount = order.remaining_amount
+
+    if amount <= Decimal("0.00"):
+        return JsonResponse({"success": False, "error": "O pedido já está totalmente quitado."}, status=400)
+
+    from apps.payments.stone.services.payments import create_order_stone_payment
+    from apps.payments.stone.services.stone import StoneAPIError
+
+    try:
+        payment = create_order_stone_payment(
+            order=order,
+            amount=amount,
+            method=method,
+            installments=installments,
+            card_token=card_token,
+            user=request.user,
+        )
+        return JsonResponse({
+            "success": True,
+            "payment_id": payment.pk,
+            "method": payment.metodo,
+            "status": payment.status,
+            "amount": str(payment.valor),
+            "pix_qr_code": payment.pix_qr_code,
+            "pix_qr_code_url": payment.pix_qr_code_url,
+            "order_status": order.payment_status,
+            "order_paid_amount": str(order.paid_amount),
+            "order_remaining_amount": str(order.remaining_amount),
+        })
+    except StoneAPIError as exc:
+        return JsonResponse({
+            "success": False,
+            "error": exc.user_message,
+            "trace_id": getattr(exc, "trace_id", ""),
+            "error_parameter": getattr(exc, "error_parameter", ""),
+        }, status=422 if getattr(exc, "http_status", None) == 422 else 400)
+    except Exception as exc:
+        return JsonResponse({
+            "success": False,
+            "error": "Não foi possível gerar a cobrança na Stone. Tente novamente ou use outra forma de pagamento.",
+        }, status=500)
+
+
+@login_required
+def order_stone_check_status(request, pk: int) -> JsonResponse:
+    """Verifica reativamente o status do pagamento Stone e do pedido."""
+    order = get_object_or_404(Order, pk=pk)
+    require_order_access(request.user, order)
+
+    latest_payment = order.stone_pagamentos.order_by("-created_at").first()
+    return JsonResponse({
+        "success": True,
+        "order_id": order.pk,
+        "order_number": order.number,
+        "order_payment_status": order.payment_status,
+        "order_paid_amount": str(order.paid_amount),
+        "order_remaining_amount": str(order.remaining_amount),
+        "is_paid": order.payment_status == Order.PaymentStatus.PAID,
+        "payment": {
+            "id": latest_payment.pk if latest_payment else None,
+            "status": latest_payment.status if latest_payment else None,
+            "method": latest_payment.metodo if latest_payment else None,
+            "amount": str(latest_payment.valor) if latest_payment else None,
+            "pix_qr_code": latest_payment.pix_qr_code if latest_payment else "",
+            "last_error": latest_payment.last_error_message if latest_payment else "",
+        } if latest_payment else None,
+    })
+
+
+def dev_only_check(user) -> None:
+    """Garante que APENAS desenvolvedores e superusers tenham acesso ao debug."""
+    is_dev = getattr(user, "is_dev", False)
+    is_su = getattr(user, "is_superuser", False)
+    if not (is_dev or is_su):
+        raise PermissionDenied("Acesso restrito exclusivamente ao perfil Desenvolvedor.")
+
+
+@login_required
+def order_stone_dev_logs(request, pk: int) -> JsonResponse:
+    """Retorna o histórico técnico completo de logs, payloads e webhooks daquele pedido."""
+    dev_only_check(request.user)
+    order = get_object_or_404(Order, pk=pk)
+
+    from apps.payments.models import StoneLogIntegracao
+    from django.db.models import Q
+    import re
+
+    order_digits = re.sub(r"\D", "", order.number)
+    logs = StoneLogIntegracao.objects.filter(
+        Q(order_id=order.number) |
+        Q(order_id__icontains=order.number) |
+        Q(mensagem__icontains=order.number) |
+        Q(request_body__icontains=order.number) |
+        Q(response_body__icontains=order.number)
+    ).order_by("-timestamp")[:30]
+
+    payments = order.stone_pagamentos.all()
+    payments_data = []
+    for p in payments:
+        payments_data.append({
+            "id": p.pk,
+            "stone_payment_id": p.stone_payment_id,
+            "stone_order_id": p.stone_order_id,
+            "stone_transaction_id": p.stone_transaction_id,
+            "metodo": p.metodo,
+            "valor": str(p.valor),
+            "status": p.status,
+            "idempotency_key": str(p.idempotency_key),
+            "created_at": p.created_at.strftime("%d/%m/%Y %H:%M:%S") if p.created_at else "",
+            "paid_at": p.paid_at.strftime("%d/%m/%Y %H:%M:%S") if p.paid_at else "",
+            "response_data": p.response_data,
+            "last_error": p.last_error_message,
+        })
+
+    logs_data = []
+    for l in logs:
+        logs_data.append({
+            "id": l.pk,
+            "trace_id": l.trace_id,
+            "timestamp": l.timestamp.strftime("%d/%m/%Y %H:%M:%S") if l.timestamp else "",
+            "nivel": l.nivel,
+            "tipo_evento": l.tipo_evento,
+            "mensagem": l.mensagem,
+            "endpoint": l.endpoint,
+            "metodo_http": l.metodo_http,
+            "http_status": l.http_status,
+            "duracao_ms": l.duracao_ms,
+            "order_id": l.order_id,
+            "charge_id": l.charge_id,
+            "webhook_event_id": l.webhook_event_id,
+            "request_headers": l.request_headers,
+            "request_body": l.request_body,
+            "response_headers": l.response_headers,
+            "response_body": l.response_body,
+        })
+
+    from django.conf import settings
+    return JsonResponse({
+        "success": True,
+        "environment": settings.STONE_ENVIRONMENT,
+        "order_number": order.number,
+        "payments": payments_data,
+        "logs": logs_data,
+    })
+
+
+@login_required
+@require_POST
+def order_stone_dev_force_approve(request, pk: int) -> JsonResponse:
+    """Ação rápida de Dev: simula a aprovação imediata do pagamento Stone e liquida o pedido."""
+    dev_only_check(request.user)
+    order = get_object_or_404(Order, pk=pk)
+
+    from apps.payments.models import StonePagamento
+    from apps.payments.stone.services.payments import reconcile_order_payment, record_event
+
+    latest = order.stone_pagamentos.filter(status=StonePagamento.Status.PENDING).first()
+    if not latest:
+        import uuid
+        latest = StonePagamento.objects.create(
+            order=order,
+            cliente=order.cliente,
+            cliente_nome=order.client_name,
+            valor=order.remaining_amount or order.total_amount,
+            metodo=StonePagamento.Metodo.PIX,
+            status=StonePagamento.Status.PENDING,
+            referencia=f"Pedido #{order.number} (Simulação Dev)",
+            stone_payment_id=f"ch_dev_sim_{uuid.uuid4().hex[:12]}",
+            stone_order_id=f"or_dev_sim_{uuid.uuid4().hex[:12]}",
+        )
+
+    latest.status = StonePagamento.Status.PAID
+    latest.paid_at = timezone.now()
+    latest.save(update_fields=["status", "paid_at", "updated_at"])
+
+    record_event(
+        tipo="simulacao_dev_aprovado",
+        descricao=f"Aprovação forçada pelo Desenvolvedor {request.user.name or request.user.email}.",
+        pagamento=latest,
+        dados={"user": request.user.email, "ip": request.META.get("REMOTE_ADDR")},
+    )
+
+    reconcile_order_payment(latest, user=request.user, source="simulacao_dev")
+    order.refresh_from_db()
+
+    return JsonResponse({
+        "success": True,
+        "message": f"Pagamento #{latest.pk} aprovado e pedido #{order.number} liquidado com sucesso!",
+        "order_status": order.payment_status,
+        "paid_amount": str(order.paid_amount),
+        "remaining_amount": str(order.remaining_amount),
+    })
+
+
+@login_required
+@require_POST
+def order_stone_dev_force_fail(request, pk: int) -> JsonResponse:
+    """Ação rápida de Dev: simula recusa/falha do pagamento Stone."""
+    dev_only_check(request.user)
+    order = get_object_or_404(Order, pk=pk)
+
+    from apps.payments.models import StonePagamento
+    from apps.payments.stone.services.payments import record_event
+
+    latest = order.stone_pagamentos.filter(status=StonePagamento.Status.PENDING).first()
+    if not latest:
+        return JsonResponse({"success": False, "error": "Nenhum pagamento pendente para reprovar."}, status=400)
+
+    latest.status = StonePagamento.Status.FAILED
+    latest.last_error_message = "Transação recusada por simulação do desenvolvedor."
+    latest.save(update_fields=["status", "last_error_message", "updated_at"])
+
+    record_event(
+        tipo="simulacao_dev_recusado",
+        descricao=f"Recusa forçada pelo Desenvolvedor {request.user.name or request.user.email}.",
+        pagamento=latest,
+        dados={"user": request.user.email},
+    )
+    return JsonResponse({"success": True, "message": "Falha simulada com sucesso."})
+
+
+@login_required
+@require_POST
+def order_stone_dev_reprocess_webhook(request, pk: int) -> JsonResponse:
+    """Ação rápida de Dev: reprocessa o último webhook recebido para o pedido."""
+    dev_only_check(request.user)
+    order = get_object_or_404(Order, pk=pk)
+
+    from apps.payments.models import StoneLogIntegracao
+    from apps.payments.stone.services.payments import process_stone_webhook
+    from django.db.models import Q
+
+    last_webhook_log = StoneLogIntegracao.objects.filter(
+        tipo_evento="webhook_recebido"
+    ).filter(
+        Q(order_id__icontains=order.number) |
+        Q(request_body__icontains=order.number)
+    ).order_by("-timestamp").first()
+
+    if not last_webhook_log or not last_webhook_log.request_body:
+        return JsonResponse({"success": False, "error": "Nenhum webhook prévio encontrado para reprocessar."}, status=404)
+
+    if last_webhook_log.webhook_event_id:
+        StoneLogIntegracao.objects.filter(
+            webhook_event_id=last_webhook_log.webhook_event_id,
+            tipo_evento="webhook_processado_sucesso"
+        ).delete()
+
+    res = process_stone_webhook(last_webhook_log.request_body, headers=last_webhook_log.request_headers)
+    return JsonResponse({"success": True, "result": res})
+
+
+@login_required
+def order_stone_dev_ping(request, pk: int) -> JsonResponse:
+    """Testa conectividade real com a API da Stone V5 e calcula a latência."""
+    dev_only_check(request.user)
+    from apps.payments.stone.services.stone import StoneService
+    from django.conf import settings
+    from time import perf_counter
+
+    service = StoneService()
+    start = perf_counter()
+    try:
+        res = service.test_connectivity()
+        latency = int((perf_counter() - start) * 1000)
+        return JsonResponse({
+            "success": True,
+            "latency_ms": latency,
+            "environment": settings.STONE_ENVIRONMENT,
+            "http_status": 200,
+            "response_summary": res,
+        })
+    except Exception as exc:
+        latency = int((perf_counter() - start) * 1000)
+        return JsonResponse({
+            "success": False,
+            "latency_ms": latency,
+            "environment": settings.STONE_ENVIRONMENT,
+            "error": str(exc),
+        }, status=502)

@@ -187,18 +187,26 @@ LOGGING = {
 }
 
 # ==============================================================================
-# Stone / Pagar.me V5 Integration (Sandbox / Test Environment)
+# Stone / Pagar.me V5 Integration (Sandbox & Production)
 # ==============================================================================
-STONE_ENVIRONMENT = os.getenv("STONE_ENVIRONMENT", "test")
-STONE_ACCOUNT_ID = os.getenv("STONE_ACCOUNT_ID", "acc_EBZAgeuxaf084Xe1")
-STONE_PUBLIC_KEY = os.getenv("STONE_PUBLIC_KEY", "pk_v6krKPwcoaS1pd8G")
-STONE_SECRET_KEY = os.getenv("STONE_SECRET_KEY", "sk_7377ee9289d843c5beab5526199ce6d5")
+STONE_ENVIRONMENT = os.getenv("STONE_ENVIRONMENT", "sandbox").strip().lower()
+
+if STONE_ENVIRONMENT in {"production", "prod", "live"}:
+    STONE_ACCOUNT_ID = os.getenv("STONE_PROD_ACCOUNT_ID") or os.getenv("STONE_ACCOUNT_ID", "")
+    STONE_PUBLIC_KEY = os.getenv("STONE_PROD_PUBLIC_KEY") or os.getenv("STONE_PUBLIC_KEY", "")
+    STONE_SECRET_KEY = os.getenv("STONE_PROD_SECRET_KEY") or os.getenv("STONE_SECRET_KEY", "")
+    STONE_WEBHOOK_SECRET = os.getenv("STONE_PROD_WEBHOOK_SECRET") or os.getenv("STONE_WEBHOOK_SECRET", "")
+else:
+    STONE_ACCOUNT_ID = os.getenv("STONE_SANDBOX_ACCOUNT_ID") or os.getenv("STONE_ACCOUNT_ID", "acc_EBZAgeuxaf084Xe1")
+    STONE_PUBLIC_KEY = os.getenv("STONE_SANDBOX_PUBLIC_KEY") or os.getenv("STONE_PUBLIC_KEY", "pk_v6krKPwcoaS1pd8G")
+    STONE_SECRET_KEY = os.getenv("STONE_SANDBOX_SECRET_KEY") or os.getenv("STONE_SECRET_KEY", "sk_7377ee9289d843c5beab5526199ce6d5")
+    STONE_WEBHOOK_SECRET = os.getenv("STONE_SANDBOX_WEBHOOK_SECRET") or os.getenv("STONE_WEBHOOK_SECRET", "")
+
 STONE_API_BASE_URL = os.getenv("STONE_API_BASE_URL", "https://api.pagar.me/core/v5")
 STONE_TIMEOUT_SECONDS = int(os.getenv("STONE_TIMEOUT_SECONDS", "15"))
 STONE_PIX_EXPIRES_IN = int(os.getenv("STONE_PIX_EXPIRES_IN", "86400"))
 STONE_IDEMPOTENCY_TTL_SECONDS = int(os.getenv("STONE_IDEMPOTENCY_TTL_SECONDS", "300"))
-STONE_ACCOUNT_TYPE = os.getenv("STONE_ACCOUNT_TYPE", "")
-STONE_WEBHOOK_SECRET = os.getenv("STONE_WEBHOOK_SECRET", "")
+STONE_ACCOUNT_TYPE = os.getenv("STONE_ACCOUNT_TYPE", "gateway")
 STONE_PIX_DEBUG = env_bool("STONE_PIX_DEBUG", True)
 
 

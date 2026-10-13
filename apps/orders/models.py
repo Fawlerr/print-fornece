@@ -354,6 +354,14 @@ class OrderPayment(models.Model):
     payment_method = models.CharField("forma de pagamento", max_length=20, choices=Order.PaymentMethod.choices)
     amount = models.DecimalField("valor pago", max_digits=12, decimal_places=2)
     notes = models.CharField("observação", max_length=255, blank=True, default="")
+    stone_payment = models.ForeignKey(
+        "payments.StonePagamento",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="order_payments",
+        verbose_name="pagamento Stone vinculado",
+    )
     recorded_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         null=True,

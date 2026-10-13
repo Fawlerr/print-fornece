@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timedelta
+from decimal import Decimal
 from typing import Any
 
 from django.conf import settings
@@ -314,6 +315,8 @@ def apply_stone_response(payment_id: int, response: dict[str, Any], *, event_typ
             payment.paid_at = paid_at or timezone.now()
         payment.save()
         _sync_saved_card(payment.cliente, transaction_data)
+        if status == Pagamento.Status.PAID:
+            reconcile_order_payment(payment, source="stone_sync")
         if payment.is_pix:
             _record_pix_events(
                 payment=payment,
@@ -366,6 +369,131 @@ def _record_stone_error(payment_id: int, error: StoneAPIError) -> None:
         )
 
 
+def reconcile_order_payment(
+    payment: Pagamento,
+    *,
+    user=None,
+    source: str = "stone",
+) -> Any | None:
+    """Atomically synchronize a confirmed Stone payment with the Order and Cash Register.
+    Guarantees idempotency: never generates duplicate OrderPayment records.
+    """
+    from apps.orders.models import Order, OrderHistory, OrderPayment, OrderStageHistory
+    from apps.orders.services import _snapshot_receipt_on_payment
+    from apps.audit.services import record_audit
+
+    # Try resolving order if not directly linked
+    if not payment.order_id and payment.referencia:
+        import re
+        match = re.search(r"#?([0-9]{3,})", payment.referencia)
+        if match:
+            matched_order = Order.objects.filter(number__endswith=match.group(1)).first()
+            if matched_order:
+                payment.order = matched_order
+                payment.save(update_fields=["order"])
+
+    order = payment.order
+    if not order:
+        return None
+
+    with transaction.atomic():
+        order = Order.objects.select_for_update().get(pk=order.pk)
+        payment = Pagamento.objects.select_for_update().get(pk=payment.pk)
+
+        # Idempotency check: if this Stone payment was already recorded in OrderPayment, skip
+        existing_op = OrderPayment.objects.filter(stone_payment=payment).first()
+        if existing_op:
+            return order
+
+        # Map Stone payment method to OrderPayment method
+        if payment.is_pix:
+            method_code = Order.PaymentMethod.PIX
+            method_name = "PIX"
+        else:
+            method_code = Order.PaymentMethod.CREDIT_CARD
+            method_name = "Cartão de Crédito"
+
+        amount = payment.valor
+        notes = f"Stone V5 ({payment.stone_payment_id or payment.stone_order_id or payment.pk})"
+        actor = user or order.responsible or order.created_by
+
+        OrderPayment.objects.create(
+            order=order,
+            payment_method=method_code,
+            amount=amount,
+            notes=notes,
+            stone_payment=payment,
+            recorded_by=actor,
+        )
+
+        # Recalculate total paid
+        all_splits = list(order.payments.all())
+        total_paid = sum((sp.amount for sp in all_splits), Decimal("0.00"))
+        if total_paid > order.total_amount and order.total_amount > Decimal("0.00"):
+            order.paid_amount = order.total_amount
+        else:
+            order.paid_amount = total_paid
+
+        # Method resolution on Order header
+        distinct_methods = set(sp.payment_method for sp in all_splits)
+        if len(distinct_methods) > 1:
+            order.payment_method = Order.PaymentMethod.MULTIPLE
+        elif distinct_methods:
+            order.payment_method = list(distinct_methods)[0]
+
+        # Transition status
+        if order.paid_amount >= order.total_amount and order.total_amount > Decimal("0.00"):
+            order.payment_status = Order.PaymentStatus.PAID
+            order.payment_confirmed_at = payment.paid_at or timezone.now()
+            order.payment_confirmed_by = actor
+            _snapshot_receipt_on_payment(order, actor)
+
+            # Auto-advance stage if in initial stages
+            if order.stage in {Order.Stage.NEW, Order.Stage.AWAITING_PAYMENT}:
+                prev_stage = order.stage
+                order.stage = Order.Stage.PAYMENT_CONFIRMED
+                order.stage_updated_at = timezone.now()
+                OrderStageHistory.objects.create(
+                    order=order,
+                    previous_stage=prev_stage,
+                    new_stage=Order.Stage.PAYMENT_CONFIRMED,
+                    user=actor,
+                )
+        else:
+            order.payment_status = Order.PaymentStatus.PARTIAL
+
+        order.save()
+
+        # Audit & History
+        desc = f"Pagamento de R$ {amount:.2f} confirmado via Stone ({method_name}). Saldo pago: R$ {order.paid_amount:.2f} de R$ {order.total_amount:.2f}."
+        OrderHistory.objects.create(
+            order=order,
+            user=actor,
+            action="pagamento_stone_confirmado",
+            description=desc,
+        )
+        record_audit(
+            actor,
+            "pagamento_stone_confirmado",
+            "pedido",
+            order.pk,
+            after={
+                "valor_adicionado": str(amount),
+                "total_pago": str(order.paid_amount),
+                "status_pagamento": order.payment_status,
+                "stone_payment_id": payment.stone_payment_id,
+                "origem": source,
+            },
+        )
+        record_event(
+            tipo="pedido_reconciliado",
+            descricao=f"Pedido #{order.number} reconciliado com sucesso via Stone.",
+            pagamento=payment,
+            dados={"order_id": order.pk, "paid_amount": str(order.paid_amount), "status": order.payment_status},
+        )
+        return order
+
+
 def create_payment(
     *,
     customer: Cliente,
@@ -374,6 +502,7 @@ def create_payment(
     method: str,
     installments: int,
     idempotency_key,
+    order: Any | None = None,
     card_token: str | None = None,
     saved_method: MetodoPagamento | None = None,
     service: StoneService | None = None,
@@ -395,6 +524,7 @@ def create_payment(
         payment, created = Pagamento.objects.get_or_create(
             idempotency_key=idempotency_key,
             defaults={
+                "order": order,
                 "cliente": customer,
                 "cliente_nome": customer.nome,
                 "cliente_documento": customer.cpf_cnpj or "",
@@ -408,6 +538,9 @@ def create_payment(
             },
         )
         payment = Pagamento.objects.select_for_update().get(pk=payment.pk)
+        if order and not payment.order_id:
+            payment.order = order
+            payment.save(update_fields=["order"])
         if not created:
             if payment.cliente_id != customer.pk or payment.valor != amount or payment.metodo != method:
                 raise StoneValidationError("A chave de idempotência já pertence a outra cobrança.")
@@ -478,8 +611,183 @@ def create_payment(
         raise
 
 
+def create_order_stone_payment(
+    *,
+    order: Any,
+    amount: Decimal,
+    method: str,
+    installments: int = 1,
+    card_token: str | None = None,
+    saved_method: MetodoPagamento | None = None,
+    user=None,
+    service: StoneService | None = None,
+) -> Pagamento:
+    """Create and dispatch a Stone payment directly for an Order."""
+    from apps.payments.models import Cliente
+    from apps.payments.stone.services.normalizers import only_digits
+    import uuid
+
+    if amount <= Decimal("0.00"):
+        raise StoneValidationError("O valor da cobrança deve ser maior que zero.")
+
+    # Resolve or create Cliente for the order
+    customer = order.cliente
+    if not customer:
+        digits_phone = only_digits(order.client_whatsapp)
+        customer = Cliente.objects.filter(telefone__endswith=digits_phone[-8:]).first() if digits_phone else None
+        if not customer:
+            customer = Cliente.objects.create(
+                nome=order.client_name,
+                telefone=order.client_whatsapp,
+            )
+            order.cliente = customer
+            order.save(update_fields=["cliente", "updated_at"])
+
+    reference = f"Pedido #{order.number}"
+    payment = create_payment(
+        customer=customer,
+        amount=amount,
+        reference=reference,
+        method=method,
+        installments=installments,
+        idempotency_key=uuid.uuid4(),
+        order=order,
+        card_token=card_token,
+        saved_method=saved_method,
+        service=service,
+    )
+    if not payment.order_id:
+        payment.order = order
+        payment.save(update_fields=["order"])
+
+    if payment.status == Pagamento.Status.PAID:
+        reconcile_order_payment(payment, user=user, source="stone_immediate")
+
+    return payment
+
+
 def refresh_payment(payment: Pagamento, *, service: StoneService | None = None) -> Pagamento:
     service = service or StoneService()
     service.require_server_credentials()
     response = service.get_payment(payment.stone_payment_id)
     return apply_stone_response(payment.pk, response, event_type="status_consultado")
+
+
+def process_stone_webhook(payload: dict[str, Any], headers: dict[str, str] | None = None) -> dict[str, Any]:
+    """Idempotently process an incoming webhook notification from Stone / Pagar.me V5."""
+    from apps.payments.models import StoneLogIntegracao
+    from .logger import IntegrationLogger, generate_trace_id
+
+    trace_id = generate_trace_id()
+    event_id = str(payload.get("id") or "")
+    event_type = str(payload.get("event") or payload.get("type") or "webhook_desconhecido")
+    data = payload.get("data")
+    data = data if isinstance(data, dict) else payload
+
+    # 1. Log webhook received immediately
+    IntegrationLogger.record(
+        trace_id=trace_id,
+        nivel="INFO",
+        tipo_evento="webhook_recebido",
+        mensagem=f"Webhook Stone recebido: {event_type} (ID: {event_id or 'sem_id'})",
+        endpoint="/payments/stone/webhook/",
+        metodo_http="POST",
+        request_headers=headers or {},
+        request_body=payload,
+        webhook_event_id=event_id,
+    )
+
+    # 2. Idempotency verification: check if this event was already processed
+    if event_id:
+        already_processed = StoneLogIntegracao.objects.filter(
+            webhook_event_id=event_id,
+            tipo_evento="webhook_processado_sucesso",
+        ).exists()
+        if already_processed:
+            IntegrationLogger.record(
+                trace_id=trace_id,
+                nivel="INFO",
+                tipo_evento="webhook_ignorado_duplicado",
+                mensagem=f"Webhook {event_id} ({event_type}) já processado anteriormente. Ignorando de forma idempotente.",
+                endpoint="/payments/stone/webhook/",
+                metodo_http="POST",
+                request_headers=headers or {},
+                request_body=payload,
+                webhook_event_id=event_id,
+            )
+            return {"status": "already_processed", "event_id": event_id, "event": event_type}
+
+    # 3. Locate local StonePagamento
+    charge_id = str(data.get("id") or data.get("charge_id") or "")
+    order_data = data.get("order") if isinstance(data.get("order"), dict) else {}
+    order_id = str(order_data.get("id") or data.get("order_id") or "")
+    order_code = str(order_data.get("code") or data.get("code") or "")
+    last_tx = data.get("last_transaction") if isinstance(data.get("last_transaction"), dict) else {}
+    transaction_id = str(last_tx.get("id") or "")
+
+    payment = None
+    if charge_id:
+        payment = Pagamento.objects.filter(stone_payment_id=charge_id).first()
+    if not payment and order_id:
+        payment = Pagamento.objects.filter(stone_order_id=order_id).first()
+    if not payment and transaction_id:
+        payment = Pagamento.objects.filter(stone_transaction_id=transaction_id).first()
+    if not payment and order_code:
+        payment = Pagamento.objects.filter(referencia__icontains=order_code).first()
+
+    if not payment:
+        IntegrationLogger.record(
+            trace_id=trace_id,
+            nivel="WARNING",
+            tipo_evento="webhook_pagamento_nao_encontrado",
+            mensagem=f"Pagamento não localizado localmente para charge_id={charge_id}, order_id={order_id}, code={order_code}",
+            endpoint="/payments/stone/webhook/",
+            metodo_http="POST",
+            request_body=payload,
+            webhook_event_id=event_id,
+        )
+        return {"status": "payment_not_found", "event_id": event_id, "event": event_type}
+
+    # 4. Apply status update
+    try:
+        updated_payment = apply_stone_response(payment.pk, data, event_type=f"webhook_{event_type}")
+
+        # If confirmed paid, reconcile order immediately
+        if updated_payment.status == Pagamento.Status.PAID:
+            reconcile_order_payment(updated_payment, source="stone_webhook")
+
+        IntegrationLogger.record(
+            trace_id=trace_id,
+            nivel="SUCCESS",
+            tipo_evento="webhook_processado_sucesso",
+            mensagem=f"Webhook {event_id} ({event_type}) processado com sucesso. Status do pagamento: {updated_payment.status}.",
+            endpoint="/payments/stone/webhook/",
+            metodo_http="POST",
+            request_body=payload,
+            order_id=updated_payment.stone_order_id,
+            charge_id=updated_payment.stone_payment_id,
+            transaction_id=updated_payment.stone_transaction_id,
+            webhook_event_id=event_id,
+        )
+        return {
+            "status": "success",
+            "event_id": event_id,
+            "event": event_type,
+            "payment_id": updated_payment.pk,
+            "order_id": updated_payment.order_id,
+            "payment_status": updated_payment.status,
+        }
+    except Exception as exc:
+        logger.exception("Erro ao processar webhook Stone: %s", exc)
+        IntegrationLogger.record(
+            trace_id=trace_id,
+            nivel="ERROR",
+            tipo_evento="webhook_erro_processamento",
+            mensagem=f"Falha ao processar webhook {event_id}: {str(exc)}",
+            endpoint="/payments/stone/webhook/",
+            metodo_http="POST",
+            request_body=payload,
+            webhook_event_id=event_id,
+            error_message=str(exc),
+        )
+        raise
