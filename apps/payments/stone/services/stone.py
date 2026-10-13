@@ -313,10 +313,10 @@ class StoneService:
         return bool(self.secret_key)
 
     def require_server_credentials(self) -> None:
-        if settings.STONE_ENVIRONMENT != "test":
-            raise StoneConfigurationError("O ambiente Stone deve ser 'test' neste projeto isolado.")
+        if settings.STONE_ENVIRONMENT not in {"sandbox", "production", "test"}:
+            raise StoneConfigurationError("O ambiente Stone deve ser 'sandbox' ou 'production'.")
         if not self.secret_key:
-            raise StoneConfigurationError("A chave secreta de teste da Stone (STONE_SECRET_KEY / sk_test_...) ainda não foi configurada.")
+            raise StoneConfigurationError("A chave secreta da Stone (STONE_SECRET_KEY / sk_...) ainda não foi configurada.")
         if not (self.secret_key.startswith("sk_test_") or self.secret_key.startswith("sk_")):
             raise StoneConfigurationError("A chave secreta configurada não possui o formato de chave secreta V5 ('sk_...').")
 
