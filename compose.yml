@@ -2,6 +2,8 @@ services:
   app:
     build:
       context: .
+    env_file:
+      - .env
     environment:
       DJANGO_SETTINGS_MODULE: "config.settings.production"
       SECRET_KEY: "${SECRET_KEY:-django-insecure-key-change-me-in-production}"
