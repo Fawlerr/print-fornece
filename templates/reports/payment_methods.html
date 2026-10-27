@@ -1,0 +1,272 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Relatório por Forma de Pagamento | Print Fornece{% endblock %}
+{% block page_heading %}Relatório por Forma de Pagamento{% endblock %}
+
+{% block content %}
+<section class="section" style="max-width: 1250px; margin: 0 auto;">
+
+  <!-- Abas de Navegação dos Relatórios -->
+  <div class="no-print" style="display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 12px; flex-wrap: wrap;">
+    <a href="{% url 'reports:index' %}" class="btn btn-secondary" style="display: inline-flex; align-items: center; gap: 8px; font-weight: 500;">
+      <i class="fa-solid fa-chart-line"></i> Visão Geral & Financeiro
+    </a>
+    <a href="{% url 'reports:payment_methods' %}" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 8px; font-weight: 600; background: #2563eb; border-color: #1d4ed8;">
+      <i class="fa-solid fa-credit-card"></i> Formas de Pagamento
+    </a>
+    <a href="{% url 'reports:new_customers' %}" class="btn btn-secondary" style="display: inline-flex; align-items: center; gap: 8px; font-weight: 500;">
+      <i class="fa-solid fa-user-plus"></i> Clientes Novos por Mês
+    </a>
+    <a href="{% url 'reports:cash_register' %}" class="btn btn-secondary" style="display: inline-flex; align-items: center; gap: 8px; font-weight: 500;">
+      <i class="fa-solid fa-cash-register"></i> Fechamento de Caixa
+    </a>
+    <a href="{% url 'reports:customers_ranking' %}" class="btn btn-secondary" style="display: inline-flex; align-items: center; gap: 8px; font-weight: 500;">
+      <i class="fa-solid fa-users"></i> Ranking de Clientes
+    </a>
+    <a href="{% url 'reports:production' %}" class="btn btn-secondary" style="display: inline-flex; align-items: center; gap: 8px; font-weight: 500;">
+      <i class="fa-solid fa-print"></i> Produção Diária
+    </a>
+  </div>
+
+  <!-- Cabeçalho e Filtros -->
+  <div class="card no-print" style="margin-bottom: 24px; padding: 18px 20px; background: var(--surface, #1e293b); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px;">
+    <form method="get" style="display: flex; flex-wrap: wrap; gap: 14px; align-items: center; justify-content: space-between;">
+      
+      <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <label for="id_start" style="font-size: 0.9rem; font-weight: 600; color: #cbd5e1; margin: 0;">Data Inicial:</label>
+          <input type="date" id="id_start" name="start" value="{{ start_str }}" style="padding: 6px 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: #fff; font-size: 0.92rem; font-weight: 600;">
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <label for="id_end" style="font-size: 0.9rem; font-weight: 600; color: #cbd5e1; margin: 0;">Data Final:</label>
+          <input type="date" id="id_end" name="end" value="{{ end_str }}" style="padding: 6px 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: #fff; font-size: 0.92rem; font-weight: 600;">
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <label for="id_method" style="font-size: 0.9rem; font-weight: 600; color: #cbd5e1; margin: 0;">Forma:</label>
+          <select id="id_method" name="method" style="padding: 6px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: #fff; font-size: 0.92rem; font-weight: 600;">
+            <option value="" {% if not selected_method %}selected{% endif %}>Todas as Formas</option>
+            {% for m in methods_list %}
+              <option value="{{ m.key }}" {% if selected_method == m.key %}selected{% endif %}>{{ m.label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-small">
+          <i class="fa-solid fa-filter"></i> Filtrar
+        </button>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+        <button type="submit" name="export" value="csv" class="btn btn-secondary btn-small" style="background: rgba(34, 197, 94, 0.15); color: #22c55e; border-color: rgba(34, 197, 94, 0.3);">
+          <i class="fa-solid fa-file-csv"></i> Exportar CSV
+        </button>
+        <button type="button" class="btn btn-secondary btn-small" onclick="window.print()">
+          <i class="fa-solid fa-print"></i> Imprimir
+        </button>
+      </div>
+
+    </form>
+  </div>
+
+  <!-- Cabeçalho do Relatório -->
+  <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px; border-bottom: 2px solid rgba(255,255,255,0.1); padding-bottom: 12px;">
+    <div>
+      <span style="font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.05em; color: #38bdf8; font-weight: 700;">Distribuição Financeira</span>
+      <h1 style="font-size: 1.6rem; font-weight: 800; color: #fff; margin: 4px 0 2px 0;">
+        Faturamento por Forma de Pagamento
+      </h1>
+      <p style="font-size: 0.92rem; color: #94a3b8; margin: 0;">
+        Período: <strong>{{ start_date|date:"d/m/Y" }}</strong> até <strong>{{ end_date|date:"d/m/Y" }}</strong>
+      </p>
+    </div>
+    <div style="text-align: right; font-size: 0.82rem; color: #94a3b8;">
+      Emitido em: <strong>{% now "d/m/Y H:i" %}</strong>
+    </div>
+  </div>
+
+  <!-- Cards KPIs -->
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px;">
+    
+    <div class="card" style="padding: 16px 20px; background: rgba(34, 197, 94, 0.08); border: 1px solid rgba(34, 197, 94, 0.3); border-radius: 10px;">
+      <span style="font-size: 0.8rem; text-transform: uppercase; font-weight: 700; color: #4ade80; display: block; margin-bottom: 4px;">
+        <i class="fa-solid fa-sack-dollar"></i> Faturamento Total Recebido
+      </span>
+      <div style="font-size: 1.6rem; font-weight: 800; color: #22c55e;">
+        R$ {{ grand_total|floatformat:2 }}
+      </div>
+      <small style="color: #94a3b8; font-size: 0.78rem;">todos os métodos somados</small>
+    </div>
+
+    <div class="card" style="padding: 16px 20px; background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 10px;">
+      <span style="font-size: 0.8rem; text-transform: uppercase; font-weight: 700; color: #38bdf8; display: block; margin-bottom: 4px;">
+        <i class="fa-solid fa-receipt"></i> Total de Transações
+      </span>
+      <div style="font-size: 1.6rem; font-weight: 800; color: #38bdf8;">
+        {{ total_transactions_count }}
+      </div>
+      <small style="color: #94a3b8; font-size: 0.78rem;">recebimentos efetuados</small>
+    </div>
+
+    <div class="card" style="padding: 16px 20px; background: rgba(168, 85, 247, 0.08); border: 1px solid rgba(168, 85, 247, 0.3); border-radius: 10px;">
+      <span style="font-size: 0.8rem; text-transform: uppercase; font-weight: 700; color: #c084fc; display: block; margin-bottom: 4px;">
+        <i class="fa-solid fa-trophy"></i> Método Principal
+      </span>
+      <div style="font-size: 1.4rem; font-weight: 800; color: #c084fc;">
+        {% if methods_list.0.total > 0 %}
+          {{ methods_list.0.label }}
+        {% else %}
+          —
+        {% endif %}
+      </div>
+      <small style="color: #94a3b8; font-size: 0.78rem;">
+        {% if methods_list.0.total > 0 %}
+          {{ methods_list.0.pct }}% do faturamento (R$ {{ methods_list.0.total|floatformat:2 }})
+        {% else %}
+          Sem dados
+        {% endif %}
+      </small>
+    </div>
+
+    <div class="card" style="padding: 16px 20px; background: rgba(251, 191, 36, 0.08); border: 1px solid rgba(251, 191, 36, 0.3); border-radius: 10px;">
+      <span style="font-size: 0.8rem; text-transform: uppercase; font-weight: 700; color: #fbbf24; display: block; margin-bottom: 4px;">
+        <i class="fa-solid fa-coins"></i> Total no Filtro Atual
+      </span>
+      <div style="font-size: 1.6rem; font-weight: 800; color: #fbbf24;">
+        R$ {{ total_filtered_revenue|floatformat:2 }}
+      </div>
+      <small style="color: #94a3b8; font-size: 0.78rem;">{{ transactions|length }} transação(ões) exibida(s)</small>
+    </div>
+
+  </div>
+
+  <!-- Grid / Cards de Métodos com Barras de Percentual -->
+  <div class="card" style="margin-bottom: 28px; padding: 20px; background: var(--surface, #1e293b); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px;">
+    <h3 style="font-size: 1.1rem; font-weight: 700; color: #fff; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+      <i class="fa-solid fa-chart-pie" style="color: #38bdf8;"></i> Participação por Forma de Pagamento
+    </h3>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px;">
+      {% for m in methods_list %}
+        <div style="padding: 14px 16px; background: rgba(0,0,0,0.25); border: 1px solid {% if selected_method == m.key %}rgba(56, 189, 248, 0.6){% else %}rgba(255,255,255,0.08){% endif %}; border-radius: 10px; display: flex; flex-direction: column; justify-content: space-between;">
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <i class="{{ m.icon }}" style="color: {{ m.color }}; font-size: 1.1rem;"></i>
+                <strong style="color: #f8fafc; font-size: 0.95rem;">{{ m.label }}</strong>
+              </div>
+              <span class="badge" style="background: {{ m.badge_bg }}; color: {{ m.color }}; font-weight: 700; font-size: 0.8rem;">
+                {{ m.pct }}%
+              </span>
+            </div>
+
+            <!-- Barra de Progresso Visual -->
+            <div style="width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; margin-bottom: 10px;">
+              <div style="width: {{ m.pct }}%; height: 100%; background: {{ m.color }}; border-radius: 3px;"></div>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px;">
+              <span style="font-size: 0.82rem; color: #94a3b8;">Total Arrecadado:</span>
+              <strong style="font-size: 1.15rem; color: {{ m.color }};">R$ {{ m.total|floatformat:2 }}</strong>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; color: #cbd5e1;">
+              <span>{{ m.count }} transação(ões)</span>
+              <span>Média: R$ {{ m.avg|floatformat:2 }}</span>
+            </div>
+          </div>
+
+          <div style="margin-top: 10px; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 8px; text-align: right;">
+            {% if selected_method == m.key %}
+              <a href="?start={{ start_str }}&end={{ end_str }}" class="btn btn-secondary btn-small" style="font-size: 0.75rem; padding: 2px 8px;">
+                Limpar Filtro
+              </a>
+            {% else %}
+              <a href="?start={{ start_str }}&end={{ end_str }}&method={{ m.key }}" class="btn btn-secondary btn-small" style="font-size: 0.75rem; padding: 2px 8px;">
+                Filtrar apenas {{ m.label }}
+              </a>
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Tabela Discriminada de Transações / Recebimentos -->
+  <div class="card" style="margin-bottom: 28px; padding: 20px; background: var(--surface, #1e293b); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
+      <h3 style="font-size: 1.1rem; font-weight: 700; color: #fff; margin: 0; display: flex; align-items: center; gap: 8px;">
+        <i class="fa-solid fa-list-check" style="color: #22c55e;"></i> Recebimentos Detalhados ({{ transactions|length }})
+      </h3>
+      {% if selected_method %}
+        <a href="?start={{ start_str }}&end={{ end_str }}" class="btn btn-secondary btn-small">
+          <i class="fa-solid fa-list"></i> Ver Todas as Formas
+        </a>
+      {% endif %}
+    </div>
+
+    <div class="table-responsive" style="overflow-x: auto;">
+      <table class="table" style="width: 100%; border-collapse: collapse;">
+        <thead>
+          <tr style="border-bottom: 1px solid rgba(255,255,255,0.15); text-align: left; font-size: 0.82rem; color: #94a3b8; text-transform: uppercase;">
+            <th style="padding: 10px 8px;">Data / Horário</th>
+            <th style="padding: 10px 8px;">Pedido</th>
+            <th style="padding: 10px 8px;">Cliente</th>
+            <th style="padding: 10px 8px;">Forma de Pagamento</th>
+            <th style="padding: 10px 8px; text-align: right;">Valor Recebido</th>
+            <th style="padding: 10px 8px;">Responsável</th>
+            <th style="padding: 10px 8px;">Observações</th>
+            <th style="padding: 10px 8px; text-align: center;">Ação</th>
+          </tr>
+        </thead>
+        <tbody style="font-size: 0.88rem;">
+          {% for t in transactions %}
+            <tr style="border-bottom: 1px solid rgba(255,255,255,0.06); transition: background 0.15s ease;">
+              <td style="padding: 10px 8px; color: #94a3b8; white-space: nowrap;">
+                {{ t.date|date:"d/m/Y H:i" }}
+              </td>
+              <td style="padding: 10px 8px; font-weight: 700; white-space: nowrap;">
+                <a href="{% url 'production:detail' pk=t.order.pk %}" style="color: #38bdf8; text-decoration: none;">
+                  #{{ t.order.number }}
+                </a>
+              </td>
+              <td style="padding: 10px 8px; color: #f8fafc; font-weight: 600;">
+                {{ t.client_name }}
+              </td>
+              <td style="padding: 10px 8px;">
+                <span class="badge" style="background: rgba(255,255,255,0.08); color: {{ t.method_color }}; border: 1px solid rgba(255,255,255,0.15); font-weight: 600;">
+                  {{ t.method_label }}
+                </span>
+              </td>
+              <td style="padding: 10px 8px; text-align: right; font-weight: 700; color: #22c55e; white-space: nowrap;">
+                R$ {{ t.amount|floatformat:2 }}
+              </td>
+              <td style="padding: 10px 8px; color: #cbd5e1; font-size: 0.82rem;">
+                {{ t.recorded_by }}
+              </td>
+              <td style="padding: 10px 8px; color: #94a3b8; font-size: 0.82rem;">
+                {{ t.notes|default:"—" }}
+              </td>
+              <td style="padding: 10px 8px; text-align: center; white-space: nowrap;">
+                <a href="{% url 'production:detail' pk=t.order.pk %}" class="btn btn-secondary btn-small" title="Abrir Pedido" style="padding: 4px 8px; font-size: 0.8rem;">
+                  <i class="fa-solid fa-arrow-up-right-from-square"></i> Pedido
+                </a>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="8" style="padding: 24px; text-align: center; color: #94a3b8;">
+                <i class="fa-solid fa-receipt" style="font-size: 2rem; margin-bottom: 8px; display: block; opacity: 0.4;"></i>
+                Nenhum pagamento registrado no período selecionado.
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</section>
+{% endblock %}

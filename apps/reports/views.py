@@ -342,6 +342,22 @@ class CashRegisterReportView(LoginRequiredMixin, TemplateView):
             expense_date=target_date
         ).select_related("created_by").order_by("-amount")
 
+        all_orders = list(orders)
+        complete_orders = [o for o in all_orders if o.payment_status == Order.PaymentStatus.PAID]
+        partial_orders = [o for o in all_orders if o.payment_status == Order.PaymentStatus.PARTIAL]
+
+        total_completo = sum((o.paid_amount for o in complete_orders), Decimal("0.00"))
+        total_parcial = sum((o.paid_amount for o in partial_orders), Decimal("0.00"))
+
+        payment_type = request.GET.get("payment_type", "todos").strip()
+        if payment_type == "completo":
+            display_orders = complete_orders
+        elif payment_type == "parcial":
+            display_orders = partial_orders
+        else:
+            payment_type = "todos"
+            display_orders = all_orders
+
         # Agrupamento de recebimentos por método de pagamento
         methods_summary = {
             "pix": {"label": "PIX", "total": Decimal("0.00"), "count": 0, "icon": "fa-brands fa-pix", "color": "#22c55e"},
@@ -356,7 +372,7 @@ class CashRegisterReportView(LoginRequiredMixin, TemplateView):
 
         total_revenue = Decimal("0.00")
 
-        for o in orders:
+        for o in display_orders:
             splits = list(o.payments.all())
             if splits:
                 for sp in splits:
@@ -392,7 +408,7 @@ class CashRegisterReportView(LoginRequiredMixin, TemplateView):
         net_balance = total_revenue - total_expenses
 
         if request.GET.get("export") == "csv":
-            return self._csv_export(target_date, orders, expenses, methods_summary, total_revenue, total_expenses, cash_in, net_balance)
+            return self._csv_export(target_date, display_orders, expenses, methods_summary, total_revenue, total_expenses, cash_in, net_balance)
 
         prev_day = target_date - timedelta(days=1)
         next_day = target_date + timedelta(days=1)
@@ -408,8 +424,14 @@ class CashRegisterReportView(LoginRequiredMixin, TemplateView):
             is_today=target_date == today,
             prev_day_str=prev_day.strftime("%Y-%m-%d"),
             next_day_str=next_day.strftime("%Y-%m-%d"),
-            orders=orders,
-            total_orders_count=len(orders),
+            orders=display_orders,
+            total_orders_count=len(display_orders),
+            all_orders_count=len(all_orders),
+            payment_type=payment_type,
+            complete_count=len(complete_orders),
+            complete_total=total_completo,
+            partial_count=len(partial_orders),
+            partial_total=total_parcial,
             expenses=expenses,
             methods_summary=methods_summary,
             total_revenue=total_revenue,
@@ -1506,5 +1528,300 @@ class InkConsumptionReportView(LoginRequiredMixin, AdministratorRequiredMixin, T
             total_consumed=sum((i["consumed"] for i in ink_summary), Decimal("0.00")),
         )
         return self.render_to_response(context)
+
+
+class NewCustomersReportView(LoginRequiredMixin, TemplateView):
+    template_name = "reports/new_customers.html"
+
+    def get_dates(self):
+        today = timezone.localdate()
+        year_str = self.request.GET.get("year", "").strip()
+        month_str = self.request.GET.get("month", "").strip()
+
+        try:
+            year = int(year_str) if year_str else today.year
+        except ValueError:
+            year = today.year
+
+        selected_month = None
+        if month_str and month_str != "todos":
+            try:
+                m = int(month_str)
+                if 1 <= m <= 12:
+                    selected_month = m
+            except ValueError:
+                pass
+
+        return year, selected_month
+
+    def get(self, request, *args, **kwargs):
+        year, selected_month = self.get_dates()
+        today = timezone.localdate()
+
+        if selected_month:
+            _, num_days = calendar.monthrange(year, selected_month)
+            start_date = date(year, selected_month, 1)
+            end_date = date(year, selected_month, num_days)
+        else:
+            start_date = date(year, 1, 1)
+            end_date = date(year, 12, 31)
+
+        start_dt = timezone.make_aware(datetime.combine(start_date, time.min))
+        end_dt = timezone.make_aware(datetime.combine(end_date + timedelta(days=1), time.min))
+
+        clientes_qs = Cliente.objects.filter(
+            created_at__gte=start_dt,
+            created_at__lt=end_dt,
+        ).prefetch_related("pedidos_vinculados").order_by("-created_at")
+
+        month_names = ["", "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"]
+
+        monthly_summary = []
+        for m in range(1, 13):
+            monthly_summary.append({
+                "month_num": m,
+                "month_name": month_names[m],
+                "new_clients_count": 0,
+                "orders_count": 0,
+                "total_spent": Decimal("0.00"),
+            })
+
+        clientes_data = []
+        total_revenue_from_new = Decimal("0.00")
+        total_orders_from_new = 0
+        clients_with_orders_count = 0
+
+        for cli in clientes_qs:
+            cli_created_local = timezone.localtime(cli.created_at)
+            cli_month = cli_created_local.month
+            cli_orders = [o for o in cli.pedidos_vinculados.all() if o.stage != Order.Stage.CANCELLED]
+            orders_count = len(cli_orders)
+            total_spent = sum((o.total_amount for o in cli_orders), Decimal("0.00"))
+            paid_spent = sum((o.paid_amount for o in cli_orders), Decimal("0.00"))
+
+            if 1 <= cli_month <= 12 and cli_created_local.year == year:
+                monthly_summary[cli_month - 1]["new_clients_count"] += 1
+                monthly_summary[cli_month - 1]["orders_count"] += orders_count
+                monthly_summary[cli_month - 1]["total_spent"] += total_spent
+
+            total_revenue_from_new += total_spent
+            total_orders_from_new += orders_count
+            if orders_count > 0:
+                clients_with_orders_count += 1
+
+            clientes_data.append({
+                "cliente": cli,
+                "created_at": cli.created_at,
+                "orders_count": orders_count,
+                "total_spent": total_spent,
+                "paid_spent": paid_spent,
+                "has_special_price": bool(cli.preco_especial_metro or cli.preco_especial_dtf_uv),
+            })
+
+        if request.GET.get("export") == "csv":
+            response = HttpResponse(content_type="text/csv; charset=utf-8")
+            suffix = f"-{selected_month}" if selected_month else ""
+            response["Content-Disposition"] = f'attachment; filename="clientes-novos-{year}{suffix}.csv"'
+            response.write("\ufeff")
+            writer = csv.writer(response, delimiter=";")
+            writer.writerow(["Data de Cadastro", "Nome", "CPF/CNPJ", "WhatsApp", "Preço DTF Têxtil", "Preço DTF UV", "Saldo Crédito", "Qtd Pedidos", "Total Comprado (R$)"])
+            for row in clientes_data:
+                c = row["cliente"]
+                writer.writerow([
+                    timezone.localtime(row["created_at"]).strftime("%d/%m/%Y %H:%M"),
+                    c.nome,
+                    c.cpf_cnpj or "",
+                    c.telefone or "",
+                    f"{c.preco_especial_metro:.2f}" if c.preco_especial_metro else "",
+                    f"{c.preco_especial_dtf_uv:.2f}" if c.preco_especial_dtf_uv else "",
+                    f"{c.saldo_credito:.2f}",
+                    row["orders_count"],
+                    f"{row['total_spent']:.2f}",
+                ])
+            return response
+
+        available_years = list(range(today.year - 2, today.year + 2))
+
+        context = self.get_context_data(
+            year=year,
+            selected_month=selected_month,
+            selected_month_name=month_names[selected_month] if selected_month else "Todos os Meses",
+            available_years=available_years,
+            monthly_summary=monthly_summary,
+            clientes_data=clientes_data,
+            total_clients=len(clientes_data),
+            clients_with_orders_count=clients_with_orders_count,
+            total_orders_from_new=total_orders_from_new,
+            total_revenue_from_new=total_revenue_from_new,
+        )
+        return self.render_to_response(context)
+
+
+class PaymentMethodsReportView(LoginRequiredMixin, TemplateView):
+    template_name = "reports/payment_methods.html"
+
+    def get_dates(self):
+        today = timezone.localdate()
+        start_str = self.request.GET.get("start", "").strip()
+        end_str = self.request.GET.get("end", "").strip()
+
+        start_date = None
+        end_date = None
+
+        if start_str:
+            try:
+                start_date = datetime.strptime(start_str, "%Y-%m-%d").date()
+            except ValueError:
+                pass
+
+        if end_str:
+            try:
+                end_date = datetime.strptime(end_str, "%Y-%m-%d").date()
+            except ValueError:
+                pass
+
+        if not start_date:
+            start_date = today.replace(day=1)
+        if not end_date:
+            end_date = today
+
+        if end_date < start_date:
+            start_date, end_date = end_date, start_date
+
+        return start_date, end_date
+
+    def get(self, request, *args, **kwargs):
+        start_date, end_date = self.get_dates()
+        start_dt = timezone.make_aware(datetime.combine(start_date, time.min))
+        end_dt = timezone.make_aware(datetime.combine(end_date + timedelta(days=1), time.min))
+
+        payments_qs = OrderPayment.objects.filter(
+            created_at__gte=start_dt,
+            created_at__lt=end_dt,
+        ).select_related("order", "order__cliente", "recorded_by").exclude(
+            order__stage=Order.Stage.CANCELLED,
+        ).order_by("-created_at")
+
+        orders_without_splits = Order.objects.filter(
+            created_at__gte=start_dt,
+            created_at__lt=end_dt,
+            paid_amount__gt=Decimal("0.00"),
+            payments__isnull=True,
+        ).exclude(
+            stage=Order.Stage.CANCELLED,
+        ).select_related("cliente", "responsible").order_by("-created_at")
+
+        methods_def = {
+            "pix": {"label": "PIX", "icon": "fa-brands fa-pix", "color": "#22c55e", "badge_bg": "rgba(34, 197, 94, 0.15)", "total": Decimal("0.00"), "count": 0, "transactions": []},
+            "cartao_credito": {"label": "Cartão de Crédito", "icon": "fa-solid fa-credit-card", "color": "#38bdf8", "badge_bg": "rgba(56, 189, 248, 0.15)", "total": Decimal("0.00"), "count": 0, "transactions": []},
+            "cartao_debito": {"label": "Cartão de Débito", "icon": "fa-solid fa-id-card", "color": "#818cf8", "badge_bg": "rgba(129, 140, 248, 0.15)", "total": Decimal("0.00"), "count": 0, "transactions": []},
+            "cartao": {"label": "Cartão (Geral)", "icon": "fa-solid fa-credit-card", "color": "#60a5fa", "badge_bg": "rgba(96, 165, 250, 0.15)", "total": Decimal("0.00"), "count": 0, "transactions": []},
+            "dinheiro": {"label": "Dinheiro (À Vista)", "icon": "fa-solid fa-money-bill-wave", "color": "#34d399", "badge_bg": "rgba(52, 211, 153, 0.15)", "total": Decimal("0.00"), "count": 0, "transactions": []},
+            "transferencia": {"label": "Transferência / TED", "icon": "fa-solid fa-building-columns", "color": "#fbbf24", "badge_bg": "rgba(251, 191, 36, 0.15)", "total": Decimal("0.00"), "count": 0, "transactions": []},
+            "saldo_credito": {"label": "Saldo do Plano / Crédito", "icon": "fa-solid fa-wallet", "color": "#c084fc", "badge_bg": "rgba(192, 132, 252, 0.15)", "total": Decimal("0.00"), "count": 0, "transactions": []},
+            "outro": {"label": "Outros / Diversos", "icon": "fa-solid fa-circle-question", "color": "#9ca3af", "badge_bg": "rgba(156, 163, 175, 0.15)", "total": Decimal("0.00"), "count": 0, "transactions": []},
+        }
+
+        all_transactions = []
+        grand_total = Decimal("0.00")
+        total_transactions_count = 0
+
+        for p in payments_qs:
+            m = p.payment_method or "outro"
+            if m not in methods_def:
+                m = "outro"
+            methods_def[m]["total"] += p.amount
+            methods_def[m]["count"] += 1
+            grand_total += p.amount
+            total_transactions_count += 1
+            item_data = {
+                "date": p.created_at,
+                "order": p.order,
+                "client_name": p.order.client_name,
+                "method_key": m,
+                "method_label": methods_def[m]["label"],
+                "method_color": methods_def[m]["color"],
+                "amount": p.amount,
+                "notes": p.notes,
+                "recorded_by": p.recorded_by.name if p.recorded_by else "—",
+            }
+            methods_def[m]["transactions"].append(item_data)
+            all_transactions.append(item_data)
+
+        for o in orders_without_splits:
+            m = o.payment_method or "outro"
+            if m not in methods_def:
+                m = "outro"
+            paid = o.paid_amount or Decimal("0.00")
+            methods_def[m]["total"] += paid
+            methods_def[m]["count"] += 1
+            grand_total += paid
+            total_transactions_count += 1
+            item_data = {
+                "date": o.payment_confirmed_at or o.created_at,
+                "order": o,
+                "client_name": o.client_name,
+                "method_key": m,
+                "method_label": methods_def[m]["label"],
+                "method_color": methods_def[m]["color"],
+                "amount": paid,
+                "notes": "Pagamento único registrado no pedido",
+                "recorded_by": o.payment_confirmed_by.name if o.payment_confirmed_by else (o.responsible.name if o.responsible else "—"),
+            }
+            methods_def[m]["transactions"].append(item_data)
+            all_transactions.append(item_data)
+
+        all_transactions.sort(key=lambda x: x["date"], reverse=True)
+
+        selected_method = request.GET.get("method", "").strip()
+        if selected_method and selected_method in methods_def:
+            display_transactions = methods_def[selected_method]["transactions"]
+        else:
+            selected_method = ""
+            display_transactions = all_transactions
+
+        methods_list = []
+        for key, val in methods_def.items():
+            pct = (val["total"] / grand_total * Decimal("100.0")) if grand_total > 0 else Decimal("0.0")
+            avg = (val["total"] / Decimal(str(val["count"]))) if val["count"] > 0 else Decimal("0.0")
+            val["pct"] = round(pct, 1)
+            val["avg"] = avg
+            val["key"] = key
+            methods_list.append(val)
+
+        methods_list.sort(key=lambda x: x["total"], reverse=True)
+
+        if request.GET.get("export") == "csv":
+            response = HttpResponse(content_type="text/csv; charset=utf-8")
+            response["Content-Disposition"] = f'attachment; filename="formas-pagamento-{start_date:%Y%m%d}-{end_date:%Y%m%d}.csv"'
+            response.write("\ufeff")
+            writer = csv.writer(response, delimiter=";")
+            writer.writerow(["Data/Hora", "Pedido", "Cliente", "Forma de Pagamento", "Valor (R$)", "Responsável", "Observação"])
+            for t in display_transactions:
+                writer.writerow([
+                    timezone.localtime(t["date"]).strftime("%d/%m/%Y %H:%M"),
+                    t["order"].number,
+                    t["client_name"],
+                    t["method_label"],
+                    f"{t['amount']:.2f}",
+                    t["recorded_by"],
+                    t["notes"],
+                ])
+            return response
+
+        context = self.get_context_data(
+            start_date=start_date,
+            end_date=end_date,
+            start_str=start_date.strftime("%Y-%m-%d"),
+            end_str=end_date.strftime("%Y-%m-%d"),
+            methods_list=methods_list,
+            selected_method=selected_method,
+            grand_total=grand_total,
+            total_transactions_count=total_transactions_count,
+            transactions=display_transactions,
+            total_filtered_revenue=sum((t["amount"] for t in display_transactions), Decimal("0.00")),
+        )
+        return self.render_to_response(context)
+
 
 

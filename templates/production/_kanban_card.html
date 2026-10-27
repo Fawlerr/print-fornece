@@ -11,6 +11,9 @@
           {{ order.primary_material_label }}
         </span>
       {% endif %}
+      <span class="badge-attachment-count" title="{{ order.attachment_count|default:0 }} arquivo(s) anexado(s)" style="font-size: 0.70rem; font-weight: 700; padding: 2px 6px; border-radius: 4px; background: rgba(148, 163, 184, 0.18); color: #e2e8f0; border: 1px solid rgba(148, 163, 184, 0.35); display: inline-flex; align-items: center; gap: 3px;">
+        <i class="fa-solid fa-paperclip" aria-hidden="true"></i> {{ order.attachment_count|default:0 }} arq
+      </span>
       {% if order.priority == "urgente" %}
         <span class="priority" title="Pedido Urgente" style="font-size: 0.70rem; padding: 2px 6px; border-radius: 4px; background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3);">
           <i class="fa-solid fa-bolt" aria-hidden="true"></i> Urgente
@@ -110,7 +113,7 @@
 
     {% if order.attachment_count > 0 %}
       <a class="kanban-quick-download" href="{% url 'orders:download_primary_attachment' pk=order.pk %}" target="_blank" title="Baixar arte original ({{ order.attachment_count }} arquivo{{ order.attachment_count|pluralize }})" onclick="event.stopPropagation();">
-        <i class="fa-solid fa-file-arrow-down" aria-hidden="true"></i> Baixar Arte
+        <i class="fa-solid fa-file-arrow-down" aria-hidden="true"></i> Baixar Arte ({{ order.attachment_count }})
       </a>
     {% else %}
       <span class="order-details-item text-muted" title="Nenhum arquivo anexado" style="font-size: 0.74rem;">

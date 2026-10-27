@@ -127,10 +127,14 @@ def _parse_items_from_payload(payload, cliente=None) -> list[Quote | ShirtQuote 
                 )
             else:
                 # Default DTF Material
-                custom_price = item.get("custom_price_per_meter") or custom_price_fallback
+                material_code = mat_code or "dtf_textil"
+                if "uv" in material_code.lower():
+                    custom_price = item.get("custom_price_per_meter") or getattr(cliente, "preco_especial_dtf_uv", None) or custom_price_fallback
+                else:
+                    custom_price = item.get("custom_price_per_meter") or custom_price_fallback
                 calculated_items.append(
                     calculate_quote(
-                        material_code=mat_code or "dtf_textil",
+                        material_code=material_code,
                         width_cm=item.get("width_cm") or item.get("art_width_cm"),
                         height_cm=item.get("height_cm") or item.get("art_height_cm"),
                         quantity=item.get("quantity") or item.get("art_quantity"),
@@ -346,6 +350,15 @@ def update_order(*, order: Order, form, actor, files, request=None, previous_sta
     }
     with transaction.atomic():
         updated = form.save(commit=False)
+        if updated.total_amount and updated.paid_amount:
+            if updated.paid_amount < updated.total_amount:
+                if updated.paid_amount > Decimal("0.00"):
+                    updated.payment_status = Order.PaymentStatus.PARTIAL
+                else:
+                    updated.payment_status = Order.PaymentStatus.UNPAID
+            elif updated.paid_amount >= updated.total_amount and updated.total_amount > Decimal("0.00"):
+                updated.payment_status = Order.PaymentStatus.PAID
+
         payment_just_confirmed = (
             previous["payment_status"] != Order.PaymentStatus.PAID
             and updated.payment_status == Order.PaymentStatus.PAID
@@ -479,16 +492,20 @@ def save_order_attachments(order: Order, files, actor, request=None) -> int:
     return count
 
 
-def remove_attachment(*, attachment: OrderAttachment, actor, request=None) -> None:
+def remove_attachment(*, attachment: OrderAttachment, actor, reason: str = "", request=None) -> None:
     require_order_access(actor, attachment.order)
     if attachment.removed_at:
         raise ValidationError("Este anexo já foi removido.")
     with transaction.atomic():
         attachment.removed_at = timezone.now()
         attachment.removed_by = actor
-        attachment.save(update_fields=["removed_at", "removed_by"])
-        OrderHistory.objects.create(order=attachment.order, user=actor, action="remocao_anexo", description=f"Anexo removido logicamente: {attachment.original_name}")
-        record_audit(actor, "removeu_anexo", "pedido", attachment.order_id, before={"arquivo": attachment.original_name}, after={"arquivo_id": attachment.pk}, request=request)
+        attachment.removal_reason = reason or ""
+        attachment.save(update_fields=["removed_at", "removed_by", "removal_reason"])
+        desc = f"Anexo removido logicamente: {attachment.original_name}"
+        if reason:
+            desc += f" (Motivo: {reason})"
+        OrderHistory.objects.create(order=attachment.order, user=actor, action="remocao_anexo", description=desc)
+        record_audit(actor, "removeu_anexo", "pedido", attachment.order_id, before={"arquivo": attachment.original_name}, after={"arquivo_id": attachment.pk, "motivo": reason}, request=request)
 
 
 def add_note(*, order: Order, text: str, actor, request=None) -> OrderNote:

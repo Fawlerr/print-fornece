@@ -17,7 +17,7 @@
         <i class="fa-solid fa-table-columns" aria-hidden="true"></i> Produção
       </a>
       <a class="btn btn-primary" href="{% url 'orders:edit' pk=order.pk %}">
-        <i class="fa-solid fa-pen" aria-hidden="true"></i> Editar pedido
+        <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i> Editar / Acrescentar Metragem
       </a>
     </div>
   </div>
@@ -38,6 +38,18 @@
 
   <div class="grid two-col">
     <section class="card card-pad">
+      {% if order.stage == "cancelado" %}
+        <div style="background: rgba(239, 68, 68, 0.15); border: 1px solid #ef4444; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; color: #fca5a5;">
+          <div style="display: flex; align-items: center; gap: 8px; font-weight: 700; margin-bottom: 4px;">
+            <i class="fa-solid fa-ban" style="color: #ef4444;"></i> Pedido Cancelado em {{ order.cancelled_at|date:"d/m/Y H:i" }}{% if order.cancelled_by %} por {{ order.cancelled_by.name|default:order.cancelled_by.email }}{% endif %}
+          </div>
+          {% if order.cancellation_reason %}
+            <div style="font-size: 0.9rem; background: rgba(0,0,0,0.3); padding: 8px 12px; border-radius: 6px; border: 1px solid rgba(239,68,68,0.3); margin-top: 6px; color: #fff;">
+              <strong>Motivo do Cancelamento (OBS):</strong> {{ order.cancellation_reason|linebreaksbr }}
+            </div>
+          {% endif %}
+        </div>
+      {% endif %}
       <div class="section-heading"><h2>Resumo do pedido</h2><span class="badge badge-{{ order.stage }}">{{ order.get_stage_display }}</span></div>
       <div class="detail-grid">
         <div><small>WhatsApp</small><strong>{{ order.client_whatsapp }}</strong></div>
@@ -124,9 +136,10 @@
           </form>
         {% endif %}
         {% if order.stage != "cancelado" and order.stage != "entregue" and order.stage != "finalizado" %}
-          <form method="post" action="{% url 'production:cancel' pk=order.pk %}" style="display: inline-block;">
+          <form method="post" id="cancel_order_form" action="{% url 'production:cancel' pk=order.pk %}" style="display: inline-block;">
             {% csrf_token %}
-            <button class="btn btn-danger" type="submit" data-confirm="Cancelar este pedido?" style="height: 40px; display: inline-flex; align-items: center; gap: 6px;">
+            <input type="hidden" name="cancellation_reason" id="cancellation_reason_input" value="">
+            <button class="btn btn-danger" type="button" onclick="confirmCancelOrder()" style="height: 40px; display: inline-flex; align-items: center; gap: 6px;">
               <i class="fa-solid fa-ban" aria-hidden="true"></i> Cancelar pedido
             </button>
           </form>
@@ -308,6 +321,22 @@
                     {{ payment_form.payment_method }}
                   </div>
                 </div>
+
+                <!-- Calculadora de Troco para Dinheiro / Espécie -->
+                <div id="cash-change-calculator" style="display: none; background: rgba(52, 211, 153, 0.08); border: 1px solid rgba(52, 211, 153, 0.35); border-radius: 6px; padding: 10px; margin-bottom: 8px;">
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-items: center;">
+                    <div>
+                      <small style="display: block; color: #86efac; font-weight: 700; margin-bottom: 3px;">
+                        <i class="fa-solid fa-money-bill-wave"></i> Valor Entregue em Espécie:
+                      </small>
+                      <input type="text" name="cash_received" id="cash_received_input" placeholder="Ex: 50,00" data-money inputmode="decimal" style="width: 100%; padding: 6px 8px; font-size: 0.85rem; background: #0b130e; border: 1px solid #10b981; color: #fff; border-radius: 4px;" oninput="calcularTroco()">
+                    </div>
+                    <div>
+                      <small style="display: block; color: #94a3b8; font-weight: 600; margin-bottom: 3px;">Troco a Devolver:</small>
+                      <div id="troco_display" style="font-size: 1.15rem; font-weight: 800; color: #34d399; background: rgba(0,0,0,0.3); padding: 4px 8px; border-radius: 4px; border: 1px solid rgba(52,211,153,0.3);">R$ 0,00</div>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <!-- Modo Múltiplo -->
@@ -474,9 +503,10 @@
               <a class="btn btn-secondary btn-small" href="{% url 'orders:download_attachment' order_pk=order.pk pk=attachment.pk %}" target="_blank" title="Baixar arquivo original">
                 <i class="fa-solid fa-download"></i> Baixar
               </a>
-              <form method="post" class="no-print" action="{% url 'production:remove_attachment' pk=order.pk attachment_pk=attachment.pk %}" style="display: inline-block;">
+              <form method="post" class="no-print" action="{% url 'production:remove_attachment' pk=order.pk attachment_pk=attachment.pk %}" style="display: inline-block;" onsubmit="return confirmRemoveAttachment(event, this);">
                 {% csrf_token %}
-                <button class="btn btn-danger btn-small" type="submit" data-confirm="Remover este anexo do pedido?" title="Remover anexo">
+                <input type="hidden" name="removal_reason" class="removal-reason-field" value="">
+                <button class="btn btn-danger btn-small" type="submit" title="Remover / Cancelar anexo">
                   <i class="fa-solid fa-trash"></i>
                 </button>
               </form>
@@ -851,6 +881,65 @@
       if (tabStone) { tabStone.style.background = 'rgba(16, 185, 129, 0.08)'; tabStone.style.color = '#34d399'; }
     }
   }
+
+  function checkCashMethod() {
+    const methodSelect = document.getElementById('id_payment_method');
+    const cashCalc = document.getElementById('cash-change-calculator');
+    if (!methodSelect || !cashCalc) return;
+    if (methodSelect.value === 'dinheiro') {
+      cashCalc.style.display = 'block';
+      calcularTroco();
+    } else {
+      cashCalc.style.display = 'none';
+    }
+  }
+
+  function calcularTroco() {
+    const paidInput = document.getElementById('id_paid_amount');
+    const cashInput = document.getElementById('cash_received_input');
+    const trocoDisplay = document.getElementById('troco_display');
+    if (!paidInput || !cashInput || !trocoDisplay) return;
+
+    const parseMoney = (v) => {
+      if (!v) return 0;
+      let clean = String(v).replace('R$', '').trim();
+      if (clean.includes(',')) clean = clean.replace(/\./g, '').replace(',', '.');
+      return parseFloat(clean) || 0;
+    };
+
+    const valorCobrado = parseMoney(paidInput.value);
+    const valorRecebido = parseMoney(cashInput.value);
+    const troco = Math.max(0, valorRecebido - valorCobrado);
+
+    trocoDisplay.innerText = 'R$ ' + troco.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function confirmCancelOrder() {
+    const reason = prompt("Confirma o cancelamento deste pedido?\n\nDigite o motivo do cancelamento (OBS):");
+    if (reason === null) return;
+    document.getElementById('cancellation_reason_input').value = reason.trim();
+    document.getElementById('cancel_order_form').submit();
+  }
+
+  function confirmRemoveAttachment(event, form) {
+    event.preventDefault();
+    const reason = prompt("Confirma o cancelamento / remoção deste arquivo?\n\nDigite o motivo (OBS):");
+    if (reason === null) return false;
+    form.querySelector('.removal-reason-field').value = reason.trim();
+    form.submit();
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const methodSelect = document.getElementById('id_payment_method');
+    const paidInput = document.getElementById('id_paid_amount');
+    if (methodSelect) {
+      methodSelect.addEventListener('change', checkCashMethod);
+      checkCashMethod();
+    }
+    if (paidInput) {
+      paidInput.addEventListener('input', calcularTroco);
+    }
+  });
 
   let stonePollTimer = null;
   function iniciarPollingStone() {

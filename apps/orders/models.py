@@ -88,6 +88,7 @@ class Order(models.Model):
     finished_at = models.DateTimeField(null=True, blank=True)
     cancelled_at = models.DateTimeField(null=True, blank=True)
     cancelled_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="cancelled_orders")
+    cancellation_reason = models.TextField("motivo do cancelamento", blank=True, default="")
     cliente = models.ForeignKey("payments.Cliente", on_delete=models.SET_NULL, null=True, blank=True, related_name="pedidos_vinculados", verbose_name="cliente cadastrado")
     is_correction = models.BooleanField("pedido de correção / garantia", default=False)
     correction_reason = models.CharField("motivo da correção / defeito", max_length=255, blank=True, default="")
@@ -252,6 +253,7 @@ class OrderAttachment(models.Model):
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="uploaded_order_attachments")
     removed_at = models.DateTimeField(null=True, blank=True)
     removed_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="removed_order_attachments")
+    removal_reason = models.TextField("motivo da remoção / cancelamento", blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

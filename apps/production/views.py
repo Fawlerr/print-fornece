@@ -77,6 +77,22 @@ class KanbanView(LoginRequiredMixin, TemplateView):
             for field in ("stage", "payment_status", "priority"):
                 if data.get(field):
                     orders = orders.filter(**{field: data[field]})
+            if data.get("material_type"):
+                mat = data["material_type"]
+                if mat == "dtf_uv":
+                    orders = orders.filter(
+                        Q(items__material_code__icontains="uv") |
+                        Q(items__material_name__icontains="uv") |
+                        (Q(items__isnull=True) & Q(description__icontains="uv"))
+                    ).distinct()
+                elif mat == "dtf_textil":
+                    orders = orders.filter(
+                        (Q(items__material_code="dtf_textil") |
+                         Q(items__material_name__icontains="textil") |
+                         Q(items__material_name__icontains="têxtil") |
+                         (Q(items__isnull=True) & ~Q(description__icontains="uv")))
+                        & ~Q(items__material_code__icontains="uv")
+                    ).distinct()
             if data.get("responsible"):
                 orders = orders.filter(responsible_id=data["responsible"])
             orders = orders.order_by("-created_at" if data.get("order") == "newest" else "created_at")
@@ -243,8 +259,9 @@ def add_attachment(request, pk: int):
 def remove_attachment(request, pk: int, attachment_pk: int):
     order = _order_for_request(request, pk)
     attachment = get_object_or_404(OrderAttachment, pk=attachment_pk, order=order, removed_at__isnull=True)
+    reason = request.POST.get("removal_reason") or request.POST.get("reason", "").strip()
     try:
-        soft_remove_attachment(attachment=attachment, actor=request.user, request=request)
+        soft_remove_attachment(attachment=attachment, actor=request.user, reason=reason, request=request)
         messages.success(request, "Anexo removido do pedido.")
     except ValidationError as exc:
         messages.error(request, exc.messages[0])
@@ -271,7 +288,15 @@ def finalize(request, pk: int):
 @login_required
 @require_POST
 def cancel(request, pk: int):
-    return _order_action(request, pk, cancel_order, "Pedido cancelado.")
+    reason = request.POST.get("cancellation_reason") or request.POST.get("reason", "").strip()
+    try:
+        cancel_order(order_id=pk, actor=request.user, reason=reason, request=request)
+        messages.success(request, "Pedido cancelado com sucesso.")
+    except Order.DoesNotExist:
+        messages.error(request, "Pedido não encontrado.")
+    except ValidationError as exc:
+        messages.error(request, exc.messages[0])
+    return redirect("production:detail", pk=pk)
 
 
 @login_required

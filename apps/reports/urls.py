@@ -24,4 +24,8 @@ urlpatterns = [
     path("equipe/", views.TeamRankingReportView.as_view()),
     path("customers-ranking/", views.CustomerRankingReportView.as_view(), name="customers_ranking"),
     path("clientes/", views.CustomerRankingReportView.as_view()),
+    path("new-customers/", views.NewCustomersReportView.as_view(), name="new_customers"),
+    path("clientes-novos/", views.NewCustomersReportView.as_view()),
+    path("payment-methods/", views.PaymentMethodsReportView.as_view(), name="payment_methods"),
+    path("formas-pagamento/", views.PaymentMethodsReportView.as_view()),
 ]

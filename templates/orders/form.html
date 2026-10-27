@@ -26,16 +26,25 @@
           <i class="fa-solid fa-lock" style="color: #ef4444; font-size: 1.8rem; margin-top: 2px;"></i>
           <div style="flex: 1;">
             <strong style="color: #fca5a5; font-size: 1.05rem; display: block; margin-bottom: 4px;">
-              Edição Bloqueada: Pagamento Confirmado
+              Edição Bloqueada: Pedido Finalizado ou Cancelado
             </strong>
             <p style="margin: 0 0 12px; color: #f87171; font-size: 0.88rem; line-height: 1.4;">
-              Este pedido já possui pagamento confirmado ou já avançou na esteira produtiva. Por segurança, alterações de dados ou valores requerem autorização com senha de Administrador / Gerente.
+              Este pedido já foi finalizado/entregue ou cancelado. Por segurança, alterações requerem autorização com senha de Administrador.
             </p>
             <div style="display: flex; gap: 10px; align-items: center; max-width: 480px;">
               <input type="password" name="admin_unlock_password" placeholder="Digite a senha de admin/gerente para liberar alterações..." style="background: rgba(0,0,0,0.4); border: 1px solid #ef4444; color: #fff; padding: 8px 12px; border-radius: 6px; font-size: 0.9rem;">
             </div>
           </div>
         </div>
+      </div>
+    {% elif form.instance.pk and form.instance.paid_amount > 0 %}
+      <div style="background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;">
+        <span style="color: #bae6fd; font-size: 0.88rem;">
+          <i class="fa-solid fa-circle-info" style="color: #38bdf8;"></i> Editando Pedido <strong>#{{ form.instance.number }}</strong> (Etapa: {{ form.instance.get_stage_display }}). Você pode acrescentar metragem e novos itens livremente.
+        </span>
+        <span style="font-size: 0.82rem; color: #86efac; background: rgba(34,197,94,0.15); border: 1px solid rgba(34,197,94,0.3); padding: 3px 8px; border-radius: 4px;">
+          Entrada/Pago: R$ {{ form.instance.paid_amount|floatformat:2 }}
+        </span>
       </div>
     {% endif %}
     {% if form.non_field_errors %}
@@ -700,9 +709,14 @@
               const data = await res.json();
               if (data.results && data.results.length > 0) {
                 resultsBox.innerHTML = data.results.map(c => `
-                  <div class="customer-search-item" data-id="${c.id}" data-name="${encodeURIComponent(c.nome)}" data-phone="${encodeURIComponent(c.telefone)}" data-special="${c.preco_especial_metro}" data-saldo="${c.saldo_credito}" data-metros="${c.metros_saldo}" style="padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,0.06); cursor: pointer; transition: background 0.15s ease;">
+                  <div class="customer-search-item" data-id="${c.id}" data-name="${encodeURIComponent(c.nome)}" data-phone="${encodeURIComponent(c.telefone)}" data-special="${c.preco_especial_metro || ''}" data-special-uv="${c.preco_especial_dtf_uv || ''}" data-saldo="${c.saldo_credito}" data-metros="${c.metros_saldo}" style="padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,0.06); cursor: pointer; transition: background 0.15s ease;">
                     <strong style="color: #38bdf8; display: block;">${c.nome}</strong>
-                    <small style="color: #9ca3af;">${c.telefone || 'Sem WhatsApp'} ${c.preco_especial_metro ? `· <span style="color: #22c55e;">Preço Especial: R$ ${c.preco_especial_metro}/m</span>` : ''} ${parseFloat(c.saldo_credito) > 0 ? `· <span style="color: #f59e0b;">Saldo: R$ ${c.saldo_credito}</span>` : ''}</small>
+                    <small style="color: #9ca3af;">
+                      ${c.telefone || 'Sem WhatsApp'} 
+                      ${c.preco_especial_metro ? `· <span style="color: #22c55e;">DTF Têxtil: R$ ${c.preco_especial_metro}/m</span>` : ''} 
+                      ${c.preco_especial_dtf_uv ? `· <span style="color: #c084fc;">DTF UV: R$ ${c.preco_especial_dtf_uv}/m</span>` : ''} 
+                      ${parseFloat(c.saldo_credito) > 0 ? `· <span style="color: #f59e0b;">Saldo: R$ ${c.saldo_credito}</span>` : ''}
+                    </small>
                   </div>
                 `).join("");
                 resultsBox.style.display = "block";
@@ -713,18 +727,21 @@
                     const name = decodeURIComponent(item.dataset.name);
                     const phone = decodeURIComponent(item.dataset.phone);
                     const special = item.dataset.special;
+                    const specialUv = item.dataset.specialUv;
                     const saldo = item.dataset.saldo;
                     const metros = item.dataset.metros;
 
                     if (clienteHidden) {
                       clienteHidden.value = id;
                       clienteHidden.dataset.special = special || "";
+                      clienteHidden.dataset.specialUv = specialUv || "";
                     }
                     if (clientNameInput) clientNameInput.value = name;
                     if (clientWhatsappInput && phone) clientWhatsappInput.value = phone;
 
                     let infoHtml = `<strong><i class="fa-solid fa-circle-check"></i> Cliente Selecionado:</strong> ${name}`;
-                    if (special) infoHtml += ` · <b style="color: #fff;">Preço Especial DTF: R$ ${special}/m</b>`;
+                    if (special) infoHtml += ` · <b style="color: #22c55e;">Especial Têxtil: R$ ${special}/m</b>`;
+                    if (specialUv) infoHtml += ` · <b style="color: #c084fc;">Especial UV: R$ ${specialUv}/m</b>`;
                     if (parseFloat(saldo) > 0) infoHtml += ` · <b style="color: #fef08a;">Saldo em Conta: R$ ${saldo} (${metros}m)</b>`;
 
                     if (selectedInfoBox) {
@@ -732,7 +749,7 @@
                       selectedInfoBox.style.display = "block";
                     }
 
-                    document.dispatchEvent(new CustomEvent("customer-selected", { detail: { id, name, phone, special, saldo, metros } }));
+                    document.dispatchEvent(new CustomEvent("customer-selected", { detail: { id, name, phone, special, specialUv, saldo, metros } }));
 
                     searchInput.value = name;
                     resultsBox.style.display = "none";

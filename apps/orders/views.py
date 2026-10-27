@@ -129,19 +129,17 @@ class OrderUpdateView(LoginRequiredMixin, UpdateView):
         return kwargs
 
     def _is_post_payment_locked(self, order: Order) -> bool:
-        """Verifica se o pedido está bloqueado para edição pós-pagamento."""
-        is_paid_stage = (
+        """Verifica se o pedido está bloqueado para edição pós-pagamento.
+        Pedidos em aberto (novo, aguardando pagamento, pagamento confirmado, pré-impressão, em produção)
+        ficam liberados para acréscimo de metragem e edição operacional.
+        Apenas pedidos finalizados/entregues ou cancelados exigem liberação restrita de admin."""
+        is_terminal_stage = (
             order.stage in [
-                Order.Stage.PAYMENT_CONFIRMED,
-                Order.Stage.PRE_PRESS,
-                Order.Stage.PRODUCTION,
-                Order.Stage.READY,
                 Order.Stage.DELIVERED,
+                Order.Stage.CANCELLED,
             ]
-            or order.payment_status == Order.PaymentStatus.PAID
-            or bool(order.payment_confirmed_at)
         )
-        if not is_paid_stage:
+        if not is_terminal_stage:
             return False
 
         user = self.request.user
@@ -176,17 +174,7 @@ class OrderUpdateView(LoginRequiredMixin, UpdateView):
         context["catalogue"] = full_catalogue()
         context["calculator_endpoint"] = reverse("orders:calculate_quote")
         is_locked = self._is_post_payment_locked(self.object)
-        is_post_payment = (
-            self.object.stage in [
-                Order.Stage.PAYMENT_CONFIRMED,
-                Order.Stage.PRE_PRESS,
-                Order.Stage.PRODUCTION,
-                Order.Stage.READY,
-                Order.Stage.DELIVERED,
-            ]
-            or self.object.payment_status == Order.PaymentStatus.PAID
-            or bool(self.object.payment_confirmed_at)
-        )
+        is_post_payment = self.object.stage in [Order.Stage.DELIVERED, Order.Stage.CANCELLED]
         context["is_post_payment_locked"] = is_locked
         context["is_post_payment"] = is_post_payment
 
@@ -308,6 +296,24 @@ def register_payment(request, pk: int):
             n = form.cleaned_data.get("notes") or ""
             payments_to_add.append((m, amt, n))
 
+        cash_received_raw = request.POST.get("cash_received", "").strip().replace("R$", "").replace(" ", "")
+        if "," in cash_received_raw:
+            cash_received_raw = cash_received_raw.replace(".", "").replace(",", ".")
+        troco_info = ""
+        if cash_received_raw:
+            try:
+                cash_val = Decimal(cash_received_raw)
+                for idx, (m, amt, n) in enumerate(payments_to_add):
+                    if m == Order.PaymentMethod.CASH and cash_val > amt:
+                        troco = cash_val - amt
+                        troco_note = f"Recebido em dinheiro: R$ {cash_val:.2f} | Troco: R$ {troco:.2f}"
+                        new_n = f"{n} · {troco_note}" if n else troco_note
+                        payments_to_add[idx] = (m, amt, new_n)
+                        troco_info = f" (Troco a devolver: R$ {troco:.2f})".replace(".", ",")
+                        break
+            except Exception:
+                pass
+
         if not payments_to_add:
             messages.error(request, "Informe ao menos uma forma de pagamento com valor maior que zero.")
             return redirect("production:detail", pk=pk)
@@ -355,7 +361,7 @@ def register_payment(request, pk: int):
         desc = f"Pagamento(s) registrado(s): {', '.join(summary_parts)} (Total pago: R$ {order.paid_amount:.2f} de R$ {order.total_amount:.2f}).".strip()
         OrderHistory.objects.create(order=order, user=request.user, action="pagamento_registrado", description=desc)
         record_audit(request.user, "registro_pagamento", "pedido", order.pk, after={"adicionado": str(total_added), "total_pago": str(order.paid_amount), "status": order.payment_status}, request=request)
-        messages.success(request, f"Pagamento de R$ {total_added:.2f} registrado com sucesso!")
+        messages.success(request, f"Pagamento de R$ {total_added:.2f} registrado com sucesso!{troco_info}")
     else:
         messages.error(request, "Erro ao registrar pagamento. Verifique o formulário.")
 
@@ -511,13 +517,21 @@ def calculate_order_quote(request):
     mat_code = str(payload.get("material_code") or payload.get("code") or "")
 
     cliente_id = payload.get("cliente_id") or payload.get("client_id")
-    custom_price = payload.get("custom_price_per_meter") or payload.get("preco_especial_metro")
+    custom_price = payload.get("custom_price_per_meter")
+    if not custom_price:
+        if "uv" in mat_code.lower():
+            custom_price = payload.get("preco_especial_dtf_uv") or payload.get("preco_especial_metro")
+        else:
+            custom_price = payload.get("preco_especial_metro")
     if not custom_price and cliente_id:
         try:
             from apps.payments.models import Cliente
             cli = Cliente.objects.filter(pk=cliente_id).first()
-            if cli and cli.preco_especial_metro:
-                custom_price = cli.preco_especial_metro
+            if cli:
+                if "uv" in mat_code.lower():
+                    custom_price = cli.preco_especial_dtf_uv or cli.preco_especial_metro
+                else:
+                    custom_price = cli.preco_especial_metro
         except Exception:
             pass
 
@@ -569,10 +583,17 @@ def art_preview_view(request, pk: int):
 def public_quote_view(request, token: str):
     """Public customer view for viewing and approving order quotes."""
     order = get_object_or_404(Order, quote_token=token)
+    from apps.notifications.whatsapp import get_print_whatsapp_phone, build_payment_confirmation_for_store
+    import urllib.parse
+    print_phone = get_print_whatsapp_phone()
+    confirm_msg = build_payment_confirmation_for_store(order, payment_method=order.get_payment_method_display() if order.payment_method else "Stone / PIX")
+    print_whatsapp_url = f"https://wa.me/{print_phone}?text={urllib.parse.quote(confirm_msg)}" if print_phone else ""
+
     context = {
         "order": order,
         "token": token,
         "is_approved": order.stage not in (Order.Stage.NEW, Order.Stage.CANCELLED),
+        "print_whatsapp_url": print_whatsapp_url,
     }
     return render(request, "orders/public_quote.html", context)
 

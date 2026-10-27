@@ -46,6 +46,13 @@
           {% if form.preco_especial_metro.errors %}<span class="form-error">{{ form.preco_especial_metro.errors.0 }}</span>{% endif %}
         </label>
 
+        <label for="{{ form.preco_especial_dtf_uv.id_for_label }}">
+          <span>{{ form.preco_especial_dtf_uv.label }}</span>
+          {{ form.preco_especial_dtf_uv }}
+          <span class="help">{{ form.preco_especial_dtf_uv.help_text }}</span>
+          {% if form.preco_especial_dtf_uv.errors %}<span class="form-error">{{ form.preco_especial_dtf_uv.errors.0 }}</span>{% endif %}
+        </label>
+
         <label for="{{ form.saldo_credito.id_for_label }}">
           <span>{{ form.saldo_credito.label }}</span>
           {{ form.saldo_credito }}

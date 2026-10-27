@@ -55,11 +55,17 @@
                 {% endif %}
               </td>
               <td>
-                {% if c.preco_especial_metro %}
-                  <span class="badge badge-pago">R$ {{ c.preco_especial_metro|floatformat:2 }}/m</span>
-                {% else %}
-                  <span class="text-muted">Tabela Padrão</span>
-                {% endif %}
+                <div style="display: flex; flex-direction: column; gap: 3px;">
+                  {% if c.preco_especial_metro %}
+                    <span class="badge badge-pago" title="Preço Especial DTF Têxtil">Têxtil: R$ {{ c.preco_especial_metro|floatformat:2 }}/m</span>
+                  {% endif %}
+                  {% if c.preco_especial_dtf_uv %}
+                    <span class="badge" style="background: rgba(168, 85, 247, 0.2); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.4);" title="Preço Especial DTF UV">UV: R$ {{ c.preco_especial_dtf_uv|floatformat:2 }}/m</span>
+                  {% endif %}
+                  {% if not c.preco_especial_metro and not c.preco_especial_dtf_uv %}
+                    <span class="text-muted">Tabela Padrão</span>
+                  {% endif %}
+                </div>
               </td>
               <td>
                 {% if c.saldo_credito > 0 or c.metros_saldo > 0 %}

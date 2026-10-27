@@ -165,6 +165,15 @@ class OrderNoteForm(forms.Form):
 class OrderFilterForm(forms.Form):
     search = forms.CharField(required=False, label="Buscar")
     stage = forms.ChoiceField(required=False, choices=[("", "Todas")] + list(Order.Stage.choices), label="Etapa")
+    material_type = forms.ChoiceField(
+        required=False,
+        choices=[
+            ("", "Todos"),
+            ("dtf_textil", "DTF Têxtil"),
+            ("dtf_uv", "DTF UV"),
+        ],
+        label="Material",
+    )
     payment_status = forms.ChoiceField(required=False, choices=[("", "Todos")] + list(Order.PaymentStatus.choices), label="Pagamento")
     priority = forms.ChoiceField(required=False, choices=[("", "Todas")] + list(Order.Priority.choices), label="Prioridade")
     responsible = forms.IntegerField(required=False, min_value=1, label="Responsável")

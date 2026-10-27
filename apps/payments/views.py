@@ -196,6 +196,7 @@ def api_clientes_search(request):
             "nome": c.nome,
             "telefone": c.telefone or "",
             "preco_especial_metro": str(c.preco_especial_metro) if c.preco_especial_metro else "",
+            "preco_especial_dtf_uv": str(c.preco_especial_dtf_uv) if c.preco_especial_dtf_uv else "",
             "saldo_credito": str(c.saldo_credito or "0.00"),
             "metros_saldo": str(c.metros_saldo or "0.00"),
         }

@@ -22,6 +22,37 @@ def format_money_br(val: Decimal | float | int | None) -> str:
     return f"{Decimal(str(val)):.2f}".replace(".", ",")
 
 
+def get_print_whatsapp_phone() -> str:
+    from django.conf import settings
+    phone = getattr(settings, "PRINT_WHATSAPP_PHONE", "")
+    if phone:
+        return format_whatsapp_phone(phone)
+    try:
+        from apps.accounts.models import SystemSetting
+        setting = SystemSetting.objects.filter(key="print_whatsapp_phone").first()
+        if setting and setting.description:
+            return format_whatsapp_phone(setting.description)
+    except Exception:
+        pass
+    return "5584988000000"
+
+
+def build_payment_confirmation_for_store(order: Order, payment_method: str = "Stone") -> str:
+    valor_pago = format_money_br(order.paid_amount or order.total_amount)
+    method_display = payment_method or (order.get_payment_method_display() if order.payment_method else "Confirmado")
+    msg = (
+        f"CONFIRMAÇÃO DE PAGAMENTO - PRINT FORNECE\n\n"
+        f"Olá equipe Print Fornece! Confirmo o pagamento do pedido #{order.number}.\n\n"
+        f"━━━━━━━━━━━━━━━\n"
+        f"Cliente: {order.client_name}\n"
+        f"Valor Pago: R$ {valor_pago}\n"
+        f"Forma: {method_display}\n"
+        f"━━━━━━━━━━━━━━━\n"
+        f"Por favor, prossigam com a liberação/produção do meu pedido. Obrigado!"
+    )
+    return msg
+
+
 def get_service_name_and_measures(order: Order) -> tuple[str, str, str]:
     """
     Extract summary service name, measurements, and meter price from order items.
@@ -89,12 +120,14 @@ def get_payment_summary_for_message(order: Order) -> str:
         return (
             f"TOTAL: R$ {valor_total}\n"
             f"Entrada paga: R$ {format_money_br(paid_amt)}\n"
-            f"SALDO A PAGAR NA RETIRADA: R$ {format_money_br(remaining_amt)}"
+            f"VALOR PENDENTE A PAGAR: R$ {format_money_br(remaining_amt)}\n"
+            f"⚠️ ATENÇÃO: O pedido só é liberado com o pagamento confirmado."
         )
     else:  # UNPAID
         return (
             f"TOTAL: R$ {valor_total}\n"
-            f"VALOR A PAGAR NA RETIRADA: R$ {format_money_br(remaining_amt or order.total_amount)}"
+            f"VALOR PENDENTE A PAGAR: R$ {format_money_br(remaining_amt or order.total_amount)}\n"
+            f"⚠️ ATENÇÃO: O pedido só é liberado com o pagamento confirmado."
         )
 
 
@@ -152,6 +185,10 @@ def build_ready_whatsapp_message(order: Order, public_quote_url: str = "") -> st
     payment_info = get_payment_summary_for_message(order)
     link_part = f"\nVisualize seu pedido e arte aprovada:\n{public_quote_url}\n" if public_quote_url else ""
 
+    alerta_liberacao = ""
+    if order.remaining_amount > Decimal("0.00") or order.payment_status != Order.PaymentStatus.PAID:
+        alerta_liberacao = f"\n⚠️ IMPORTANTE: Consta valor pendente de R$ {format_money_br(order.remaining_amount)}. O pedido só é liberado para retirada com o pagamento confirmado.\n"
+
     message = (
         f"PRINT FORNECE\n"
         f"Olá! Passando para avisar que seu pedido #{order.number} já foi finalizado e está disponível para retirada.\n\n"
@@ -159,6 +196,7 @@ def build_ready_whatsapp_message(order: Order, public_quote_url: str = "") -> st
         f"━━━━━━━━━━━━━━━\n"
         f"Itens:{resumo_itens}\n"
         f"{payment_info}\n"
+        f"{alerta_liberacao}"
         f"{link_part}"
         f"━━━━━━━━━━━━━━━\n"
         f"Local de Retirada: Print Fornece\n"

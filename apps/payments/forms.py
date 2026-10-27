@@ -44,13 +44,14 @@ class BrazilianDecimalField(forms.DecimalField):
 
 
 class ClienteForm(forms.ModelForm):
-    preco_especial_metro = BrazilianMoneyField(label="Preço especial DTF/metro (R$)", required=False, help_text="Deixe em branco para usar o preço padrão da tabela.")
+    preco_especial_metro = BrazilianMoneyField(label="Preço especial DTF Têxtil/metro (R$)", required=False, help_text="Deixe em branco para usar o preço padrão da tabela.")
+    preco_especial_dtf_uv = BrazilianMoneyField(label="Preço especial DTF UV/metro (R$)", required=False, help_text="Deixe em branco para usar o preço padrão da tabela.")
     saldo_credito = BrazilianMoneyField(label="Saldo em conta / créditos (R$)", required=False, initial=Decimal("0.00"))
     metros_saldo = BrazilianDecimalField(label="Saldo em metros (Plano de Volume)", max_digits=10, decimal_places=2, required=False, initial=Decimal("0.00"), help_text="Metros disponíveis no pacote contratado.")
 
     class Meta:
         model = Cliente
-        fields = ["nome", "telefone", "cpf_cnpj", "email", "preco_especial_metro", "saldo_credito", "metros_saldo", "observacoes"]
+        fields = ["nome", "telefone", "cpf_cnpj", "email", "preco_especial_metro", "preco_especial_dtf_uv", "saldo_credito", "metros_saldo", "observacoes"]
         labels = {
             "nome": "Nome do Cliente / Empresa",
             "telefone": "WhatsApp / Telefone",

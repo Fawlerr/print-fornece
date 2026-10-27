@@ -18,7 +18,8 @@ class Cliente(models.Model):
     cpf_cnpj = models.CharField("CPF/CNPJ", max_length=20, null=True, blank=True, db_index=True)
     email = models.EmailField("e-mail", null=True, blank=True)
     telefone = models.CharField("telefone / WhatsApp", max_length=25, null=True, blank=True)
-    preco_especial_metro = models.DecimalField("preço especial DTF/metro", max_digits=10, decimal_places=2, null=True, blank=True, help_text="Preço diferenciado do metro de DTF (ex: R$ 35,00)")
+    preco_especial_metro = models.DecimalField("preço especial DTF Têxtil/metro", max_digits=10, decimal_places=2, null=True, blank=True, help_text="Preço diferenciado do metro de DTF Têxtil (ex: R$ 35,00)")
+    preco_especial_dtf_uv = models.DecimalField("preço especial DTF UV/metro", max_digits=10, decimal_places=2, null=True, blank=True, help_text="Preço diferenciado do metro de DTF UV (ex: R$ 75,00)")
     saldo_credito = models.DecimalField("saldo em créditos (R$)", max_digits=12, decimal_places=2, default=0, help_text="Saldo financeiro para abatimento em pedidos")
     metros_saldo = models.DecimalField("saldo em metros do pacote", max_digits=10, decimal_places=2, default=0, help_text="Metros contratados no Plano de Volume")
     observacoes = models.TextField("observações do cliente", blank=True, default="")
@@ -44,6 +45,11 @@ class Cliente(models.Model):
     def telefone_formatado(self) -> str:
         from apps.payments.stone.services.normalizers import format_phone
         return format_phone(self.telefone or "")
+
+    def get_special_price(self, material_code: str = "dtf_textil"):
+        if "uv" in (material_code or "").lower():
+            return self.preco_especial_dtf_uv or self.preco_especial_metro
+        return self.preco_especial_metro
 
 
 

@@ -216,11 +216,16 @@
     });
   };
 
-  const getSelectedCustomerInfo = () => {
+  const getSelectedCustomerInfo = (materialCode = "") => {
     const clienteHidden = document.querySelector("#id_cliente_hidden") || document.querySelector("#id_cliente");
     const customerId = clienteHidden ? clienteHidden.value : "";
-    const special = clienteHidden ? (clienteHidden.dataset.special || "") : "";
-    return { customerId, special };
+    const specialTextil = clienteHidden ? (clienteHidden.dataset.special || "") : "";
+    const specialUv = clienteHidden ? (clienteHidden.dataset.specialUv || "") : "";
+    let special = specialTextil;
+    if (materialCode && materialCode.toLowerCase().includes("uv")) {
+      special = specialUv || specialTextil;
+    }
+    return { customerId, special, specialTextil, specialUv };
   };
 
   // 1. Add DTF
@@ -237,7 +242,7 @@
       }
 
       addDtfBtn.disabled = true;
-      const { customerId, special } = getSelectedCustomerInfo();
+      const { customerId, special, specialTextil, specialUv } = getSelectedCustomerInfo(selectedMat);
       const quote = await calculateItem({
         kind: "material",
         material_code: selectedMat,
@@ -246,6 +251,8 @@
         quantity: qty,
         cliente_id: customerId,
         custom_price_per_meter: special,
+        preco_especial_metro: specialTextil,
+        preco_especial_dtf_uv: specialUv,
       });
       addDtfBtn.disabled = false;
 

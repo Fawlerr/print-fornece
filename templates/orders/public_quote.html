@@ -145,7 +145,7 @@
   </div>
 
   <div class="button-row" style="margin-top: 30px; padding-top: 20px; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
-    <div style="display: flex; gap: 12px;">
+    <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
       {% if order.stage == "novo" or order.stage == "aguardando_pagamento" %}
         <form method="post" action="{% url 'orders:approve_quote' token=token %}">
           {% csrf_token %}
@@ -157,6 +157,12 @@
         <div style="background: #d1fae5; color: #065f46; padding: 10px 20px; border-radius: 6px; font-weight: bold; display: flex; align-items: center; gap: 8px;">
           <i class="fa-solid fa-check-circle" style="font-size: 1.3rem;"></i> Orçamento Aprovado
         </div>
+      {% endif %}
+
+      {% if print_whatsapp_url %}
+        <a href="{{ print_whatsapp_url }}" target="_blank" class="btn btn-secondary btn-large" style="background: rgba(37, 211, 102, 0.16); color: #25D366; border: 1px solid rgba(37, 211, 102, 0.4); padding: 12px 20px; font-size: 1rem; font-weight: 700; display: inline-flex; align-items: center; gap: 8px; text-decoration: none;">
+          <i class="fa-brands fa-whatsapp" style="font-size: 1.3rem;"></i> Avisar Confirmação no WhatsApp da Print
+        </a>
       {% endif %}
     </div>
   </div>

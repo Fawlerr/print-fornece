@@ -80,7 +80,7 @@ def finish_order(*, order_id: int, actor, request=None) -> Order:
 
 
 @transaction.atomic
-def cancel_order(*, order_id: int, actor, request=None) -> Order:
+def cancel_order(*, order_id: int, actor, reason: str = "", request=None) -> Order:
     order = Order.objects.select_for_update().select_related("responsible").get(pk=order_id)
     require_order_access(actor, order)
     if order.stage == Order.Stage.CANCELLED:
@@ -91,11 +91,13 @@ def cancel_order(*, order_id: int, actor, request=None) -> Order:
     order.stage = Order.Stage.CANCELLED
     order.cancelled_at = timezone.now()
     order.cancelled_by = actor
+    order.cancellation_reason = reason or ""
     order.stage_updated_at = timezone.now()
-    order.save(update_fields=["stage", "cancelled_at", "cancelled_by", "stage_updated_at", "updated_at"])
+    order.save(update_fields=["stage", "cancelled_at", "cancelled_by", "cancellation_reason", "stage_updated_at", "updated_at"])
     OrderStageHistory.objects.create(order=order, previous_stage=previous_stage, new_stage=Order.Stage.CANCELLED, user=actor)
-    OrderHistory.objects.create(order=order, user=actor, action="cancelamento", description="Pedido cancelado.")
-    record_audit(actor, "cancelamento", "pedido", order.pk, before={"etapa": previous_stage}, after={"etapa": Order.Stage.CANCELLED}, request=request)
+    history_desc = f"Pedido cancelado. Motivo: {reason}" if reason else "Pedido cancelado."
+    OrderHistory.objects.create(order=order, user=actor, action="cancelamento", description=history_desc)
+    record_audit(actor, "cancelamento", "pedido", order.pk, before={"etapa": previous_stage}, after={"etapa": Order.Stage.CANCELLED, "motivo": reason}, request=request)
     transaction.on_commit(lambda: notify_role("administrador", "Pedido cancelado", f"{order.number} foi cancelado.", f"/production/{order.pk}/"))
     return order
 

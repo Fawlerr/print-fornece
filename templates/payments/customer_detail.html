@@ -71,9 +71,15 @@
             <strong>{{ cliente.email|default:"Não informado" }}</strong>
           </div>
           <div>
-            <small>Preço Especial do Metro</small>
+            <small>Preço Especial DTF Têxtil</small>
             <strong style="color: {% if cliente.preco_especial_metro %}#22c55e{% else %}#9ca3af{% endif %};">
               {% if cliente.preco_especial_metro %}R$ {{ cliente.preco_especial_metro|floatformat:2 }} / m{% else %}Tabela Padrão{% endif %}
+            </strong>
+          </div>
+          <div>
+            <small>Preço Especial DTF UV</small>
+            <strong style="color: {% if cliente.preco_especial_dtf_uv %}#c084fc{% else %}#9ca3af{% endif %};">
+              {% if cliente.preco_especial_dtf_uv %}R$ {{ cliente.preco_especial_dtf_uv|floatformat:2 }} / m{% else %}Tabela Padrão{% endif %}
             </strong>
           </div>
           <div>
@@ -243,12 +249,22 @@
         <div style="display: grid; gap: 14px;">
           <div style="padding: 14px; background: rgba(0,0,0,0.2); border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-              <span class="text-muted" style="font-size: 0.85rem;">Preço Especial do Metro</span>
+              <span class="text-muted" style="font-size: 0.85rem;">Preço Especial DTF Têxtil</span>
               <strong style="color: #22c55e; font-size: 1.1rem;">
                 {% if cliente.preco_especial_metro %}R$ {{ cliente.preco_especial_metro|floatformat:2 }} / m{% else %}Tabela Geral{% endif %}
               </strong>
             </div>
-            <small class="text-muted">Aplica automaticamente no cálculo de orçamentos vinculados a este cliente.</small>
+            <small class="text-muted">Aplica automaticamente no cálculo de DTF Têxtil vinculado a este cliente.</small>
+          </div>
+
+          <div style="padding: 14px; background: rgba(0,0,0,0.2); border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <span class="text-muted" style="font-size: 0.85rem;">Preço Especial DTF UV</span>
+              <strong style="color: #c084fc; font-size: 1.1rem;">
+                {% if cliente.preco_especial_dtf_uv %}R$ {{ cliente.preco_especial_dtf_uv|floatformat:2 }} / m{% else %}Tabela Geral{% endif %}
+              </strong>
+            </div>
+            <small class="text-muted">Aplica automaticamente no cálculo de DTF UV vinculado a este cliente.</small>
           </div>
 
           <div style="padding: 14px; background: rgba(0,0,0,0.2); border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
