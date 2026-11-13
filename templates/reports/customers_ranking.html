@@ -4,48 +4,21 @@
 {% block page_heading %}Ranking dos Melhores Clientes{% endblock %}
 
 {% block content %}
-  <!-- Abas de Navegação dos Relatórios -->
-  <div class="no-print" style="display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 12px; flex-wrap: wrap;">
-    <a href="{% url 'reports:index' %}" class="btn btn-secondary" style="display: inline-flex; align-items: center; gap: 8px; font-weight: 500;">
-      <i class="fa-solid fa-chart-line"></i> Visão Geral & Financeiro
-    </a>
-    <a href="{% url 'reports:production' %}" class="btn btn-secondary" style="display: inline-flex; align-items: center; gap: 8px; font-weight: 500;">
-      <i class="fa-solid fa-print"></i> Produção Diária (Metros)
-    </a>
-    <a href="{% url 'reports:materials' %}" class="btn btn-secondary" style="display: inline-flex; align-items: center; gap: 8px; font-weight: 500;">
-      <i class="fa-solid fa-boxes-stacked"></i> Consumo de Materiais
-    </a>
-    <a href="{% url 'reports:team_ranking' %}" class="btn btn-secondary" style="display: inline-flex; align-items: center; gap: 8px; font-weight: 500;">
-      <i class="fa-solid fa-trophy"></i> Ranking da Equipe
-    </a>
-    <a href="{% url 'reports:customers_ranking' %}" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 8px; font-weight: 600; background: #2563eb; border-color: #1d4ed8;">
-      <i class="fa-solid fa-users"></i> Ranking de Clientes
-    </a>
+  {% include "reports/_report_tabs.html" %}
+
+  <div class="section-heading">
+    <div>
+      <h2>Ranking e Classificação de Clientes</h2>
+      <p>Clientes no período <strong>{{ period.label }}</strong>, ordenados por
+        <strong>{% if order_by == 'quantidade' %}quantidade de produtos / metros comprados{% else %}volume financeiro total (R$){% endif %}</strong>.</p>
+    </div>
+    <div class="segmented no-print" role="group" aria-label="Ordenação do ranking">
+      <a href="?{{ period.querystring }}&order_by=volume"{% if order_by == 'volume' %} class="is-active" aria-current="true"{% endif %}><i class="fa-solid fa-sack-dollar" aria-hidden="true"></i> Por volume (R$)</a>
+      <a href="?{{ period.querystring }}&order_by=quantidade"{% if order_by == 'quantidade' %} class="is-active" aria-current="true"{% endif %}><i class="fa-solid fa-layer-group" aria-hidden="true"></i> Por quantidade</a>
+    </div>
   </div>
 
-  <div class="section-heading" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
-    <div>
-      <h2 style="margin: 0; font-size: 1.35rem; color: #f8fafc;">Ranking e Classificação de Clientes</h2>
-      <p style="margin: 4px 0 0 0; color: #94a3b8; font-size: 0.9rem;">
-        Listagem dos clientes ordenada por 
-        <strong>{% if order_by == 'quantidade' %}Quantidade de Produtos / Metros Comprados{% else %}Volume Financeiro Total de Vendas (R$){% endif %}</strong>.
-      </p>
-    </div>
-    <div style="display: flex; gap: 8px; align-items: center;" class="no-print">
-      <!-- Botões de Alternância de Ordenação -->
-      <div style="background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; padding: 3px; display: flex; gap: 4px;">
-        <a href="?order_by=volume" class="btn btn-small" style="{% if order_by == 'volume' %}background: #2563eb; color: #fff; font-weight: 700;{% else %}background: transparent; color: #94a3b8;{% endif %} border: none; padding: 5px 12px; border-radius: 6px;">
-          <i class="fa-solid fa-sack-dollar"></i> Por Volume (R$)
-        </a>
-        <a href="?order_by=quantidade" class="btn btn-small" style="{% if order_by == 'quantidade' %}background: #2563eb; color: #fff; font-weight: 700;{% else %}background: transparent; color: #94a3b8;{% endif %} border: none; padding: 5px 12px; border-radius: 6px;">
-          <i class="fa-solid fa-layer-group"></i> Por Quantidade
-        </a>
-      </div>
-      <a href="?order_by={{ order_by }}&export=csv" class="btn btn-primary btn-small" style="background: #10b981; border-color: #059669;">
-        <i class="fa-solid fa-file-csv"></i> Exportar CSV
-      </a>
-    </div>
-  </div>
+  {% include "reports/_period_filter.html" %}
 
   <!-- Cards de Resumo / KPIs -->
   <div class="grid stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px;">

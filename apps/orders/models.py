@@ -119,6 +119,8 @@ class Order(models.Model):
             models.Index(fields=["shift"], name="pf_order_shift"),
             models.Index(fields=["stage", "due_at"], name="pf_order_stage_due"),
             models.Index(fields=["stage", "stage_updated_at"], name="pf_order_stage_move"),
+            # A2: consultas por período no fechamento de caixa
+            models.Index(fields=["payment_confirmed_at"], name="pf_order_paid_at"),
         ]
 
     def __str__(self) -> str:
@@ -417,6 +419,8 @@ class OrderPayment(models.Model):
         indexes = [
             models.Index(fields=["order", "created_at"], name="pf_pay_order_created"),
             models.Index(fields=["payment_method"], name="pf_pay_method"),
+            # A2: relatório de formas de pagamento por período
+            models.Index(fields=["created_at"], name="pf_pay_created"),
         ]
 
     def __str__(self) -> str:

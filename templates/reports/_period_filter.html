@@ -1,0 +1,62 @@
+{% comment %}
+  Filtro de período comum a todos os relatórios (A2).
+  Parâmetros opcionais do include:
+    extra_filters_template — template com campos extras do relatório (ficam no mesmo formulário)
+    hide_compare — oculta a opção de comparar
+{% endcomment %}
+<section class="period-filter card no-print" aria-labelledby="period-filter-title">
+  <form method="get" class="period-filter__form">
+    <input type="hidden" name="periodo" value="{{ period.preset }}">
+    {% for key, value in period_preserved.items %}
+      {% if not extra_filters_template %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endif %}
+    {% endfor %}
+
+    <div class="period-filter__head">
+      <h2 id="period-filter-title" class="period-filter__title">
+        <i class="fa-regular fa-calendar" aria-hidden="true"></i>
+        Período: <strong>{{ period.label }}</strong>
+        <span class="period-filter__preset">({{ period.preset_label }})</span>
+      </h2>
+      <p class="period-filter__basis">Período baseado na {{ period_basis }}.</p>
+    </div>
+
+    {% if period_error %}
+      <div class="period-filter__error" role="alert">
+        <i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i> {{ period_error }} Mostrando o período padrão.
+      </div>
+    {% endif %}
+
+    <div class="period-filter__presets" role="group" aria-label="Atalhos de período">
+      {% for value, label in period_presets %}
+        {% if value != "personalizado" %}
+          <button type="submit" name="periodo" value="{{ value }}" class="period-chip{% if period.preset == value %} is-active{% endif %}"{% if period.preset == value %} aria-pressed="true"{% else %} aria-pressed="false"{% endif %}>{{ label }}</button>
+        {% endif %}
+      {% endfor %}
+    </div>
+
+    <div class="period-filter__custom">
+      <label for="periodo-inicio">Data inicial
+        <input id="periodo-inicio" type="date" name="inicio" value="{{ period.start|date:'Y-m-d' }}" required>
+      </label>
+      <label for="periodo-fim">Data final
+        <input id="periodo-fim" type="date" name="fim" value="{{ period.end|date:'Y-m-d' }}" required>
+      </label>
+      {% if extra_filters_template %}{% include extra_filters_template %}{% endif %}
+      {% if not hide_compare %}
+        <label class="period-filter__compare">
+          <input type="checkbox" name="comparar" value="1"{% if compare %} checked{% endif %}>
+          Comparar com o período anterior
+        </label>
+      {% endif %}
+      <button type="submit" name="periodo" value="personalizado" class="btn btn-primary">Aplicar</button>
+    </div>
+
+    <div class="period-filter__exports" role="group" aria-label="Exportar o relatório do período">
+      <span>Exportar:</span>
+      <button type="submit" name="export" value="csv" class="btn btn-secondary btn-small"><i class="fa-solid fa-file-csv" aria-hidden="true"></i> CSV</button>
+      <button type="submit" name="export" value="xlsx" class="btn btn-secondary btn-small"><i class="fa-solid fa-file-excel" aria-hidden="true"></i> Excel</button>
+      <button type="submit" name="export" value="pdf" class="btn btn-secondary btn-small"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i> PDF</button>
+    </div>
+  </form>
+</section>
+{% include "reports/_period_compare.html" %}

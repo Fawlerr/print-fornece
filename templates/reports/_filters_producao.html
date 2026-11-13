@@ -1,0 +1,15 @@
+<label for="filtro-responsavel">Funcionário
+  <select id="filtro-responsavel" name="responsible">
+    <option value="">Todos</option>
+    {% for u in users %}
+      <option value="{{ u.pk }}"{% if responsible_id|stringformat:"s" == u.pk|stringformat:"s" %} selected{% endif %}>{{ u.name }}</option>
+    {% endfor %}
+  </select>
+</label>
+<label for="filtro-material">Tipo de material
+  <select id="filtro-material" name="material_type">
+    <option value="">Todos (Têxtil + UV)</option>
+    <option value="dtf_textil"{% if material_type == "dtf_textil" %} selected{% endif %}>DTF Têxtil</option>
+    <option value="dtf_uv"{% if material_type == "dtf_uv" %} selected{% endif %}>DTF UV Rígidos</option>
+  </select>
+</label>

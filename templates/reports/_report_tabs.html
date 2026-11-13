@@ -1,0 +1,21 @@
+{% comment %}
+  Abas de navegação entre relatórios. Os links carregam o período atual (?periodo=… ou ?inicio=…&fim=…),
+  para manter o mesmo período ao trocar de relatório. O Fechamento de Caixa abre sempre em "hoje".
+{% endcomment %}
+{% with qs=period.querystring current=request.resolver_match.url_name %}
+  <nav class="report-tabs no-print" aria-label="Relatórios">
+    {% if user.is_administrator %}
+      <a href="{% url 'reports:index' %}?{{ qs }}"{% if current == 'index' %} class="is-active" aria-current="page"{% endif %}><i class="fa-solid fa-chart-line" aria-hidden="true"></i> Visão geral</a>
+      <a href="{% url 'reports:product_sales' %}?{{ qs }}"{% if current == 'product_sales' %} class="is-active" aria-current="page"{% endif %}><i class="fa-solid fa-boxes-stacked" aria-hidden="true"></i> Vendas por produto</a>
+      <a href="{% url 'reports:daily_consumption' %}?{{ qs }}"{% if current == 'daily_consumption' %} class="is-active" aria-current="page"{% endif %}><i class="fa-solid fa-calendar-day" aria-hidden="true"></i> Consumo diário</a>
+      <a href="{% url 'reports:ink_consumption' %}?{{ qs }}"{% if current == 'ink_consumption' %} class="is-active" aria-current="page"{% endif %}><i class="fa-solid fa-droplet" aria-hidden="true"></i> Tintas</a>
+      <a href="{% url 'reports:production' %}?{{ qs }}"{% if current == 'production' %} class="is-active" aria-current="page"{% endif %}><i class="fa-solid fa-print" aria-hidden="true"></i> Produção (metros)</a>
+      <a href="{% url 'reports:materials' %}?{{ qs }}"{% if current == 'materials' %} class="is-active" aria-current="page"{% endif %}><i class="fa-solid fa-layer-group" aria-hidden="true"></i> Materiais</a>
+      <a href="{% url 'reports:team_ranking' %}?{{ qs }}"{% if current == 'team_ranking' %} class="is-active" aria-current="page"{% endif %}><i class="fa-solid fa-trophy" aria-hidden="true"></i> Ranking da equipe</a>
+      <a href="{% url 'reports:customers_ranking' %}?{{ qs }}"{% if current == 'customers_ranking' %} class="is-active" aria-current="page"{% endif %}><i class="fa-solid fa-users" aria-hidden="true"></i> Ranking de clientes</a>
+    {% endif %}
+    <a href="{% url 'reports:new_customers' %}?{{ qs }}"{% if current == 'new_customers' %} class="is-active" aria-current="page"{% endif %}><i class="fa-solid fa-user-plus" aria-hidden="true"></i> Clientes novos</a>
+    <a href="{% url 'reports:payment_methods' %}?{{ qs }}"{% if current == 'payment_methods' %} class="is-active" aria-current="page"{% endif %}><i class="fa-solid fa-credit-card" aria-hidden="true"></i> Formas de pagamento</a>
+    <a href="{% url 'reports:cash_register' %}"{% if current == 'cash_register' %} class="is-active" aria-current="page"{% endif %}><i class="fa-solid fa-cash-register" aria-hidden="true"></i> Fechamento de caixa</a>
+  </nav>
+{% endwith %}

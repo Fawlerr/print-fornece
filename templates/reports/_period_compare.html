@@ -1,0 +1,37 @@
+{% if compare and comparison %}
+  <section class="period-compare card" aria-labelledby="period-compare-title">
+    <h2 id="period-compare-title">Comparação: {{ period.label }} × {{ previous_period.label }}</h2>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th scope="col">Indicador</th>
+            <th scope="col" class="num">Período atual</th>
+            <th scope="col" class="num">Período anterior</th>
+            <th scope="col" class="num">Variação</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in comparison %}
+            <tr>
+              <th scope="row">{{ row.label }}</th>
+              <td class="num">{% if row.kind == "money" %}R$ {{ row.current|floatformat:2 }}{% elif row.kind == "meters" %}{{ row.current|floatformat:2 }} m{% else %}{{ row.current|floatformat:"-2" }}{% endif %}</td>
+              <td class="num">{% if row.kind == "money" %}R$ {{ row.previous|floatformat:2 }}{% elif row.kind == "meters" %}{{ row.previous|floatformat:2 }} m{% else %}{{ row.previous|floatformat:"-2" }}{% endif %}</td>
+              <td class="num">
+                {% if row.variation is None %}
+                  <span class="variation variation--none" title="Sem base de comparação no período anterior">—</span>
+                {% elif row.variation > 0 %}
+                  <span class="variation variation--up"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i> +{{ row.variation|floatformat:1 }}%</span>
+                {% elif row.variation < 0 %}
+                  <span class="variation variation--down"><i class="fa-solid fa-arrow-down" aria-hidden="true"></i> {{ row.variation|floatformat:1 }}%</span>
+                {% else %}
+                  <span class="variation variation--none">0,0%</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+{% endif %}

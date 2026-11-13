@@ -30,6 +30,8 @@ class Cliente(models.Model):
     class Meta:
         db_table = "pf_clientes"
         ordering = ["nome"]
+        # A2: relatório de clientes novos por período
+        indexes = [models.Index(fields=["created_at"], name="pf_cliente_created")]
         verbose_name = "Cliente"
         verbose_name_plural = "Clientes"
 

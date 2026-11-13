@@ -7,80 +7,16 @@
 {% block content %}
 <section class="section" style="max-width: 1250px; margin: 0 auto;">
 
-  <!-- Abas de Navegação dos Relatórios -->
-  <div class="no-print" style="display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 12px; flex-wrap: wrap;">
-    <a href="{% url 'reports:index' %}" class="btn btn-secondary" style="display: inline-flex; align-items: center; gap: 8px; font-weight: 500;">
-      <i class="fa-solid fa-chart-line"></i> Visão Geral & Financeiro
-    </a>
-    <a href="{% url 'reports:new_customers' %}" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 8px; font-weight: 600; background: #2563eb; border-color: #1d4ed8;">
-      <i class="fa-solid fa-user-plus"></i> Clientes Novos por Mês
-    </a>
-    <a href="{% url 'reports:payment_methods' %}" class="btn btn-secondary" style="display: inline-flex; align-items: center; gap: 8px; font-weight: 500;">
-      <i class="fa-solid fa-credit-card"></i> Formas de Pagamento
-    </a>
-    <a href="{% url 'reports:cash_register' %}" class="btn btn-secondary" style="display: inline-flex; align-items: center; gap: 8px; font-weight: 500;">
-      <i class="fa-solid fa-cash-register"></i> Fechamento de Caixa
-    </a>
-    <a href="{% url 'reports:customers_ranking' %}" class="btn btn-secondary" style="display: inline-flex; align-items: center; gap: 8px; font-weight: 500;">
-      <i class="fa-solid fa-users"></i> Ranking de Clientes
-    </a>
-    <a href="{% url 'reports:production' %}" class="btn btn-secondary" style="display: inline-flex; align-items: center; gap: 8px; font-weight: 500;">
-      <i class="fa-solid fa-print"></i> Produção Diária
-    </a>
-  </div>
+  {% include "reports/_report_tabs.html" %}
 
-  <!-- Cabeçalho e Filtros -->
-  <div class="card no-print" style="margin-bottom: 24px; padding: 18px 20px; background: var(--surface, #1e293b); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px;">
-    <form method="get" style="display: flex; flex-wrap: wrap; gap: 14px; align-items: center; justify-content: space-between;">
-      
-      <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <label for="id_year" style="font-size: 0.9rem; font-weight: 600; color: #cbd5e1; margin: 0;">Ano:</label>
-          <select id="id_year" name="year" onchange="this.form.submit()" style="padding: 6px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: #fff; font-size: 0.92rem; font-weight: 600;">
-            {% for y in available_years %}
-              <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>
-            {% endfor %}
-          </select>
-        </div>
-
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <label for="id_month" style="font-size: 0.9rem; font-weight: 600; color: #cbd5e1; margin: 0;">Mês:</label>
-          <select id="id_month" name="month" onchange="this.form.submit()" style="padding: 6px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: #fff; font-size: 0.92rem; font-weight: 600;">
-            <option value="todos" {% if not selected_month %}selected{% endif %}>Todos os Meses</option>
-            <option value="1" {% if selected_month == 1 %}selected{% endif %}>01 - Janeiro</option>
-            <option value="2" {% if selected_month == 2 %}selected{% endif %}>02 - Fevereiro</option>
-            <option value="3" {% if selected_month == 3 %}selected{% endif %}>03 - Março</option>
-            <option value="4" {% if selected_month == 4 %}selected{% endif %}>04 - Abril</option>
-            <option value="5" {% if selected_month == 5 %}selected{% endif %}>05 - Maio</option>
-            <option value="6" {% if selected_month == 6 %}selected{% endif %}>06 - Junho</option>
-            <option value="7" {% if selected_month == 7 %}selected{% endif %}>07 - Julho</option>
-            <option value="8" {% if selected_month == 8 %}selected{% endif %}>08 - Agosto</option>
-            <option value="9" {% if selected_month == 9 %}selected{% endif %}>09 - Setembro</option>
-            <option value="10" {% if selected_month == 10 %}selected{% endif %}>10 - Outubro</option>
-            <option value="11" {% if selected_month == 11 %}selected{% endif %}>11 - Novembro</option>
-            <option value="12" {% if selected_month == 12 %}selected{% endif %}>12 - Dezembro</option>
-          </select>
-        </div>
-      </div>
-
-      <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-        <button type="submit" name="export" value="csv" class="btn btn-secondary btn-small" style="background: rgba(34, 197, 94, 0.15); color: #22c55e; border-color: rgba(34, 197, 94, 0.3);">
-          <i class="fa-solid fa-file-csv"></i> Exportar CSV
-        </button>
-        <button type="button" class="btn btn-secondary btn-small" onclick="window.print()">
-          <i class="fa-solid fa-print"></i> Imprimir
-        </button>
-      </div>
-
-    </form>
-  </div>
+  {% include "reports/_period_filter.html" %}
 
   <!-- Cabeçalho do Relatório -->
   <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px; border-bottom: 2px solid rgba(255,255,255,0.1); padding-bottom: 12px;">
     <div>
       <span style="font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.05em; color: #38bdf8; font-weight: 700;">Aquisição & Base de Clientes</span>
       <h1 style="font-size: 1.6rem; font-weight: 800; color: #fff; margin: 4px 0 2px 0;">
-        Novos Clientes: {{ selected_month_name }} / {{ year }}
+        Novos Clientes: {{ period.label }}
       </h1>
       <p style="font-size: 0.92rem; color: #94a3b8; margin: 0;">
         Acompanhamento de novos cadastros de clientes e volume faturado proveniente da nova base.
@@ -137,10 +73,10 @@
   </div>
 
   <!-- Resumo Mês a Mês do Ano -->
-  {% if not selected_month %}
+  {% if monthly_summary|length > 1 %}
   <div class="card" style="margin-bottom: 28px; padding: 20px; background: var(--surface, #1e293b); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px;">
     <h3 style="font-size: 1.1rem; font-weight: 700; color: #fff; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
-      <i class="fa-solid fa-calendar-days" style="color: #38bdf8;"></i> Evolução Mensal de Cadastros ({{ year }})
+      <i class="fa-solid fa-calendar-days" style="color: #38bdf8;"></i> Evolução Mensal de Cadastros ({{ period.label }})
     </h3>
 
     <div class="table-responsive" style="overflow-x: auto;">
@@ -172,7 +108,7 @@
                 R$ {{ m.total_spent|floatformat:2 }}
               </td>
               <td style="padding: 10px 8px; text-align: right;">
-                <a href="?year={{ year }}&month={{ m.month_num }}" class="btn btn-secondary btn-small" style="font-size: 0.78rem; padding: 3px 8px;">
+                <a href="?year={{ m.year }}&month={{ m.month_num }}" class="btn btn-secondary btn-small" style="font-size: 0.78rem; padding: 3px 8px;">
                   Ver Clientes <i class="fa-solid fa-arrow-right"></i>
                 </a>
               </td>
@@ -190,11 +126,9 @@
       <h3 style="font-size: 1.1rem; font-weight: 700; color: #fff; margin: 0; display: flex; align-items: center; gap: 8px;">
         <i class="fa-solid fa-address-book" style="color: #22c55e;"></i> Clientes Cadastrados ({{ clientes_data|length }})
       </h3>
-      {% if selected_month %}
-        <a href="?year={{ year }}" class="btn btn-secondary btn-small">
-          <i class="fa-solid fa-calendar"></i> Ver Todos os Meses de {{ year }}
-        </a>
-      {% endif %}
+      <a href="?periodo=este_ano" class="btn btn-secondary btn-small">
+        <i class="fa-solid fa-calendar" aria-hidden="true"></i> Ver o ano inteiro
+      </a>
     </div>
 
     <div class="table-responsive" style="overflow-x: auto;">

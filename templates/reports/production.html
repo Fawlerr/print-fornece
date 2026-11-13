@@ -6,87 +6,15 @@
 {% block content %}
 <section class="section" style="max-width: 1200px; margin: 0 auto;">
 
-  <!-- Abas de Navegação dos Relatórios -->
-  <div style="display: flex; gap: 8px; margin-bottom: 24px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 12px; flex-wrap: wrap;">
-    <a href="{% url 'reports:index' %}" class="btn btn-secondary" style="display: inline-flex; align-items: center; gap: 8px; font-weight: 500;">
-      <i class="fa-solid fa-chart-line"></i> Visão Geral & Financeiro
-    </a>
-    <a href="{% url 'reports:production' %}" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 8px; font-weight: 600; background: #2563eb; border-color: #1d4ed8;">
-      <i class="fa-solid fa-print"></i> Produção Diária (Metros)
-    </a>
-    <a href="{% url 'reports:materials' %}" class="btn btn-secondary" style="display: inline-flex; align-items: center; gap: 8px; font-weight: 500;">
-      <i class="fa-solid fa-boxes-stacked"></i> Consumo de Materiais
-    </a>
-    <a href="{% url 'reports:team_ranking' %}" class="btn btn-secondary" style="display: inline-flex; align-items: center; gap: 8px; font-weight: 500;">
-      <i class="fa-solid fa-trophy"></i> Ranking da Equipe
-    </a>
-    <a href="{% url 'reports:customers_ranking' %}" class="btn btn-secondary" style="display: inline-flex; align-items: center; gap: 8px; font-weight: 500;">
-      <i class="fa-solid fa-users"></i> Ranking de Clientes
-    </a>
-  </div>
+  {% include "reports/_report_tabs.html" %}
 
-  <!-- Filtros -->
-  <div class="card" style="margin-bottom: 24px; padding: 20px; background: var(--surface, #1e293b); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px;">
-    <form method="get" style="display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end;">
-      
-      <!-- Mês / Navegação -->
-      <div style="flex: 1; min-width: 220px;">
-        <label for="id_month" style="display: block; font-size: 0.85rem; color: #94a3b8; margin-bottom: 6px; font-weight: 600;">
-          <i class="fa-regular fa-calendar" style="margin-right: 4px;"></i> Mês / Ano
-        </label>
-        <div style="display: flex; gap: 6px; align-items: center;">
-          <a href="?month={{ prev_month_str }}{% if responsible_id %}&responsible={{ responsible_id }}{% endif %}{% if material_type %}&material_type={{ material_type }}{% endif %}" class="btn btn-secondary" style="padding: 8px 12px;" title="Mês anterior">
-            <i class="fa-solid fa-chevron-left"></i>
-          </a>
-          <input type="month" name="month" id="id_month" value="{{ current_month_str }}" style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; padding: 8px 12px; color: #f8fafc; font-size: 0.92rem; flex: 1;">
-          <a href="?month={{ next_month_str }}{% if responsible_id %}&responsible={{ responsible_id }}{% endif %}{% if material_type %}&material_type={{ material_type }}{% endif %}" class="btn btn-secondary" style="padding: 8px 12px;" title="Próximo mês">
-            <i class="fa-solid fa-chevron-right"></i>
-          </a>
-        </div>
-      </div>
-
-      <!-- Funcionário -->
-      <div style="flex: 1; min-width: 200px;">
-        <label for="id_responsible" style="display: block; font-size: 0.85rem; color: #94a3b8; margin-bottom: 6px; font-weight: 600;">
-          <i class="fa-solid fa-user" style="margin-right: 4px;"></i> Funcionário / Operador
-        </label>
-        <select name="responsible" id="id_responsible" style="width: 100%; background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; padding: 8px 12px; color: #f8fafc; font-size: 0.92rem;">
-          <option value="">Todos os Funcionários</option>
-          {% for u in users %}
-            <option value="{{ u.id }}" {% if responsible_id == u.id|stringformat:"s" %}selected{% endif %}>{{ u.name|default:u.email }}</option>
-          {% endfor %}
-        </select>
-      </div>
-
-      <!-- Tipo de Material -->
-      <div style="flex: 1; min-width: 200px;">
-        <label for="id_material_type" style="display: block; font-size: 0.85rem; color: #94a3b8; margin-bottom: 6px; font-weight: 600;">
-          <i class="fa-solid fa-layer-group" style="margin-right: 4px;"></i> Tipo de DTF
-        </label>
-        <select name="material_type" id="id_material_type" style="width: 100%; background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; padding: 8px 12px; color: #f8fafc; font-size: 0.92rem;">
-          <option value="">Todos os Materiais (Têxtil + UV)</option>
-          <option value="dtf_textil" {% if material_type == "dtf_textil" %}selected{% endif %}>DTF Têxtil</option>
-          <option value="dtf_uv" {% if material_type == "dtf_uv" %}selected{% endif %}>DTF UV Rígidos</option>
-        </select>
-      </div>
-
-      <!-- Botões de Ação -->
-      <div style="display: flex; gap: 8px;">
-        <button type="submit" class="btn btn-primary" style="padding: 9px 20px; display: inline-flex; align-items: center; gap: 6px;">
-          <i class="fa-solid fa-filter"></i> Filtrar
-        </button>
-        <a href="?month={{ current_month_str }}{% if responsible_id %}&responsible={{ responsible_id }}{% endif %}{% if material_type %}&material_type={{ material_type }}{% endif %}&export=csv" class="btn btn-secondary" style="padding: 9px 16px; display: inline-flex; align-items: center; gap: 6px;" title="Exportar dados para planilha CSV">
-          <i class="fa-solid fa-file-csv"></i> CSV
-        </a>
-      </div>
-    </form>
-  </div>
+  {% include "reports/_period_filter.html" with extra_filters_template="reports/_filters_producao.html" %}
 
   <!-- Cabeçalho do Período -->
   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
     <div>
       <h2 style="margin: 0; font-size: 1.3rem; color: #f8fafc; font-weight: 700;">
-        Produção de {{ month_label }}
+        Produção: {{ period.label }}
       </h2>
       <p style="margin: 4px 0 0 0; font-size: 0.85rem; color: #94a3b8;">
         Metros lineares de DTF impressos e contabilizados diariamente no mês.

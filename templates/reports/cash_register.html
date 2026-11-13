@@ -19,49 +19,7 @@
     </div>
   </div>
 
-  <!-- Barra de Filtro de Data e Ações (Oculta na Impressão) -->
-  <div class="card no-print" style="margin-bottom: 24px; padding: 18px 20px; background: var(--surface, #1e293b); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px;">
-    <form method="get" style="display: flex; flex-wrap: wrap; gap: 14px; align-items: center; justify-content: space-between;">
-      
-      <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-        <a href="?date={{ prev_day_str }}" class="btn btn-secondary btn-small" title="Dia anterior">
-          <i class="fa-solid fa-chevron-left"></i> Anterior
-        </a>
-
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <input type="hidden" name="payment_type" value="{{ payment_type }}">
-          <label for="id_cash_date" style="font-size: 0.9rem; font-weight: 600; color: #cbd5e1; margin: 0;">Data do Caixa:</label>
-          <input type="date" id="id_cash_date" name="date" value="{{ target_date_str }}" onchange="this.form.submit()" style="padding: 6px 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: #fff; font-size: 0.92rem; font-weight: 600;">
-        </div>
-
-        <a href="?date={{ next_day_str }}" class="btn btn-secondary btn-small" title="Próximo dia">
-          Próximo <i class="fa-solid fa-chevron-right"></i>
-        </a>
-
-        {% if not is_today %}
-          <a href="{% url 'reports:cash_register' %}" class="btn btn-secondary btn-small" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border-color: rgba(56, 189, 248, 0.3);">
-            <i class="fa-solid fa-calendar-day"></i> Ir para Hoje
-          </a>
-        {% endif %}
-      </div>
-
-      <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-        <button type="button" class="btn btn-secondary btn-small" onclick="toggleCupomTermico()" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border-color: rgba(56, 189, 248, 0.35);">
-          <i class="fa-solid fa-receipt"></i> <span id="btn-termico-label">Ver Cupom Térmico (80mm/58mm)</span>
-        </button>
-        <button type="button" class="btn btn-primary btn-small" onclick="imprimirCupomTermico()">
-          <i class="fa-solid fa-print"></i> Imprimir Cupom Térmico
-        </button>
-        <button type="button" class="btn btn-secondary btn-small" onclick="window.print()">
-          <i class="fa-solid fa-file-lines"></i> Relatório A4
-        </button>
-        <button type="submit" name="export" value="csv" class="btn btn-secondary btn-small" style="background: rgba(34, 197, 94, 0.15); color: #22c55e; border-color: rgba(34, 197, 94, 0.3);">
-          <i class="fa-solid fa-file-csv"></i> CSV
-        </button>
-      </div>
-
-    </form>
-  </div>
+  {% include "reports/_period_filter.html" %}
 
   <!-- Cabeçalho do Fechamento (Visível na tela e na impressão) -->
   <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px; border-bottom: 2px solid rgba(255,255,255,0.1); padding-bottom: 12px;">
@@ -309,13 +267,13 @@
 
       <!-- Filtro Completo vs Parcial -->
       <div class="no-print" style="display: flex; gap: 6px; background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255,255,255,0.12); padding: 4px; border-radius: 8px;">
-        <a href="?date={{ target_date_str }}&payment_type=todos" class="btn btn-small" style="{% if payment_type == 'todos' %}background: #2563eb; color: #fff; font-weight: 700;{% else %}background: transparent; color: #94a3b8;{% endif %} border: none; padding: 5px 12px; border-radius: 6px; font-size: 0.82rem; text-decoration: none;">
+        <a href="?{{ period.querystring }}&payment_type=todos" class="btn btn-small" style="{% if payment_type == 'todos' %}background: #2563eb; color: #fff; font-weight: 700;{% else %}background: transparent; color: #94a3b8;{% endif %} border: none; padding: 5px 12px; border-radius: 6px; font-size: 0.82rem; text-decoration: none;">
           Todos ({{ all_orders_count }})
         </a>
-        <a href="?date={{ target_date_str }}&payment_type=completo" class="btn btn-small" style="{% if payment_type == 'completo' %}background: #10b981; color: #fff; font-weight: 700;{% else %}background: transparent; color: #94a3b8;{% endif %} border: none; padding: 5px 12px; border-radius: 6px; font-size: 0.82rem; text-decoration: none;">
+        <a href="?{{ period.querystring }}&payment_type=completo" class="btn btn-small" style="{% if payment_type == 'completo' %}background: #10b981; color: #fff; font-weight: 700;{% else %}background: transparent; color: #94a3b8;{% endif %} border: none; padding: 5px 12px; border-radius: 6px; font-size: 0.82rem; text-decoration: none;">
           <i class="fa-solid fa-circle-check"></i> Completos ({{ complete_count }})
         </a>
-        <a href="?date={{ target_date_str }}&payment_type=parcial" class="btn btn-small" style="{% if payment_type == 'parcial' %}background: #eab308; color: #000; font-weight: 700;{% else %}background: transparent; color: #94a3b8;{% endif %} border: none; padding: 5px 12px; border-radius: 6px; font-size: 0.82rem; text-decoration: none;">
+        <a href="?{{ period.querystring }}&payment_type=parcial" class="btn btn-small" style="{% if payment_type == 'parcial' %}background: #eab308; color: #000; font-weight: 700;{% else %}background: transparent; color: #94a3b8;{% endif %} border: none; padding: 5px 12px; border-radius: 6px; font-size: 0.82rem; text-decoration: none;">
           <i class="fa-solid fa-clock-rotate-left"></i> Parciais ({{ partial_count }})
         </a>
       </div>

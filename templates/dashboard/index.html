@@ -17,10 +17,10 @@
     </div>
 
     <div class="grid stats-grid">
-      <a class="stat-card" href="{% url 'reports:index' %}" style="display: block; cursor: pointer;" title="Ver relatório de faturamento"><small>Faturamento de hoje</small><strong>R$ {{ stats.revenue_today|floatformat:2 }}</strong></a>
-      <a class="stat-card" href="{% url 'reports:index' %}" style="display: block; cursor: pointer;" title="Ver relatório mensal"><small>Faturamento do mês</small><strong>R$ {{ stats.revenue_month|floatformat:2 }}</strong></a>
+      <a class="stat-card" href="{% url 'reports:index' %}?periodo=hoje" style="display: block; cursor: pointer;" title="Ver relatório de faturamento"><small>Faturamento de hoje</small><strong>R$ {{ stats.revenue_today|floatformat:2 }}</strong></a>
+      <a class="stat-card" href="{% url 'reports:index' %}?periodo=este_mes" style="display: block; cursor: pointer;" title="Ver relatório mensal"><small>Faturamento do mês</small><strong>R$ {{ stats.revenue_month|floatformat:2 }}</strong></a>
       <a class="stat-card danger" href="{% url 'expenses:list' %}" style="display: block; cursor: pointer;" title="Ver despesas do mês"><small>Despesas do mês</small><strong>R$ {{ expenses_month|floatformat:2 }}</strong></a>
-      <a class="stat-card" href="{% url 'reports:index' %}" style="display: block; cursor: pointer;" title="Ver lucro líquido nos relatórios"><small>Lucro líquido do mês</small><strong>R$ {{ monthly_profit|floatformat:2 }}</strong></a>
+      <a class="stat-card" href="{% url 'reports:index' %}?periodo=este_mes" style="display: block; cursor: pointer;" title="Ver lucro líquido nos relatórios"><small>Lucro líquido do mês</small><strong>R$ {{ monthly_profit|floatformat:2 }}</strong></a>
       <a class="stat-card" href="{% url 'production:kanban' %}" style="display: block; cursor: pointer;" title="Ver pedidos de hoje"><small>Pedidos hoje</small><strong>{{ stats.orders_today }}</strong></a>
       <a class="stat-card" href="{% url 'production:kanban' %}?stage=em_producao" style="display: block; cursor: pointer;" title="Ver pedidos em andamento"><small>Em andamento</small><strong>{{ stats.in_progress }}</strong></a>
       <a class="stat-card" href="{% url 'production:kanban' %}?stage=pronto_retirada" style="display: block; cursor: pointer;" title="Ver pedidos prontos"><small>Prontos</small><strong>{{ stats.ready }}</strong></a>

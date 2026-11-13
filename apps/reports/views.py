@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import calendar
-import csv
 from collections import defaultdict
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal
@@ -9,7 +7,6 @@ from decimal import Decimal
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Prefetch, Q, Sum
-from django.http import HttpResponse
 from django.shortcuts import redirect
 from django.utils import timezone
 from django.views.generic import TemplateView
@@ -21,29 +18,53 @@ from apps.inventory.models import SupplyItem, SupplyMovement
 from apps.orders.models import Order, OrderItem, OrderPayment, OrderStageHistory
 from apps.payments.models import Cliente
 
+from .exports import ExportSection
 from .forms import ProductionReportFilterForm, ReportFilterForm
+from .mixins import PeriodReportMixin, SummaryMetric
+
+WEEKDAYS_SHORT = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"]
+WEEKDAYS_LONG = ["Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado", "Domingo"]
+MONTH_NAMES = ["", "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"]
 
 
-class ReportView(LoginRequiredMixin, AdministratorRequiredMixin, TemplateView):
+def item_meters(item) -> Decimal:
+    """Metros de filme usados por um item (mesma regra usada em todo o sistema)."""
+    if item.calculation_snapshot and "film_used_m" in item.calculation_snapshot:
+        return Decimal(str(item.calculation_snapshot["film_used_m"]))
+    if "metro" in (item.billing_unit or "").lower():
+        return Decimal(str(item.billing_quantity))
+    if item.used_length_cm:
+        return Decimal(str(item.used_length_cm)) / Decimal("100")
+    return Decimal("0.00")
+
+
+def orders_created_in(period, **filters):
+    """Pedidos criados no período (início inclusivo, fim exclusivo = dia final inteiro)."""
+    return Order.objects.filter(created_at__gte=period.start_at, created_at__lt=period.end_at, **filters)
+
+
+def iter_days(period):
+    current = period.start
+    while current <= period.end:
+        yield current
+        current += timedelta(days=1)
+
+
+class ReportView(LoginRequiredMixin, AdministratorRequiredMixin, PeriodReportMixin, TemplateView):
     template_name = "reports/index.html"
+    report_title = "Visão geral e financeiro"
+    report_slug = "relatorio-geral"
+    preserved_params = ("stage", "payment_status", "responsible", "priority")
 
     def _filters(self):
-        initial = {"start": timezone.localdate().replace(day=1), "end": timezone.localdate()}
-        form = ReportFilterForm(self.request.GET or None, initial=initial)
-        form.is_valid()
-        data = form.cleaned_data if form.is_bound and form.is_valid() else initial
-        start = data.get("start") or initial["start"]
-        end = data.get("end") or initial["end"]
-        if end < start:
-            start, end = end, start
-        return form, data, start, end
+        form = ReportFilterForm(self.request.GET or None)
+        data = form.cleaned_data if form.is_bound and form.is_valid() else {}
+        return form, data
 
-    def _orders(self, data, start, end):
-        start_at = timezone.make_aware(datetime.combine(start, time.min))
-        end_at = timezone.make_aware(datetime.combine(end + timedelta(days=1), time.min))
-        queryset = Order.objects.select_related("responsible").prefetch_related(
+    def _orders(self, data, period):
+        queryset = orders_created_in(period).select_related("responsible").prefetch_related(
             Prefetch("stage_history", queryset=OrderStageHistory.objects.order_by("created_at", "pk"))
-        ).filter(created_at__gte=start_at, created_at__lt=end_at).order_by("-created_at", "-pk")
+        ).order_by("-created_at", "-pk")
         for field in ("stage", "payment_status", "priority"):
             if data.get(field):
                 queryset = queryset.filter(**{field: data[field]})
@@ -56,21 +77,19 @@ class ReportView(LoginRequiredMixin, AdministratorRequiredMixin, TemplateView):
         totals = defaultdict(lambda: Decimal("0"))
         counts = defaultdict(int)
         now = timezone.now()
+        active_stages = (Order.Stage.NEW, Order.Stage.AWAITING_PAYMENT, Order.Stage.PAYMENT_CONFIRMED, Order.Stage.PRE_PRESS, Order.Stage.PRODUCTION, Order.Stage.READY)
         for order in orders:
             history = list(order.stage_history.all())
             for index, item in enumerate(history):
                 next_at = history[index + 1].created_at if index + 1 < len(history) else now
-                if item.new_stage in {Order.Stage.NEW, Order.Stage.AWAITING_PAYMENT, Order.Stage.PAYMENT_CONFIRMED, Order.Stage.PRE_PRESS, Order.Stage.PRODUCTION, Order.Stage.READY} and next_at >= item.created_at:
+                if item.new_stage in active_stages and next_at >= item.created_at:
                     totals[item.new_stage] += Decimal(str((next_at - item.created_at).total_seconds() / 3600))
                     counts[item.new_stage] += 1
-        active_stages = (Order.Stage.NEW, Order.Stage.AWAITING_PAYMENT, Order.Stage.PAYMENT_CONFIRMED, Order.Stage.PRE_PRESS, Order.Stage.PRODUCTION, Order.Stage.READY)
         return {stage: (round(totals[stage] / counts[stage], 1) if counts[stage] else None) for stage in active_stages}
 
-    def get(self, request, *args, **kwargs):
-        form, data, start, end = self._filters()
-        orders = list(self._orders(data, start, end))
-        if request.GET.get("export") == "csv":
-            return self._csv_response(orders)
+    def build(self, period):
+        form, data = self._filters()
+        orders = list(self._orders(data, period))
         active = [order for order in orders if order.stage != Order.Stage.CANCELLED]
         paid = sum((order.paid_amount for order in active), Decimal("0"))
         pending = sum((max(Decimal("0"), order.total_amount - order.paid_amount) for order in active), Decimal("0"))
@@ -78,84 +97,51 @@ class ReportView(LoginRequiredMixin, AdministratorRequiredMixin, TemplateView):
         cancelled = sum(order.stage == Order.Stage.CANCELLED for order in orders)
         ticket = sum((order.total_amount for order in active), Decimal("0")) / len(active) if active else Decimal("0")
         shirt_discount = OrderItem.objects.filter(order__in=[o.pk for o in active]).aggregate(total=Sum("discount_total"))["total"] or Decimal("0")
-        expenses = Expense.objects.filter(status=Expense.Status.ACTIVE, expense_date__range=(start, end)).aggregate(total=Sum("amount"))["total"] or Decimal("0")
-        context = self.get_context_data(
-            filter_form=form,
-            orders=orders,
-            users=User.objects.filter(is_active=True).only("id", "name").order_by("name"),
-            paid=paid,
-            pending=pending,
-            expenses=expenses,
-            profit=paid - expenses,
-            ticket=ticket,
-            shirt_discount=shirt_discount,
-            completed=completed,
-            cancelled=cancelled,
-            stage_durations=self._stage_durations(orders),
-            order_count=len(orders),
-        )
-        return self.render_to_response(context)
+        expenses = Expense.objects.filter(status=Expense.Status.ACTIVE, expense_date__range=(period.start, period.end)).aggregate(total=Sum("amount"))["total"] or Decimal("0")
+        return {
+            "filter_form": form,
+            "orders": orders,
+            "users": User.objects.filter(is_active=True).only("id", "name").order_by("name"),
+            "paid": paid,
+            "pending": pending,
+            "expenses": expenses,
+            "profit": paid - expenses,
+            "ticket": ticket,
+            "shirt_discount": shirt_discount,
+            "completed": completed,
+            "cancelled": cancelled,
+            "stage_durations": self._stage_durations(orders),
+            "order_count": len(orders),
+            "summary": [
+                SummaryMetric("Pedidos", len(orders), "number"),
+                SummaryMetric("Faturamento pago", paid),
+                SummaryMetric("A receber", pending),
+                SummaryMetric("Despesas", expenses),
+                SummaryMetric("Lucro líquido", paid - expenses),
+                SummaryMetric("Ticket médio", ticket),
+            ],
+            "export_sections": [ExportSection(
+                headers=["Número", "Cliente", "WhatsApp", "Valor total", "Valor pago", "Pagamento", "Etapa", "Prioridade", "Responsável", "Criado em"],
+                rows=[[
+                    o.number, o.client_name, o.client_whatsapp, o.total_amount, o.paid_amount, o.get_payment_status_display(),
+                    o.get_stage_display(), o.get_priority_display(), o.responsible.name if o.responsible_id else "", o.created_at,
+                ] for o in orders],
+            )],
+        }
 
-    @staticmethod
-    def _csv_response(orders):
-        response = HttpResponse(content_type="text/csv; charset=utf-8")
-        response["Content-Disposition"] = f'attachment; filename="relatorio-print-fornece-{timezone.localdate():%Y%m%d}.csv"'
-        response.write("\ufeff")
-        writer = csv.writer(response, delimiter=";")
-        writer.writerow(["Número", "Cliente", "WhatsApp", "Valor total", "Valor pago", "Pagamento", "Etapa", "Prioridade", "Responsável", "Criado em"])
-        for order in orders:
-            writer.writerow([
-                order.number, order.client_name, order.client_whatsapp, f"{order.total_amount:.2f}".replace(".", ","),
-                f"{order.paid_amount:.2f}".replace(".", ","), order.get_payment_status_display(), order.get_stage_display(),
-                order.get_priority_display(), order.responsible.name if order.responsible_id else "", timezone.localtime(order.created_at).strftime("%d/%m/%Y %H:%M"),
-            ])
-        return response
 
-
-class ProductionReportView(LoginRequiredMixin, AdministratorRequiredMixin, TemplateView):
+class ProductionReportView(LoginRequiredMixin, AdministratorRequiredMixin, PeriodReportMixin, TemplateView):
     template_name = "reports/production.html"
+    report_title = "Produção diária (metros)"
+    report_slug = "relatorio-producao-metros"
+    preserved_params = ("responsible", "material_type")
 
-    def _parse_month(self, month_str: str | None) -> tuple[int, int, date, date]:
-        today = timezone.localdate()
-        year = today.year
-        month = today.month
-        if month_str:
-            try:
-                parts = month_str.strip().split("-")
-                if len(parts) == 2:
-                    y, m = int(parts[0]), int(parts[1])
-                    if 2000 <= y <= 2100 and 1 <= m <= 12:
-                        year, month = y, m
-            except (ValueError, TypeError):
-                pass
-        
-        _, num_days = calendar.monthrange(year, month)
-        start_date = date(year, month, 1)
-        end_date = date(year, month, num_days)
-        return year, month, start_date, end_date
+    def build(self, period):
+        responsible_id = self.request.GET.get("responsible")
+        material_type = self.request.GET.get("material_type") or ""
+        form = ProductionReportFilterForm(initial={"responsible": responsible_id, "material_type": material_type}, data=self.request.GET or None)
 
-    def get(self, request, *args, **kwargs):
-        month_param = request.GET.get("month") or timezone.localdate().strftime("%Y-%m")
-        year, month, start_date, end_date = self._parse_month(month_param)
-        responsible_id = request.GET.get("responsible")
-        material_type = request.GET.get("material_type") or ""
-
-        form = ProductionReportFilterForm(initial={
-            "month": f"{year:04d}-{month:02d}",
-            "responsible": responsible_id,
-            "material_type": material_type,
-        }, data=request.GET or None)
-
-        start_dt = timezone.make_aware(datetime.combine(start_date, time.min))
-        end_dt = timezone.make_aware(datetime.combine(end_date + timedelta(days=1), time.min))
-
-        orders_qs = Order.objects.filter(
-            created_at__gte=start_dt,
-            created_at__lt=end_dt,
-        ).exclude(
-            stage=Order.Stage.CANCELLED
-        ).select_related("responsible", "created_by").prefetch_related("items")
-
+        orders_qs = orders_created_in(period).exclude(stage=Order.Stage.CANCELLED).select_related("responsible", "created_by").prefetch_related("items")
         if responsible_id:
             try:
                 resp_pk = int(responsible_id)
@@ -163,195 +149,119 @@ class ProductionReportView(LoginRequiredMixin, AdministratorRequiredMixin, Templ
             except (ValueError, TypeError):
                 pass
 
-        orders = list(orders_qs.order_by("created_at", "pk"))
-
-        # Daily breakdown structure for all days in month
-        days_map: dict[date, dict[str, object]] = {}
-        curr = start_date
-        while curr <= end_date:
-            days_map[curr] = {
-                "date": curr,
-                "day_num": curr.day,
-                "weekday": ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"][curr.weekday()],
-                "textil_meters": Decimal("0.00"),
-                "uv_meters": Decimal("0.00"),
-                "total_meters": Decimal("0.00"),
-                "orders_count": 0,
-                "orders_list": [],
+        days_map: dict[date, dict] = {
+            day: {
+                "date": day, "day_num": day.day, "weekday": WEEKDAYS_SHORT[day.weekday()],
+                "textil_meters": Decimal("0.00"), "uv_meters": Decimal("0.00"), "total_meters": Decimal("0.00"),
+                "orders_count": 0, "orders_list": [],
             }
-            curr += timedelta(days=1)
-
+            for day in iter_days(period)
+        }
         total_orders_set = set()
-
-        for order in orders:
+        for order in orders_qs.order_by("created_at", "pk"):
             order_date = timezone.localtime(order.created_at).date()
             if order_date not in days_map:
                 continue
-
-            order_items = list(order.items.all())
             order_has_dtf = False
-
-            for item in order_items:
+            for item in order.items.all():
                 mat_code = (item.material_code or "").lower()
                 mat_name = (item.material_name or "").lower()
-                kind = getattr(item, "kind", "")
-
-                is_uv = ("uv" in mat_code or "uv" in mat_name)
-                is_textil = (mat_code == "dtf_textil" or (kind == "material" and not is_uv))
-
-                # Check material filter
+                is_uv = "uv" in mat_code or "uv" in mat_name
+                is_textil = mat_code == "dtf_textil" or (getattr(item, "kind", "") == "material" and not is_uv)
                 if material_type == "dtf_textil" and not is_textil:
                     continue
                 if material_type == "dtf_uv" and not is_uv:
                     continue
-
-                meters = Decimal("0.00")
-                if item.calculation_snapshot and "film_used_m" in item.calculation_snapshot:
-                    meters = Decimal(str(item.calculation_snapshot["film_used_m"]))
-                elif "metro" in (item.billing_unit or "").lower():
-                    meters = Decimal(str(item.billing_quantity))
-                elif item.used_length_cm:
-                    meters = Decimal(str(item.used_length_cm)) / Decimal("100")
-
-                if meters > Decimal("0.00"):
+                meters = item_meters(item)
+                if meters > 0:
                     order_has_dtf = True
-                    if is_uv:
-                        days_map[order_date]["uv_meters"] += meters
-                    else:
-                        days_map[order_date]["textil_meters"] += meters
+                    days_map[order_date]["uv_meters" if is_uv else "textil_meters"] += meters
                     days_map[order_date]["total_meters"] += meters
-
             if order_has_dtf:
                 days_map[order_date]["orders_count"] += 1
                 days_map[order_date]["orders_list"].append(order)
                 total_orders_set.add(order.id)
 
         daily_rows = list(days_map.values())
-
-        # Totals and KPIs
         total_textil = sum((r["textil_meters"] for r in daily_rows), Decimal("0.00"))
         total_uv = sum((r["uv_meters"] for r in daily_rows), Decimal("0.00"))
         total_meters = total_textil + total_uv
-        active_days = sum(1 for r in daily_rows if r["total_meters"] > Decimal("0.00"))
-        avg_daily = (total_meters / Decimal(str(active_days))) if active_days > 0 else Decimal("0.00")
-        
+        active_days = sum(1 for r in daily_rows if r["total_meters"] > 0)
+        avg_daily = (total_meters / Decimal(active_days)) if active_days else Decimal("0.00")
         peak_row = max(daily_rows, key=lambda r: r["total_meters"], default=None)
         peak_meters = peak_row["total_meters"] if peak_row else Decimal("0.00")
         peak_date = peak_row["date"] if peak_row and peak_meters > 0 else None
-
-        if request.GET.get("export") == "csv":
-            return self._csv_export(daily_rows, year, month)
-
-        # Meses para navegação
-        prev_month_date = start_date - timedelta(days=1)
-        next_month_date = end_date + timedelta(days=1)
-        prev_month_str = prev_month_date.strftime("%Y-%m")
-        next_month_str = next_month_date.strftime("%Y-%m")
-
-        month_names = [
-            "", "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
-            "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
-        ]
-        month_label = f"{month_names[month]} de {year}"
-
-        context = self.get_context_data(
-            form=form,
-            year=year,
-            month=month,
-            month_label=month_label,
-            current_month_str=f"{year:04d}-{month:02d}",
-            prev_month_str=prev_month_str,
-            next_month_str=next_month_str,
-            users=User.objects.filter(is_active=True).only("id", "name").order_by("name"),
-            daily_rows=daily_rows,
-            total_textil=total_textil,
-            total_uv=total_uv,
-            total_meters=total_meters,
-            active_days=active_days,
-            avg_daily=avg_daily,
-            peak_meters=peak_meters,
-            peak_date=peak_date,
-            total_orders_count=len(total_orders_set),
-            responsible_id=responsible_id,
-            material_type=material_type,
-        )
-        return self.render_to_response(context)
-
-    @staticmethod
-    def _csv_export(daily_rows, year, month):
-        response = HttpResponse(content_type="text/csv; charset=utf-8")
-        response["Content-Disposition"] = f'attachment; filename="relatorio-producao-metros-{year:04d}{month:02d}.csv"'
-        response.write("\ufeff")
-        writer = csv.writer(response, delimiter=";")
-        writer.writerow(["Data", "Dia da Semana", "DTF Têxtil (m)", "DTF UV (m)", "Total de Metros (m)", "Qtd. Pedidos", "Números dos Pedidos"])
-        for r in daily_rows:
-            date_str = r["date"].strftime("%d/%m/%Y")
-            orders_str = ", ".join(o.number for o in r["orders_list"])
-            writer.writerow([
-                date_str,
-                r["weekday"],
-                f"{r['textil_meters']:.2f}".replace(".", ","),
-                f"{r['uv_meters']:.2f}".replace(".", ","),
-                f"{r['total_meters']:.2f}".replace(".", ","),
-                r["orders_count"],
-                orders_str,
-            ])
-        return response
+        return {
+            "form": form,
+            "users": User.objects.filter(is_active=True).only("id", "name").order_by("name"),
+            "daily_rows": daily_rows,
+            "total_textil": total_textil,
+            "total_uv": total_uv,
+            "total_meters": total_meters,
+            "active_days": active_days,
+            "avg_daily": avg_daily,
+            "peak_meters": peak_meters,
+            "peak_date": peak_date,
+            "total_orders_count": len(total_orders_set),
+            "responsible_id": responsible_id,
+            "material_type": material_type,
+            "summary": [
+                SummaryMetric("DTF Têxtil (m)", total_textil, "meters"),
+                SummaryMetric("DTF UV (m)", total_uv, "meters"),
+                SummaryMetric("Total de metros", total_meters, "meters"),
+                SummaryMetric("Pedidos com DTF", len(total_orders_set), "number"),
+            ],
+            "export_sections": [ExportSection(
+                headers=["Data", "Dia da Semana", "DTF Têxtil (m)", "DTF UV (m)", "Total de Metros (m)", "Qtd. Pedidos", "Números dos Pedidos"],
+                rows=[[r["date"], r["weekday"], r["textil_meters"], r["uv_meters"], r["total_meters"], r["orders_count"], ", ".join(o.number for o in r["orders_list"])] for r in daily_rows],
+                totals=["TOTAL", "", total_textil, total_uv, total_meters, len(total_orders_set), ""],
+            )],
+        }
 
 
-class CashRegisterReportView(LoginRequiredMixin, TemplateView):
+CASH_METHODS = {
+    "pix": ("PIX", "fa-brands fa-pix", "#22c55e"),
+    "cartao_credito": ("Cartão de Crédito", "fa-solid fa-credit-card", "#38bdf8"),
+    "cartao_debito": ("Cartão de Débito", "fa-solid fa-id-card", "#818cf8"),
+    "cartao": ("Cartão (Geral)", "fa-solid fa-credit-card", "#60a5fa"),
+    "dinheiro": ("Dinheiro (À Vista / Gaveta)", "fa-solid fa-money-bill-wave", "#34d399"),
+    "transferencia": ("Transferência / TED", "fa-solid fa-building-columns", "#fbbf24"),
+    "saldo_credito": ("Saldo do Plano / Crédito", "fa-solid fa-wallet", "#c084fc"),
+    "outro": ("Outros", "fa-solid fa-circle-question", "#9ca3af"),
+}
+
+
+class CashRegisterReportView(LoginRequiredMixin, PeriodReportMixin, TemplateView):
+    """Fechamento de caixa: padrão "hoje"; um período pode ser escolhido só para consulta."""
+
     template_name = "reports/cash_register.html"
+    report_title = "Fechamento de caixa"
+    report_slug = "fechamento-caixa"
+    period_basis = "data de confirmação do pagamento (ou de criação, se o pagamento não tiver confirmação registrada)"
+    period_default = "hoje"
+    period_use_session = False
+    preserved_params = ("payment_type",)
 
-    def get_target_date(self) -> date:
-        date_str = self.request.GET.get("date", "").strip()
-        if date_str:
-            try:
-                return datetime.strptime(date_str, "%Y-%m-%d").date()
-            except ValueError:
-                pass
-        return timezone.localdate()
-
-    def get(self, request, *args, **kwargs):
-        # Verifica se o fechamento de caixa está liberado nas configurações do sistema
+    def pre_check(self, request):
         is_unlocked = SystemSetting.is_feature_enabled("cash_register", default=False)
-        is_dev = getattr(request.user, "is_dev", False)
+        if not is_unlocked and not getattr(request.user, "is_dev", False):
+            return self.response_class(request=request, template="reports/cash_locked.html", context={}, using=self.template_engine)
+        return None
 
-        if not is_unlocked and not is_dev:
-            return self.response_class(
-                request=request,
-                template="reports/cash_locked.html",
-                context={},
-                using=self.template_engine,
-            )
-
-        target_date = self.get_target_date()
+    def build(self, period):
         today = timezone.localdate()
-
-        start_dt = timezone.make_aware(datetime.combine(target_date, time.min))
-        end_dt = timezone.make_aware(datetime.combine(target_date, time.max))
-
-        # Pedidos com recebimento na data selecionada
         orders = Order.objects.filter(
             (
-                Q(payment_confirmed_at__gte=start_dt, payment_confirmed_at__lte=end_dt) |
-                Q(payment_confirmed_at__isnull=True, created_at__gte=start_dt, created_at__lte=end_dt, paid_amount__gt=Decimal("0.00"))
+                Q(payment_confirmed_at__gte=period.start_at, payment_confirmed_at__lt=period.end_at)
+                | Q(payment_confirmed_at__isnull=True, created_at__gte=period.start_at, created_at__lt=period.end_at, paid_amount__gt=Decimal("0.00"))
             ) & ~Q(stage=Order.Stage.CANCELLED)
         ).select_related("responsible", "created_by", "payment_confirmed_by").prefetch_related("payments").order_by("-payment_confirmed_at", "-created_at")
-
-        # Despesas na data selecionada
-        expenses = Expense.objects.filter(
-            status=Expense.Status.ACTIVE,
-            expense_date=target_date
-        ).select_related("created_by").order_by("-amount")
+        expenses = Expense.objects.filter(status=Expense.Status.ACTIVE, expense_date__range=(period.start, period.end)).select_related("created_by").order_by("-amount")
 
         all_orders = list(orders)
         complete_orders = [o for o in all_orders if o.payment_status == Order.PaymentStatus.PAID]
         partial_orders = [o for o in all_orders if o.payment_status == Order.PaymentStatus.PARTIAL]
-
-        total_completo = sum((o.paid_amount for o in complete_orders), Decimal("0.00"))
-        total_parcial = sum((o.paid_amount for o in partial_orders), Decimal("0.00"))
-
-        payment_type = request.GET.get("payment_type", "todos").strip()
+        payment_type = self.request.GET.get("payment_type", "todos").strip()
         if payment_type == "completo":
             display_orders = complete_orders
         elif payment_type == "parcial":
@@ -360,138 +270,80 @@ class CashRegisterReportView(LoginRequiredMixin, TemplateView):
             payment_type = "todos"
             display_orders = all_orders
 
-        # Agrupamento de recebimentos por método de pagamento
-        methods_summary = {
-            "pix": {"label": "PIX", "total": Decimal("0.00"), "count": 0, "icon": "fa-brands fa-pix", "color": "#22c55e"},
-            "cartao_credito": {"label": "Cartão de Crédito", "total": Decimal("0.00"), "count": 0, "icon": "fa-solid fa-credit-card", "color": "#38bdf8"},
-            "cartao_debito": {"label": "Cartão de Débito", "total": Decimal("0.00"), "count": 0, "icon": "fa-solid fa-id-card", "color": "#818cf8"},
-            "cartao": {"label": "Cartão (Geral)", "total": Decimal("0.00"), "count": 0, "icon": "fa-solid fa-credit-card", "color": "#60a5fa"},
-            "dinheiro": {"label": "Dinheiro (À Vista / Gaveta)", "total": Decimal("0.00"), "count": 0, "icon": "fa-solid fa-money-bill-wave", "color": "#34d399"},
-            "transferencia": {"label": "Transferência / TED", "total": Decimal("0.00"), "count": 0, "icon": "fa-solid fa-building-columns", "color": "#fbbf24"},
-            "saldo_credito": {"label": "Saldo do Plano / Crédito", "total": Decimal("0.00"), "count": 0, "icon": "fa-solid fa-wallet", "color": "#c084fc"},
-            "outro": {"label": "Outros", "total": Decimal("0.00"), "count": 0, "icon": "fa-solid fa-circle-question", "color": "#9ca3af"},
-        }
-
+        methods_summary = {key: {"label": label, "total": Decimal("0.00"), "count": 0, "icon": icon, "color": color} for key, (label, icon, color) in CASH_METHODS.items()}
         total_revenue = Decimal("0.00")
-
         for o in display_orders:
             splits = list(o.payments.all())
-            if splits:
-                for sp in splits:
-                    m = sp.payment_method or "outro"
-                    if m not in methods_summary:
-                        m = "outro"
-                    methods_summary[m]["total"] += sp.amount
-                    methods_summary[m]["count"] += 1
-                    total_revenue += sp.amount
-            else:
-                method = o.payment_method or "outro"
-                if method not in methods_summary:
-                    method = "outro"
-                paid = o.paid_amount or Decimal("0.00")
-                methods_summary[method]["total"] += paid
+            entries = [(sp.payment_method, sp.amount) for sp in splits] if splits else [(o.payment_method, o.paid_amount or Decimal("0.00"))]
+            for method, amount in entries:
+                method = method if method in methods_summary else "outro"
+                methods_summary[method]["total"] += amount
                 methods_summary[method]["count"] += 1
-                total_revenue += paid
+                total_revenue += amount
 
-        total_expenses = Decimal("0.00")
-        for exp in expenses:
-            total_expenses += exp.amount
-
+        total_expenses = sum((exp.amount for exp in expenses), Decimal("0.00"))
         cash_in = methods_summary["dinheiro"]["total"]
-
-        digital_in = (
-            methods_summary["pix"]["total"] +
-            methods_summary["cartao_credito"]["total"] +
-            methods_summary["cartao_debito"]["total"] +
-            methods_summary["cartao"]["total"] +
-            methods_summary["transferencia"]["total"]
-        )
-
+        digital_in = sum((methods_summary[k]["total"] for k in ("pix", "cartao_credito", "cartao_debito", "cartao", "transferencia")), Decimal("0.00"))
         net_balance = total_revenue - total_expenses
+        single_day = period.start == period.end
+        target_date = period.end
 
-        if request.GET.get("export") == "csv":
-            return self._csv_export(target_date, display_orders, expenses, methods_summary, total_revenue, total_expenses, cash_in, net_balance)
+        def responsible_name(order):
+            return order.responsible.name if order.responsible else (order.created_by.name if order.created_by else "")
 
-        prev_day = target_date - timedelta(days=1)
-        next_day = target_date + timedelta(days=1)
-
-        weekday_names = ["Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado", "Domingo"]
-        weekday_label = weekday_names[target_date.weekday()]
-
-        context = self.get_context_data(
-            target_date=target_date,
-            target_date_str=target_date.strftime("%Y-%m-%d"),
-            target_date_display=target_date.strftime("%d/%m/%Y"),
-            weekday_label=weekday_label,
-            is_today=target_date == today,
-            prev_day_str=prev_day.strftime("%Y-%m-%d"),
-            next_day_str=next_day.strftime("%Y-%m-%d"),
-            orders=display_orders,
-            total_orders_count=len(display_orders),
-            all_orders_count=len(all_orders),
-            payment_type=payment_type,
-            complete_count=len(complete_orders),
-            complete_total=total_completo,
-            partial_count=len(partial_orders),
-            partial_total=total_parcial,
-            expenses=expenses,
-            methods_summary=methods_summary,
-            total_revenue=total_revenue,
-            total_expenses=total_expenses,
-            cash_in=cash_in,
-            cash_drawer_net=cash_in,
-            digital_in=digital_in,
-            net_balance=net_balance,
-        )
-        return self.render_to_response(context)
-
-    @staticmethod
-    def _csv_export(target_date, orders, expenses, methods_summary, total_revenue, total_expenses, cash_in, net_balance):
-        response = HttpResponse(content_type="text/csv; charset=utf-8")
-        response["Content-Disposition"] = f'attachment; filename="fechamento-caixa-{target_date:%Y%m%d}.csv"'
-        response.write("\ufeff")
-        writer = csv.writer(response, delimiter=";")
-
-        writer.writerow(["PRINT FORNECE - FECHAMENTO DE CAIXA DIÁRIO", target_date.strftime("%d/%m/%Y")])
-        writer.writerow([])
-        writer.writerow(["RESUMO POR FORMA DE PAGAMENTO"])
-        writer.writerow(["Forma de Pagamento", "Qtd. Pedidos", "Total Recebido (R$)"])
-        for k, v in methods_summary.items():
-            if v["count"] > 0 or v["total"] > Decimal("0.00"):
-                writer.writerow([v["label"], v["count"], f"{v['total']:.2f}".replace(".", ",")])
-        writer.writerow(["TOTAL GERAL DE ENTRADAS", len(orders), f"{total_revenue:.2f}".replace(".", ",")])
-        writer.writerow(["TOTAL DE DESPESAS / SAÍDAS", len(expenses), f"{total_expenses:.2f}".replace(".", ",")])
-        writer.writerow(["TOTAL EM DINHEIRO / GAVETA", "", f"{cash_in:.2f}".replace(".", ",")])
-        writer.writerow(["SALDO LÍQUIDO DO DIA", "", f"{net_balance:.2f}".replace(".", ",")])
-        writer.writerow([])
-        writer.writerow(["RECEBIMENTOS DO DIA"])
-        writer.writerow(["Número", "Cliente", "Forma de Pagamento", "Valor Pago (R$)", "Situação", "Responsável", "Horário"])
-        for o in orders:
-            paid_dt = o.payment_confirmed_at or o.created_at
-            time_str = timezone.localtime(paid_dt).strftime("%H:%M") if paid_dt else ""
-            resp_name = o.responsible.name if o.responsible else (o.created_by.name if o.created_by else "")
-            writer.writerow([
-                o.number,
-                o.client_name,
-                o.get_payment_method_display(),
-                f"{o.paid_amount:.2f}".replace(".", ","),
-                o.get_payment_status_display(),
-                resp_name,
-                time_str
-            ])
-        writer.writerow([])
-        writer.writerow(["DESPESAS / SAÍDAS DO DIA"])
-        writer.writerow(["Descrição", "Categoria", "Observação", "Valor (R$)", "Responsável"])
-        for exp in expenses:
-            resp_name = exp.created_by.name if exp.created_by else ""
-            writer.writerow([
-                exp.description,
-                exp.get_category_display() if hasattr(exp, "get_category_display") else exp.category,
-                exp.note or "",
-                f"{exp.amount:.2f}".replace(".", ","),
-                resp_name
-            ])
-        return response
+        return {
+            "target_date": target_date,
+            "target_date_str": target_date.strftime("%Y-%m-%d"),
+            "target_date_display": period.label,
+            "weekday_label": WEEKDAYS_LONG[target_date.weekday()] if single_day else f"{period.days} dias",
+            "is_single_day": single_day,
+            "is_today": single_day and target_date == today,
+            "orders": display_orders,
+            "total_orders_count": len(display_orders),
+            "all_orders_count": len(all_orders),
+            "payment_type": payment_type,
+            "complete_count": len(complete_orders),
+            "complete_total": sum((o.paid_amount for o in complete_orders), Decimal("0.00")),
+            "partial_count": len(partial_orders),
+            "partial_total": sum((o.paid_amount for o in partial_orders), Decimal("0.00")),
+            "expenses": expenses,
+            "methods_summary": methods_summary,
+            "total_revenue": total_revenue,
+            "total_expenses": total_expenses,
+            "cash_in": cash_in,
+            "cash_drawer_net": cash_in,
+            "digital_in": digital_in,
+            "net_balance": net_balance,
+            "summary": [
+                SummaryMetric("Total recebido", total_revenue),
+                SummaryMetric("Despesas / saídas", total_expenses),
+                SummaryMetric("Dinheiro na gaveta", cash_in),
+                SummaryMetric("Saldo líquido", net_balance),
+            ],
+            "export_sections": [
+                ExportSection(
+                    title="Resumo por forma de pagamento",
+                    headers=["Forma de Pagamento", "Qtd. Pedidos", "Total Recebido (R$)"],
+                    rows=[[v["label"], v["count"], v["total"]] for v in methods_summary.values() if v["count"] or v["total"]],
+                    totals=["TOTAL GERAL DE ENTRADAS", len(display_orders), total_revenue],
+                ),
+                ExportSection(
+                    title="Totais",
+                    headers=["Indicador", "Valor (R$)"],
+                    rows=[["Total de despesas / saídas", total_expenses], ["Total em dinheiro / gaveta", cash_in], ["Saldo líquido", net_balance]],
+                ),
+                ExportSection(
+                    title="Recebimentos",
+                    headers=["Número", "Cliente", "Forma de Pagamento", "Valor Pago (R$)", "Situação", "Responsável", "Data/Hora"],
+                    rows=[[o.number, o.client_name, o.get_payment_method_display(), o.paid_amount, o.get_payment_status_display(), responsible_name(o), o.payment_confirmed_at or o.created_at] for o in display_orders],
+                ),
+                ExportSection(
+                    title="Despesas / saídas",
+                    headers=["Data", "Descrição", "Categoria", "Observação", "Valor (R$)", "Responsável"],
+                    rows=[[e.expense_date, e.description, e.get_category_display() if hasattr(e, "get_category_display") else e.category, e.note or "", e.amount, e.created_by.name if e.created_by else ""] for e in expenses],
+                ),
+            ],
+        }
 
 
 class CashRegisterBetaView(LoginRequiredMixin, TemplateView):
@@ -776,680 +628,357 @@ class CashRegisterBetaView(LoginRequiredMixin, TemplateView):
         return context
 
 
-class MaterialReportView(LoginRequiredMixin, AdministratorRequiredMixin, TemplateView):
+def _material_bucket(item) -> str:
+    mat_code = (item.material_code or "").lower()
+    mat_name = (item.material_name or "").lower()
+    kind = getattr(item, "kind", "")
+    if "uv" in mat_code or "uv" in mat_name:
+        return "dtf_uv"
+    if mat_code == "dtf_textil" or (kind == "material" and "uv" not in mat_code):
+        return "dtf_textil"
+    if kind == "produto" or "camisa" in mat_code or "camisa" in mat_name:
+        return "camisas"
+    if kind in {"servico", "ajuste"} or "ajuste" in mat_code or "vetorizacao" in mat_code:
+        return "servicos"
+    return "outros"
+
+
+MATERIAL_ROWS = [
+    ("dtf_textil", "DTF Têxtil (Metro)", "DTF", "fa-solid fa-print", "#38bdf8"),
+    ("dtf_uv", "DTF UV (Metro / Rolo)", "DTF UV", "fa-solid fa-sun", "#c084fc"),
+    ("camisas", "Camisetas / Vestuário", "Produtos", "fa-solid fa-shirt", "#34d399"),
+    ("servicos", "Serviços Gráficos / Ajustes", "Serviços", "fa-solid fa-wand-magic-sparkles", "#fbbf24"),
+    ("outros", "Outros Materiais", "Diversos", "fa-solid fa-boxes-stacked", "#94a3b8"),
+]
+
+
+class MaterialReportView(LoginRequiredMixin, AdministratorRequiredMixin, PeriodReportMixin, TemplateView):
     template_name = "reports/materials.html"
+    report_title = "Consumo de materiais"
+    report_slug = "relatorio-materiais"
+    period_basis = "data de criação do pedido (somente pedidos prontos ou entregues)"
 
-    def get_dates(self) -> tuple[date, date, int, int]:
-        today = timezone.localdate()
-        year = int(self.request.GET.get("year", today.year))
-        month = int(self.request.GET.get("month", today.month))
-        try:
-            start_date = date(year, month, 1)
-            _, last_day = calendar.monthrange(year, month)
-            end_date = date(year, month, last_day)
-        except (ValueError, TypeError):
-            start_date = date(today.year, today.month, 1)
-            _, last_day = calendar.monthrange(today.year, today.month)
-            end_date = date(today.year, today.month, last_day)
-        return start_date, end_date, year, month
-
-    def get(self, request, *args, **kwargs):
-        start_date, end_date, year, month = self.get_dates()
-        start_dt = timezone.make_aware(datetime.combine(start_date, time.min))
-        end_dt = timezone.make_aware(datetime.combine(end_date + timedelta(days=1), time.min))
-
-        orders = Order.objects.filter(
-            created_at__gte=start_dt,
-            created_at__lt=end_dt,
-            stage__in=[Order.Stage.READY, Order.Stage.DELIVERED],
-        ).exclude(stage=Order.Stage.CANCELLED).prefetch_related("items")
-
-        materials_map: dict[str, dict] = {
-            "dtf_textil": {"code": "dtf_textil", "name": "DTF Têxtil (Metro)", "category": "DTF", "meters": Decimal("0.00"), "items_count": 0, "orders_count": 0, "total_revenue": Decimal("0.00"), "orders_set": set(), "icon": "fa-solid fa-print", "color": "#38bdf8"},
-            "dtf_uv": {"code": "dtf_uv", "name": "DTF UV (Metro / Rolo)", "category": "DTF UV", "meters": Decimal("0.00"), "items_count": 0, "orders_count": 0, "total_revenue": Decimal("0.00"), "orders_set": set(), "icon": "fa-solid fa-sun", "color": "#c084fc"},
-            "camisas": {"code": "camisas", "name": "Camisetas / Vestuário", "category": "Produtos", "meters": Decimal("0.00"), "items_count": 0, "orders_count": 0, "total_revenue": Decimal("0.00"), "orders_set": set(), "icon": "fa-solid fa-shirt", "color": "#34d399"},
-            "servicos": {"code": "servicos", "name": "Serviços Gráficos / Ajustes", "category": "Serviços", "meters": Decimal("0.00"), "items_count": 0, "orders_count": 0, "total_revenue": Decimal("0.00"), "orders_set": set(), "icon": "fa-solid fa-wand-magic-sparkles", "color": "#fbbf24"},
-            "outros": {"code": "outros", "name": "Outros Materiais", "category": "Diversos", "meters": Decimal("0.00"), "items_count": 0, "orders_count": 0, "total_revenue": Decimal("0.00"), "orders_set": set(), "icon": "fa-solid fa-boxes-stacked", "color": "#94a3b8"},
+    def build(self, period):
+        orders = orders_created_in(period, stage__in=[Order.Stage.READY, Order.Stage.DELIVERED]).prefetch_related("items")
+        materials_map = {
+            code: {"code": code, "name": name, "category": category, "meters": Decimal("0.00"), "items_count": 0, "orders_count": 0,
+                   "total_revenue": Decimal("0.00"), "orders_set": set(), "icon": icon, "color": color}
+            for code, name, category, icon, color in MATERIAL_ROWS
         }
-
+        orders = list(orders)
         for order in orders:
             for item in order.items.all():
-                mat_code = (item.material_code or "").lower()
-                mat_name = (item.material_name or "").lower()
-                kind = getattr(item, "kind", "")
+                bucket = materials_map[_material_bucket(item)]
+                bucket["meters"] += item_meters(item)
+                bucket["items_count"] += int(item.art_quantity or item.billing_quantity or 1)
+                bucket["total_revenue"] += item.line_total
+                bucket["orders_set"].add(order.id)
 
-                meters = Decimal("0.00")
-                if item.calculation_snapshot and "film_used_m" in item.calculation_snapshot:
-                    meters = Decimal(str(item.calculation_snapshot["film_used_m"]))
-                elif "metro" in (item.billing_unit or "").lower():
-                    meters = Decimal(str(item.billing_quantity))
-                elif item.used_length_cm:
-                    meters = Decimal(str(item.used_length_cm)) / Decimal("100")
-
-                if "uv" in mat_code or "uv" in mat_name:
-                    key = "dtf_uv"
-                elif mat_code == "dtf_textil" or (kind == "material" and "uv" not in mat_code):
-                    key = "dtf_textil"
-                elif kind == "produto" or "camisa" in mat_code or "camisa" in mat_name:
-                    key = "camisas"
-                elif kind in {"servico", "ajuste"} or "ajuste" in mat_code or "vetorizacao" in mat_code:
-                    key = "servicos"
-                else:
-                    key = "outros"
-
-                materials_map[key]["meters"] += meters
-                materials_map[key]["items_count"] += int(item.art_quantity or item.billing_quantity or 1)
-                materials_map[key]["total_revenue"] += item.line_total
-                materials_map[key]["orders_set"].add(order.id)
-
-        material_rows = []
-        grand_total_meters = Decimal("0.00")
-        grand_total_revenue = Decimal("0.00")
-
-        for k, v in materials_map.items():
-            v["orders_count"] = len(v["orders_set"])
-            grand_total_meters += v["meters"]
-            grand_total_revenue += v["total_revenue"]
-            material_rows.append(v)
-
+        material_rows = list(materials_map.values())
+        for row in material_rows:
+            row["orders_count"] = len(row["orders_set"])
+        grand_total_meters = sum((r["meters"] for r in material_rows), Decimal("0.00"))
+        grand_total_revenue = sum((r["total_revenue"] for r in material_rows), Decimal("0.00"))
         material_rows.sort(key=lambda x: (x["meters"], x["total_revenue"]), reverse=True)
-
         for r in material_rows:
-            r["percentage"] = (float(r["meters"] / grand_total_meters) * 100) if grand_total_meters > Decimal("0.00") else 0.0
-
-        if request.GET.get("export") == "csv":
-            return self._csv_export(material_rows, year, month, grand_total_meters, grand_total_revenue)
-
-        month_names = ["", "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"]
-        month_label = f"{month_names[month]} de {year}"
-        prev_month_date = start_date - timedelta(days=1)
-        next_month_date = end_date + timedelta(days=1)
-
-        context = self.get_context_data(
-            year=year,
-            month=month,
-            month_label=month_label,
-            current_month_str=f"{year:04d}-{month:02d}",
-            prev_month_str=prev_month_date.strftime("%Y-%m"),
-            next_month_str=next_month_date.strftime("%Y-%m"),
-            material_rows=material_rows,
-            grand_total_meters=grand_total_meters,
-            grand_total_revenue=grand_total_revenue,
-            total_orders_count=len(orders),
-        )
-        return self.render_to_response(context)
-
-    @staticmethod
-    def _csv_export(rows, year, month, grand_meters, grand_revenue):
-        response = HttpResponse(content_type="text/csv; charset=utf-8")
-        response["Content-Disposition"] = f'attachment; filename="relatorio-materiais-{year:04d}-{month:02d}.csv"'
-        response.write("\ufeff")
-        writer = csv.writer(response, delimiter=";")
-        writer.writerow(["PRINT FORNECE - RELATÓRIO DE CONSUMO DE MATERIAIS", f"{month:02d}/{year:04d}"])
-        writer.writerow([])
-        writer.writerow(["Material / Categoria", "Total Metros (m)", "Qtd. Itens/Peças", "Qtd. Pedidos", "Faturamento Total (R$)", "Participação (%)"])
-        for r in rows:
-            writer.writerow([
-                r["name"],
-                f"{r['meters']:.2f}".replace(".", ","),
-                r["items_count"],
-                r["orders_count"],
-                f"{r['total_revenue']:.2f}".replace(".", ","),
-                f"{r['percentage']:.1f}%".replace(".", ","),
-            ])
-        writer.writerow([])
-        writer.writerow(["TOTAL GERAL", f"{grand_meters:.2f}".replace(".", ","), "", "", f"{grand_revenue:.2f}".replace(".", ","), "100%"])
-        return response
+            r["percentage"] = (float(r["meters"] / grand_total_meters) * 100) if grand_total_meters > 0 else 0.0
+        return {
+            "material_rows": material_rows,
+            "grand_total_meters": grand_total_meters,
+            "grand_total_revenue": grand_total_revenue,
+            "total_orders_count": len(orders),
+            "summary": [
+                SummaryMetric("Total de metros", grand_total_meters, "meters"),
+                SummaryMetric("Faturamento", grand_total_revenue),
+                SummaryMetric("Pedidos", len(orders), "number"),
+            ],
+            "export_sections": [ExportSection(
+                headers=["Material / Categoria", "Total Metros (m)", "Qtd. Itens/Peças", "Qtd. Pedidos", "Faturamento Total (R$)", "Participação (%)"],
+                rows=[[r["name"], r["meters"], r["items_count"], r["orders_count"], r["total_revenue"], f"{r['percentage']:.1f}%".replace(".", ",")] for r in material_rows],
+                totals=["TOTAL GERAL", grand_total_meters, "", "", grand_total_revenue, "100%"],
+            )],
+        }
 
 
-class TeamRankingReportView(LoginRequiredMixin, AdministratorRequiredMixin, TemplateView):
+class TeamRankingReportView(LoginRequiredMixin, AdministratorRequiredMixin, PeriodReportMixin, TemplateView):
     template_name = "reports/team_ranking.html"
+    report_title = "Ranking de vendas da equipe"
+    report_slug = "ranking-equipe"
 
-    def get_dates(self) -> tuple[date, date, int, int]:
-        today = timezone.localdate()
-        year = int(self.request.GET.get("year", today.year))
-        month = int(self.request.GET.get("month", today.month))
-        try:
-            start_date = date(year, month, 1)
-            _, last_day = calendar.monthrange(year, month)
-            end_date = date(year, month, last_day)
-        except (ValueError, TypeError):
-            start_date = date(today.year, today.month, 1)
-            _, last_day = calendar.monthrange(today.year, today.month)
-            end_date = date(today.year, today.month, last_day)
-        return start_date, end_date, year, month
-
-    def get(self, request, *args, **kwargs):
-        start_date, end_date, year, month = self.get_dates()
-        start_dt = timezone.make_aware(datetime.combine(start_date, time.min))
-        end_dt = timezone.make_aware(datetime.combine(end_date + timedelta(days=1), time.min))
-
-        orders = Order.objects.filter(
-            created_at__gte=start_dt,
-            created_at__lt=end_dt,
-        ).exclude(stage=Order.Stage.CANCELLED).select_related("responsible", "created_by").prefetch_related("items")
-
+    def build(self, period):
+        orders = orders_created_in(period).exclude(stage=Order.Stage.CANCELLED).select_related("responsible", "created_by").prefetch_related("items")
         users_map: dict[int, dict] = {}
-
         for order in orders:
             user = order.responsible or order.created_by
             if not user:
                 continue
-            u_id = user.pk
-            if u_id not in users_map:
-                users_map[u_id] = {
-                    "user": user,
-                    "user_id": u_id,
-                    "name": user.name or user.email,
-                    "role_display": getattr(user, "get_role_display", lambda: user.role)(),
-                    "total_sales": Decimal("0.00"),
-                    "total_paid": Decimal("0.00"),
-                    "orders_count": 0,
-                    "completed_orders": 0,
-                    "total_meters": Decimal("0.00"),
-                }
-            users_map[u_id]["total_sales"] += order.total_amount
-            users_map[u_id]["total_paid"] += (order.paid_amount or Decimal("0.00"))
-            users_map[u_id]["orders_count"] += 1
+            row = users_map.setdefault(user.pk, {
+                "user": user, "user_id": user.pk, "name": user.name or user.email,
+                "role_display": getattr(user, "get_role_display", lambda: user.role)(),
+                "total_sales": Decimal("0.00"), "total_paid": Decimal("0.00"), "orders_count": 0,
+                "completed_orders": 0, "total_meters": Decimal("0.00"),
+            })
+            row["total_sales"] += order.total_amount
+            row["total_paid"] += order.paid_amount or Decimal("0.00")
+            row["orders_count"] += 1
             if order.stage in {Order.Stage.READY, Order.Stage.DELIVERED}:
-                users_map[u_id]["completed_orders"] += 1
-                users_map[u_id]["total_meters"] += order.total_meters
+                row["completed_orders"] += 1
+                row["total_meters"] += order.total_meters
 
-        team_rows = list(users_map.values())
-        team_rows.sort(key=lambda x: x["total_sales"], reverse=True)
-
+        team_rows = sorted(users_map.values(), key=lambda x: x["total_sales"], reverse=True)
         grand_sales = sum((r["total_sales"] for r in team_rows), Decimal("0.00"))
         grand_orders = sum(r["orders_count"] for r in team_rows)
-
         for idx, r in enumerate(team_rows, start=1):
             r["rank"] = idx
-            r["avg_ticket"] = (r["total_sales"] / Decimal(str(r["orders_count"]))) if r["orders_count"] > 0 else Decimal("0.00")
-            r["share_percentage"] = (float(r["total_sales"] / grand_sales) * 100) if grand_sales > Decimal("0.00") else 0.0
-
-        if request.GET.get("export") == "csv":
-            return self._csv_export(team_rows, year, month, grand_sales, grand_orders)
-
-        month_names = ["", "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"]
-        month_label = f"{month_names[month]} de {year}"
-        prev_month_date = start_date - timedelta(days=1)
-        next_month_date = end_date + timedelta(days=1)
-
-        context = self.get_context_data(
-            year=year,
-            month=month,
-            month_label=month_label,
-            current_month_str=f"{year:04d}-{month:02d}",
-            prev_month_str=prev_month_date.strftime("%Y-%m"),
-            next_month_str=next_month_date.strftime("%Y-%m"),
-            team_rows=team_rows,
-            grand_sales=grand_sales,
-            grand_orders=grand_orders,
-        )
-        return self.render_to_response(context)
-
-    @staticmethod
-    def _csv_export(rows, year, month, grand_sales, grand_orders):
-        response = HttpResponse(content_type="text/csv; charset=utf-8")
-        response["Content-Disposition"] = f'attachment; filename="ranking-equipe-{year:04d}-{month:02d}.csv"'
-        response.write("\ufeff")
-        writer = csv.writer(response, delimiter=";")
-        writer.writerow(["PRINT FORNECE - RANKING DE VENDAS DA EQUIPE", f"{month:02d}/{year:04d}"])
-        writer.writerow([])
-        writer.writerow(["Posição", "Atendente / Vendedor", "Volume de Vendas (R$)", "Qtd. Pedidos", "Ticket Médio (R$)", "Metros Produzidos (m)", "Participação (%)"])
-        for r in rows:
-            writer.writerow([
-                f"{r['rank']}º",
-                r["name"],
-                f"{r['total_sales']:.2f}".replace(".", ","),
-                r["orders_count"],
-                f"{r['avg_ticket']:.2f}".replace(".", ","),
-                f"{r['total_meters']:.2f}".replace(".", ","),
-                f"{r['share_percentage']:.1f}%".replace(".", ","),
-            ])
-        writer.writerow([])
-        writer.writerow(["TOTAL GERAL", "", f"{grand_sales:.2f}".replace(".", ","), grand_orders, "", "", "100%"])
-        return response
+            r["avg_ticket"] = (r["total_sales"] / Decimal(r["orders_count"])) if r["orders_count"] else Decimal("0.00")
+            r["share_percentage"] = (float(r["total_sales"] / grand_sales) * 100) if grand_sales > 0 else 0.0
+        return {
+            "team_rows": team_rows,
+            "grand_sales": grand_sales,
+            "grand_orders": grand_orders,
+            "summary": [
+                SummaryMetric("Volume de vendas", grand_sales),
+                SummaryMetric("Pedidos", grand_orders, "number"),
+            ],
+            "export_sections": [ExportSection(
+                headers=["Posição", "Atendente / Vendedor", "Volume de Vendas (R$)", "Qtd. Pedidos", "Ticket Médio (R$)", "Metros Produzidos (m)", "Participação (%)"],
+                rows=[[f"{r['rank']}º", r["name"], r["total_sales"], r["orders_count"], r["avg_ticket"], r["total_meters"], f"{r['share_percentage']:.1f}%".replace(".", ",")] for r in team_rows],
+                totals=["TOTAL GERAL", "", grand_sales, grand_orders, "", "", "100%"],
+            )],
+        }
 
 
-class CustomerRankingReportView(LoginRequiredMixin, AdministratorRequiredMixin, TemplateView):
+class CustomerRankingReportView(LoginRequiredMixin, AdministratorRequiredMixin, PeriodReportMixin, TemplateView):
     template_name = "reports/customers_ranking.html"
+    report_title = "Ranking de clientes"
+    report_slug = "ranking-clientes"
+    preserved_params = ("order_by",)
 
-    def get(self, request, *args, **kwargs):
-        order_by = request.GET.get("order_by", "volume").strip().lower()
+    def build(self, period):
+        order_by = self.request.GET.get("order_by", "volume").strip().lower()
         if order_by not in {"volume", "quantidade"}:
             order_by = "volume"
-
-        orders = Order.objects.exclude(
-            stage=Order.Stage.CANCELLED
-        ).select_related("cliente").prefetch_related("items")
-
+        orders = orders_created_in(period).exclude(stage=Order.Stage.CANCELLED).select_related("cliente").prefetch_related("items")
         customers_map: dict[str, dict] = {}
-
         for order in orders:
             if order.cliente_id:
-                key = f"id_{order.cliente_id}"
-                client_name = order.cliente.nome
+                key, client_name = f"id_{order.cliente_id}", order.cliente.nome
                 client_phone = order.cliente.telefone or order.client_whatsapp
             else:
-                key = f"raw_{order.client_name.strip().lower()}"
-                client_name = order.client_name
-                client_phone = order.client_whatsapp
-
-            if key not in customers_map:
-                customers_map[key] = {
-                    "cliente_obj": order.cliente,
-                    "name": client_name,
-                    "phone": client_phone,
-                    "total_sales": Decimal("0.00"),
-                    "total_paid": Decimal("0.00"),
-                    "orders_count": 0,
-                    "total_items_qty": 0,
-                    "total_meters": Decimal("0.00"),
-                    "last_order_date": order.created_at,
-                }
-
-            customers_map[key]["total_sales"] += order.total_amount
-            customers_map[key]["total_paid"] += (order.paid_amount or Decimal("0.00"))
-            customers_map[key]["orders_count"] += 1
-            if order.created_at > customers_map[key]["last_order_date"]:
-                customers_map[key]["last_order_date"] = order.created_at
-
+                key, client_name, client_phone = f"raw_{order.client_name.strip().lower()}", order.client_name, order.client_whatsapp
+            row = customers_map.setdefault(key, {
+                "cliente_obj": order.cliente, "name": client_name, "phone": client_phone,
+                "total_sales": Decimal("0.00"), "total_paid": Decimal("0.00"), "orders_count": 0,
+                "total_items_qty": 0, "total_meters": Decimal("0.00"), "last_order_date": order.created_at,
+            })
+            row["total_sales"] += order.total_amount
+            row["total_paid"] += order.paid_amount or Decimal("0.00")
+            row["orders_count"] += 1
+            row["last_order_date"] = max(row["last_order_date"], order.created_at)
             for item in order.items.all():
-                qty = int(item.art_quantity or item.billing_quantity or 1)
-                customers_map[key]["total_items_qty"] += qty
+                row["total_items_qty"] += int(item.art_quantity or item.billing_quantity or 1)
                 if getattr(item, "kind", "") == "material" or "metro" in (item.billing_unit or "").lower():
                     if item.calculation_snapshot and "film_used_m" in item.calculation_snapshot:
-                        customers_map[key]["total_meters"] += Decimal(str(item.calculation_snapshot["film_used_m"]))
+                        row["total_meters"] += Decimal(str(item.calculation_snapshot["film_used_m"]))
                     elif item.billing_quantity:
-                        customers_map[key]["total_meters"] += Decimal(str(item.billing_quantity))
+                        row["total_meters"] += Decimal(str(item.billing_quantity))
 
         customer_rows = list(customers_map.values())
-
         if order_by == "quantidade":
             customer_rows.sort(key=lambda x: (x["total_items_qty"], x["total_meters"], x["total_sales"]), reverse=True)
-        else:  # volume
+        else:
             customer_rows.sort(key=lambda x: (x["total_sales"], x["total_items_qty"]), reverse=True)
-
         grand_revenue = sum((r["total_sales"] for r in customer_rows), Decimal("0.00"))
         grand_orders = sum(r["orders_count"] for r in customer_rows)
-
         for idx, r in enumerate(customer_rows, start=1):
             r["rank"] = idx
-            r["avg_ticket"] = (r["total_sales"] / Decimal(str(r["orders_count"]))) if r["orders_count"] > 0 else Decimal("0.00")
-
-        if request.GET.get("export") == "csv":
-            return self._csv_export(customer_rows, order_by, grand_revenue, grand_orders)
-
-        context = self.get_context_data(
-            order_by=order_by,
-            customer_rows=customer_rows[:100],
-            total_customers_count=len(customer_rows),
-            grand_revenue=grand_revenue,
-            grand_orders=grand_orders,
-        )
-        return self.render_to_response(context)
-
-    @staticmethod
-    def _csv_export(rows, order_by, grand_revenue, grand_orders):
-        response = HttpResponse(content_type="text/csv; charset=utf-8")
-        response["Content-Disposition"] = f'attachment; filename="ranking-clientes-{order_by}.csv"'
-        response.write("\ufeff")
-        writer = csv.writer(response, delimiter=";")
-        writer.writerow(["PRINT FORNECE - RANKING DE CLIENTES", f"Ordenação por: {'Volume Financeiro (R$)' if order_by == 'volume' else 'Quantidade Comprada'}"])
-        writer.writerow([])
-        writer.writerow(["Posição", "Cliente", "WhatsApp / Telefone", "Volume Total Gasto (R$)", "Qtd. Itens/Produtos", "Metros DTF (m)", "Total Pedidos", "Ticket Médio (R$)", "Última Compra"])
-        for r in rows:
-            last_date_str = r["last_order_date"].strftime("%d/%m/%Y %H:%M") if r["last_order_date"] else ""
-            writer.writerow([
-                f"{r['rank']}º",
-                r["name"],
-                r["phone"] or "",
-                f"{r['total_sales']:.2f}".replace(".", ","),
-                r["total_items_qty"],
-                f"{r['total_meters']:.2f}".replace(".", ","),
-                r["orders_count"],
-                f"{r['avg_ticket']:.2f}".replace(".", ","),
-                last_date_str,
-            ])
-        writer.writerow([])
-        writer.writerow(["TOTAL GERAL", "", "", f"{grand_revenue:.2f}".replace(".", ","), "", "", grand_orders, "", ""])
-        return response
+            r["avg_ticket"] = (r["total_sales"] / Decimal(r["orders_count"])) if r["orders_count"] else Decimal("0.00")
+        return {
+            "order_by": order_by,
+            "customer_rows": customer_rows[:100],
+            "total_customers_count": len(customer_rows),
+            "grand_revenue": grand_revenue,
+            "grand_orders": grand_orders,
+            "summary": [
+                SummaryMetric("Faturamento", grand_revenue),
+                SummaryMetric("Pedidos", grand_orders, "number"),
+                SummaryMetric("Clientes", len(customer_rows), "number"),
+            ],
+            "export_sections": [ExportSection(
+                title=f"Ordenação por: {'Volume Financeiro (R$)' if order_by == 'volume' else 'Quantidade Comprada'}",
+                headers=["Posição", "Cliente", "WhatsApp / Telefone", "Volume Total Gasto (R$)", "Qtd. Itens/Produtos", "Metros DTF (m)", "Total Pedidos", "Ticket Médio (R$)", "Última Compra"],
+                rows=[[f"{r['rank']}º", r["name"], r["phone"] or "", r["total_sales"], r["total_items_qty"], r["total_meters"], r["orders_count"], r["avg_ticket"], r["last_order_date"]] for r in customer_rows],
+                totals=["TOTAL GERAL", "", "", grand_revenue, "", "", grand_orders, "", ""],
+            )],
+        }
 
 
-class ProductSalesReportView(LoginRequiredMixin, AdministratorRequiredMixin, TemplateView):
+PRODUCT_CATEGORIES = {
+    "DTF UV": "#c084fc",
+    "DTF Têxtil": "#38bdf8",
+    "Camisetas": "#34d399",
+    "Serviços / Ajustes": "#fbbf24",
+    "Diversos": "#94a3b8",
+}
+
+
+def _product_category(item) -> str:
+    name = (item.material_name or "").lower()
+    mat_code = (item.material_code or "").lower()
+    kind = getattr(item, "kind", "")
+    if "uv" in mat_code or "uv" in name:
+        return "DTF UV"
+    if mat_code == "dtf_textil" or kind == OrderItem.Kind.MATERIAL:
+        return "DTF Têxtil"
+    if kind == OrderItem.Kind.PRODUCT or "camisa" in mat_code or "camisa" in name:
+        return "Camisetas"
+    if kind in {OrderItem.Kind.SERVICE, OrderItem.Kind.ADJUSTMENT} or "servico" in mat_code or "ajuste" in mat_code:
+        return "Serviços / Ajustes"
+    return "Diversos"
+
+
+class ProductSalesReportView(LoginRequiredMixin, AdministratorRequiredMixin, PeriodReportMixin, TemplateView):
     template_name = "reports/product_sales.html"
+    report_title = "Vendas por produto"
+    report_slug = "relatorio-vendas-produtos"
+    period_basis = "data de criação do pedido (somente pedidos prontos ou entregues)"
 
-    def get_dates(self) -> tuple[date, date, int, int]:
-        today = timezone.localdate()
-        year = int(self.request.GET.get("year", today.year))
-        month = int(self.request.GET.get("month", today.month))
-        try:
-            start_date = date(year, month, 1)
-            _, last_day = calendar.monthrange(year, month)
-            end_date = date(year, month, last_day)
-        except (ValueError, TypeError):
-            start_date = date(today.year, today.month, 1)
-            _, last_day = calendar.monthrange(today.year, today.month)
-            end_date = date(today.year, today.month, last_day)
-        return start_date, end_date, year, month
-
-    def get(self, request, *args, **kwargs):
-        start_date, end_date, year, month = self.get_dates()
-        start_dt = timezone.make_aware(datetime.combine(start_date, time.min))
-        end_dt = timezone.make_aware(datetime.combine(end_date + timedelta(days=1), time.min))
-
-        orders = Order.objects.filter(
-            created_at__gte=start_dt,
-            created_at__lt=end_dt,
-            stage__in=[Order.Stage.READY, Order.Stage.DELIVERED],
-        ).exclude(stage=Order.Stage.CANCELLED).prefetch_related("items")
-
+    def build(self, period):
+        orders = list(orders_created_in(period, stage__in=[Order.Stage.READY, Order.Stage.DELIVERED]).prefetch_related("items"))
         products_map: dict[tuple, dict] = {}
-
         for order in orders:
             for item in order.items.all():
-                kind = getattr(item, "kind", "")
-                name = item.material_name or "Item sem nome"
-                color = item.product_color or ""
-                size = item.product_size or ""
-                mat_code = (item.material_code or "").lower()
-
-                if "uv" in mat_code or "uv" in name.lower():
-                    cat_label = "DTF UV"
-                    badge_color = "#c084fc"
-                elif mat_code == "dtf_textil" or kind == OrderItem.Kind.MATERIAL:
-                    cat_label = "DTF Têxtil"
-                    badge_color = "#38bdf8"
-                elif kind == OrderItem.Kind.PRODUCT or "camisa" in mat_code or "camisa" in name.lower():
-                    cat_label = "Camisetas"
-                    badge_color = "#34d399"
-                elif kind in {OrderItem.Kind.SERVICE, OrderItem.Kind.ADJUSTMENT} or "servico" in mat_code or "ajuste" in mat_code:
-                    cat_label = "Serviços / Ajustes"
-                    badge_color = "#fbbf24"
-                else:
-                    cat_label = "Diversos"
-                    badge_color = "#94a3b8"
-
-                display_name = name
-                if color or size:
-                    specs = []
-                    if color:
-                        specs.append(color)
-                    if size:
-                        specs.append(f"Tam. {size}")
+                category = _product_category(item)
+                display_name = item.material_name or "Item sem nome"
+                specs = [s for s in (item.product_color or "", f"Tam. {item.product_size}" if item.product_size else "") if s]
+                if specs:
                     display_name += f" ({', '.join(specs)})"
+                row = products_map.setdefault((category, display_name), {
+                    "category": category, "badge_color": PRODUCT_CATEGORIES[category], "name": display_name,
+                    "quantity": Decimal("0.00"), "meters": Decimal("0.00"), "revenue": Decimal("0.00"),
+                    "discount": Decimal("0.00"), "orders_set": set(), "unit": item.billing_unit or "un",
+                })
+                row["quantity"] += Decimal(str(item.art_quantity if item.art_quantity else item.billing_quantity or 1))
+                row["meters"] += item_meters(item)
+                row["revenue"] += item.line_total
+                row["discount"] += item.discount_total or Decimal("0.00")
+                row["orders_set"].add(order.id)
 
-                key = (cat_label, display_name)
-                if key not in products_map:
-                    products_map[key] = {
-                        "category": cat_label,
-                        "badge_color": badge_color,
-                        "name": display_name,
-                        "quantity": Decimal("0.00"),
-                        "meters": Decimal("0.00"),
-                        "revenue": Decimal("0.00"),
-                        "discount": Decimal("0.00"),
-                        "orders_count": 0,
-                        "orders_set": set(),
-                        "unit": item.billing_unit or "un",
-                    }
-
-                meters = Decimal("0.00")
-                if item.calculation_snapshot and "film_used_m" in item.calculation_snapshot:
-                    meters = Decimal(str(item.calculation_snapshot["film_used_m"]))
-                elif "metro" in (item.billing_unit or "").lower():
-                    meters = Decimal(str(item.billing_quantity))
-                elif item.used_length_cm:
-                    meters = Decimal(str(item.used_length_cm)) / Decimal("100")
-
-                qty = Decimal(str(item.art_quantity if item.art_quantity else item.billing_quantity or 1))
-                products_map[key]["quantity"] += qty
-                products_map[key]["meters"] += meters
-                products_map[key]["revenue"] += item.line_total
-                products_map[key]["discount"] += item.discount_total or Decimal("0.00")
-                products_map[key]["orders_set"].add(order.id)
-
-        rows = []
-        grand_total_revenue = Decimal("0.00")
-        grand_total_qty = Decimal("0.00")
-        grand_total_meters = Decimal("0.00")
-        grand_total_discount = Decimal("0.00")
-
-        for k, v in products_map.items():
-            v["orders_count"] = len(v["orders_set"])
-            v["avg_price"] = (v["revenue"] / v["quantity"]) if v["quantity"] > 0 else Decimal("0.00")
-            grand_total_revenue += v["revenue"]
-            grand_total_qty += v["quantity"]
-            grand_total_meters += v["meters"]
-            grand_total_discount += v["discount"]
-            rows.append(v)
-
+        rows = list(products_map.values())
+        for row in rows:
+            row["orders_count"] = len(row["orders_set"])
+            row["avg_price"] = (row["revenue"] / row["quantity"]) if row["quantity"] > 0 else Decimal("0.00")
+        grand_total_revenue = sum((r["revenue"] for r in rows), Decimal("0.00"))
+        grand_total_qty = sum((r["quantity"] for r in rows), Decimal("0.00"))
+        grand_total_meters = sum((r["meters"] for r in rows), Decimal("0.00"))
+        grand_total_discount = sum((r["discount"] for r in rows), Decimal("0.00"))
         rows.sort(key=lambda x: x["revenue"], reverse=True)
-
         for r in rows:
             r["percentage"] = (float(r["revenue"] / grand_total_revenue) * 100) if grand_total_revenue > 0 else 0.0
-
-        if request.GET.get("export") == "csv":
-            return self._csv_export(rows, year, month, grand_total_qty, grand_total_meters, grand_total_revenue, grand_total_discount)
-
-        month_names = ["", "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"]
-        month_label = f"{month_names[month]} de {year}"
-        prev_month_date = start_date - timedelta(days=1)
-        next_month_date = end_date + timedelta(days=1)
-
-        context = self.get_context_data(
-            year=year,
-            month=month,
-            month_label=month_label,
-            current_month_str=f"{year:04d}-{month:02d}",
-            prev_month_str=prev_month_date.strftime("%Y-%m"),
-            next_month_str=next_month_date.strftime("%Y-%m"),
-            rows=rows,
-            grand_total_qty=grand_total_qty,
-            grand_total_meters=grand_total_meters,
-            grand_total_revenue=grand_total_revenue,
-            grand_total_discount=grand_total_discount,
-            total_orders_count=len(orders),
-        )
-        return self.render_to_response(context)
-
-    @staticmethod
-    def _csv_export(rows, year, month, grand_qty, grand_meters, grand_revenue, grand_discount=Decimal("0.00")):
-        response = HttpResponse(content_type="text/csv; charset=utf-8")
-        response["Content-Disposition"] = f'attachment; filename="relatorio-vendas-produtos-{year:04d}-{month:02d}.csv"'
-        response.write("\ufeff")
-        writer = csv.writer(response, delimiter=";")
-        writer.writerow(["PRINT FORNECE - RELATÓRIO DE VENDAS POR PRODUTO", f"{month:02d}/{year:04d}"])
-        writer.writerow([])
-        writer.writerow(["Categoria", "Produto / Item", "Qtd. Vendida", "Unidade", "Metros (m)", "Qtd. Pedidos", "Preço Médio (R$)", "Desconto por camisa (R$)", "Faturamento Total (R$)", "Participação (%)"])
-        for r in rows:
-            writer.writerow([
-                r["category"],
-                r["name"],
-                f"{r['quantity']:.2f}".replace(".", ","),
-                r["unit"],
-                f"{r['meters']:.2f}".replace(".", ","),
-                r["orders_count"],
-                f"{r['avg_price']:.2f}".replace(".", ","),
-                f"{r['discount']:.2f}".replace(".", ","),
-                f"{r['revenue']:.2f}".replace(".", ","),
-                f"{r['percentage']:.1f}%".replace(".", ","),
-            ])
-        writer.writerow([])
-        writer.writerow(["TOTAL GERAL", "", f"{grand_qty:.2f}".replace(".", ","), "", f"{grand_meters:.2f}".replace(".", ","), "", "", f"{grand_discount:.2f}".replace(".", ","), f"{grand_revenue:.2f}".replace(".", ","), "100%"])
-        return response
+        return {
+            "rows": rows,
+            "grand_total_qty": grand_total_qty,
+            "grand_total_meters": grand_total_meters,
+            "grand_total_revenue": grand_total_revenue,
+            "grand_total_discount": grand_total_discount,
+            "total_orders_count": len(orders),
+            "summary": [
+                SummaryMetric("Faturamento", grand_total_revenue),
+                SummaryMetric("Quantidade vendida", grand_total_qty, "number"),
+                SummaryMetric("Descontos em camisas", grand_total_discount),
+            ],
+            "export_sections": [ExportSection(
+                headers=["Categoria", "Produto / Item", "Qtd. Vendida", "Unidade", "Metros (m)", "Qtd. Pedidos", "Preço Médio (R$)", "Desconto por camisa (R$)", "Faturamento Total (R$)", "Participação (%)"],
+                rows=[[r["category"], r["name"], r["quantity"], r["unit"], r["meters"], r["orders_count"], r["avg_price"], r["discount"], r["revenue"], f"{r['percentage']:.1f}%".replace(".", ",")] for r in rows],
+                totals=["TOTAL GERAL", "", grand_total_qty, "", grand_total_meters, len(orders), "", grand_total_discount, grand_total_revenue, "100%"],
+            )],
+        }
 
 
-class DailyConsumptionReportView(LoginRequiredMixin, AdministratorRequiredMixin, TemplateView):
+class DailyConsumptionReportView(LoginRequiredMixin, AdministratorRequiredMixin, PeriodReportMixin, TemplateView):
     template_name = "reports/daily_consumption.html"
+    report_title = "Consumo diário"
+    report_slug = "relatorio-consumo-diario"
+    period_basis = "data de criação do pedido (somente pedidos prontos ou entregues)"
 
-    def get_dates(self) -> tuple[date, date, int, int]:
-        today = timezone.localdate()
-        year = int(self.request.GET.get("year", today.year))
-        month = int(self.request.GET.get("month", today.month))
-        try:
-            start_date = date(year, month, 1)
-            _, last_day = calendar.monthrange(year, month)
-            end_date = date(year, month, last_day)
-        except (ValueError, TypeError):
-            start_date = date(today.year, today.month, 1)
-            _, last_day = calendar.monthrange(today.year, today.month)
-            end_date = date(today.year, today.month, last_day)
-        return start_date, end_date, year, month
-
-    def get(self, request, *args, **kwargs):
-        start_date, end_date, year, month = self.get_dates()
-        start_dt = timezone.make_aware(datetime.combine(start_date, time.min))
-        end_dt = timezone.make_aware(datetime.combine(end_date + timedelta(days=1), time.min))
-
-        orders = Order.objects.filter(
-            created_at__gte=start_dt,
-            created_at__lt=end_dt,
-            stage__in=[Order.Stage.READY, Order.Stage.DELIVERED],
-        ).exclude(stage=Order.Stage.CANCELLED).prefetch_related("items").order_by("created_at")
-
-        days_map: dict[date, dict] = {}
-        curr = start_date
-        while curr <= end_date:
-            days_map[curr] = {
-                "date": curr,
-                "date_display": curr.strftime("%d/%m/%Y"),
-                "weekday": ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"][curr.weekday()],
-                "orders_count": 0,
-                "dtf_textil_meters": Decimal("0.00"),
-                "dtf_uv_meters": Decimal("0.00"),
-                "shirts_qty": 0,
-                "services_qty": 0,
-                "revenue": Decimal("0.00"),
-            }
-            curr += timedelta(days=1)
-
-        grand_orders = 0
-        grand_textil = Decimal("0.00")
-        grand_uv = Decimal("0.00")
-        grand_shirts = 0
-        grand_services = 0
-        grand_revenue = Decimal("0.00")
-
+    def build(self, period):
+        orders = orders_created_in(period, stage__in=[Order.Stage.READY, Order.Stage.DELIVERED]).prefetch_related("items").order_by("created_at")
+        days_map = {
+            day: {"date": day, "date_display": day.strftime("%d/%m/%Y"), "weekday": WEEKDAYS_SHORT[day.weekday()], "orders_count": 0,
+                  "dtf_textil_meters": Decimal("0.00"), "dtf_uv_meters": Decimal("0.00"), "shirts_qty": 0, "services_qty": 0, "revenue": Decimal("0.00")}
+            for day in iter_days(period)
+        }
+        totals = {"orders": 0, "textil": Decimal("0.00"), "uv": Decimal("0.00"), "shirts": 0, "services": 0, "revenue": Decimal("0.00")}
         for o in orders:
-            order_date = timezone.localtime(o.created_at).date()
-            if order_date in days_map:
-                d = days_map[order_date]
-                d["orders_count"] += 1
-                d["revenue"] += o.total_amount
-                grand_orders += 1
-                grand_revenue += o.total_amount
+            d = days_map.get(timezone.localtime(o.created_at).date())
+            if d is None:
+                continue
+            d["orders_count"] += 1
+            d["revenue"] += o.total_amount
+            totals["orders"] += 1
+            totals["revenue"] += o.total_amount
+            for item in o.items.all():
+                mat_code = (item.material_code or "").lower()
+                mat_name = (item.material_name or "").lower()
+                kind = getattr(item, "kind", "")
+                meters = item_meters(item)
+                if "uv" in mat_code or "uv" in mat_name:
+                    d["dtf_uv_meters"] += meters
+                    totals["uv"] += meters
+                elif mat_code == "dtf_textil" or kind == OrderItem.Kind.MATERIAL:
+                    d["dtf_textil_meters"] += meters
+                    totals["textil"] += meters
+                elif kind == OrderItem.Kind.PRODUCT or "camisa" in mat_code or "camisa" in mat_name:
+                    q = int(item.art_quantity or item.billing_quantity or 1)
+                    d["shirts_qty"] += q
+                    totals["shirts"] += q
+                elif kind in {OrderItem.Kind.SERVICE, OrderItem.Kind.ADJUSTMENT} or "servico" in mat_code:
+                    q = int(item.art_quantity or item.billing_quantity or 1)
+                    d["services_qty"] += q
+                    totals["services"] += q
 
-                for item in o.items.all():
-                    mat_code = (item.material_code or "").lower()
-                    mat_name = (item.material_name or "").lower()
-                    kind = getattr(item, "kind", "")
-
-                    meters = Decimal("0.00")
-                    if item.calculation_snapshot and "film_used_m" in item.calculation_snapshot:
-                        meters = Decimal(str(item.calculation_snapshot["film_used_m"]))
-                    elif "metro" in (item.billing_unit or "").lower():
-                        meters = Decimal(str(item.billing_quantity))
-                    elif item.used_length_cm:
-                        meters = Decimal(str(item.used_length_cm)) / Decimal("100")
-
-                    if "uv" in mat_code or "uv" in mat_name:
-                        d["dtf_uv_meters"] += meters
-                        grand_uv += meters
-                    elif mat_code == "dtf_textil" or kind == OrderItem.Kind.MATERIAL:
-                        d["dtf_textil_meters"] += meters
-                        grand_textil += meters
-                    elif kind == OrderItem.Kind.PRODUCT or "camisa" in mat_code or "camisa" in mat_name:
-                        q = int(item.art_quantity or item.billing_quantity or 1)
-                        d["shirts_qty"] += q
-                        grand_shirts += q
-                    elif kind in {OrderItem.Kind.SERVICE, OrderItem.Kind.ADJUSTMENT} or "servico" in mat_code:
-                        q = int(item.art_quantity or item.billing_quantity or 1)
-                        d["services_qty"] += q
-                        grand_services += q
-
-        daily_rows = [v for k, v in sorted(days_map.items(), reverse=True) if v["orders_count"] > 0 or v["revenue"] > 0 or v["date"] <= timezone.localdate()]
-
-        if request.GET.get("export") == "csv":
-            return self._csv_export(daily_rows, year, month, grand_orders, grand_textil, grand_uv, grand_shirts, grand_services, grand_revenue)
-
-        month_names = ["", "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"]
-        month_label = f"{month_names[month]} de {year}"
-        prev_month_date = start_date - timedelta(days=1)
-        next_month_date = end_date + timedelta(days=1)
-
-        context = self.get_context_data(
-            year=year,
-            month=month,
-            month_label=month_label,
-            current_month_str=f"{year:04d}-{month:02d}",
-            prev_month_str=prev_month_date.strftime("%Y-%m"),
-            next_month_str=next_month_date.strftime("%Y-%m"),
-            daily_rows=daily_rows,
-            grand_orders=grand_orders,
-            grand_textil=grand_textil,
-            grand_uv=grand_uv,
-            grand_shirts=grand_shirts,
-            grand_services=grand_services,
-            grand_revenue=grand_revenue,
-        )
-        return self.render_to_response(context)
-
-    @staticmethod
-    def _csv_export(rows, year, month, grand_orders, grand_textil, grand_uv, grand_shirts, grand_services, grand_revenue):
-        response = HttpResponse(content_type="text/csv; charset=utf-8")
-        response["Content-Disposition"] = f'attachment; filename="relatorio-consumo-diario-{year:04d}-{month:02d}.csv"'
-        response.write("\ufeff")
-        writer = csv.writer(response, delimiter=";")
-        writer.writerow(["PRINT FORNECE - RELATÓRIO DE CONSUMO DIÁRIO", f"{month:02d}/{year:04d}"])
-        writer.writerow([])
-        writer.writerow(["Data", "Dia da Semana", "Qtd. Pedidos", "DTF Têxtil (m)", "DTF UV (m)", "Camisetas (un)", "Serviços (un)", "Faturamento (R$)"])
-        for r in sorted(rows, key=lambda x: x["date"]):
-            writer.writerow([
-                r["date_display"],
-                r["weekday"],
-                r["orders_count"],
-                f"{r['dtf_textil_meters']:.2f}".replace(".", ","),
-                f"{r['dtf_uv_meters']:.2f}".replace(".", ","),
-                r["shirts_qty"],
-                r["services_qty"],
-                f"{r['revenue']:.2f}".replace(".", ","),
-            ])
-        writer.writerow([])
-        writer.writerow(["TOTAL", "", grand_orders, f"{grand_textil:.2f}".replace(".", ","), f"{grand_uv:.2f}".replace(".", ","), grand_shirts, grand_services, f"{grand_revenue:.2f}".replace(".", ",")])
-        return response
-
-
-class InkConsumptionReportView(LoginRequiredMixin, AdministratorRequiredMixin, TemplateView):
-    template_name = "reports/ink_consumption.html"
-
-    def get_dates(self) -> tuple[date, date, int, int]:
         today = timezone.localdate()
-        year = int(self.request.GET.get("year", today.year))
-        month = int(self.request.GET.get("month", today.month))
-        try:
-            start_date = date(year, month, 1)
-            _, last_day = calendar.monthrange(year, month)
-            end_date = date(year, month, last_day)
-        except (ValueError, TypeError):
-            start_date = date(today.year, today.month, 1)
-            _, last_day = calendar.monthrange(today.year, today.month)
-            end_date = date(today.year, today.month, last_day)
-        return start_date, end_date, year, month
+        daily_rows = [v for _, v in sorted(days_map.items(), reverse=True) if v["orders_count"] > 0 or v["revenue"] > 0 or v["date"] <= today]
+        return {
+            "daily_rows": daily_rows,
+            "grand_orders": totals["orders"],
+            "grand_textil": totals["textil"],
+            "grand_uv": totals["uv"],
+            "grand_shirts": totals["shirts"],
+            "grand_services": totals["services"],
+            "grand_revenue": totals["revenue"],
+            "summary": [
+                SummaryMetric("Pedidos", totals["orders"], "number"),
+                SummaryMetric("DTF Têxtil (m)", totals["textil"], "meters"),
+                SummaryMetric("DTF UV (m)", totals["uv"], "meters"),
+                SummaryMetric("Camisetas (un)", totals["shirts"], "number"),
+                SummaryMetric("Faturamento", totals["revenue"]),
+            ],
+            "export_sections": [ExportSection(
+                headers=["Data", "Dia da Semana", "Qtd. Pedidos", "DTF Têxtil (m)", "DTF UV (m)", "Camisetas (un)", "Serviços (un)", "Faturamento (R$)"],
+                rows=[[r["date"], r["weekday"], r["orders_count"], r["dtf_textil_meters"], r["dtf_uv_meters"], r["shirts_qty"], r["services_qty"], r["revenue"]] for r in sorted(daily_rows, key=lambda x: x["date"])],
+                totals=["TOTAL", "", totals["orders"], totals["textil"], totals["uv"], totals["shirts"], totals["services"], totals["revenue"]],
+            )],
+        }
+
+
+class InkConsumptionReportView(LoginRequiredMixin, AdministratorRequiredMixin, PeriodReportMixin, TemplateView):
+    template_name = "reports/ink_consumption.html"
+    report_title = "Consumo de tintas"
+    report_slug = "relatorio-consumo-tintas"
+    period_basis = "data da baixa de estoque (metros: data de criação dos pedidos prontos ou entregues)"
 
     def post(self, request, *args, **kwargs):
         """Baixa manual de tinta no estoque."""
         item_id = request.POST.get("item_id")
         raw_qty = request.POST.get("quantity", "1").replace(",", ".").strip()
         motivo = request.POST.get("motivo", "Consumo em Produção / Reposição de Tanque").strip()
-
         try:
             item = SupplyItem.objects.get(pk=item_id)
             qty = max(Decimal(raw_qty), Decimal("0.01"))
             prev = item.quantity
             item.quantity = max(Decimal("0.00"), item.quantity - qty)
             item.save(update_fields=["quantity", "updated_at"])
-
             SupplyMovement.objects.create(
                 item=item,
                 movement_type=SupplyMovement.MovementType.OUTPUT,
@@ -1462,327 +991,185 @@ class InkConsumptionReportView(LoginRequiredMixin, AdministratorRequiredMixin, T
             messages.success(request, f"Baixa de {qty} {item.get_unit_display()} em '{item.name}' realizada com sucesso!")
         except Exception as e:
             messages.error(request, f"Erro ao registrar baixa de tinta: {str(e)}")
-
         return redirect(request.get_full_path())
 
-    def get(self, request, *args, **kwargs):
-        start_date, end_date, year, month = self.get_dates()
-        start_dt = timezone.make_aware(datetime.combine(start_date, time.min))
-        end_dt = timezone.make_aware(datetime.combine(end_date + timedelta(days=1), time.min))
-
-        ink_items = SupplyItem.objects.filter(
-            Q(name__icontains="tinta") | Q(name__icontains="verniz")
-        ).order_by("category", "name")
-
-        movements = SupplyMovement.objects.filter(
+    def build(self, period):
+        ink_items = SupplyItem.objects.filter(Q(name__icontains="tinta") | Q(name__icontains="verniz")).order_by("category", "name")
+        movements = list(SupplyMovement.objects.filter(
             item__in=ink_items,
             movement_type=SupplyMovement.MovementType.OUTPUT,
-            created_at__gte=start_dt,
-            created_at__lt=end_dt,
-        ).select_related("item", "user").order_by("-created_at")
-
-        orders = Order.objects.filter(
-            created_at__gte=start_dt,
-            created_at__lt=end_dt,
-            stage__in=[Order.Stage.READY, Order.Stage.DELIVERED],
-        ).exclude(stage=Order.Stage.CANCELLED).prefetch_related("items")
-
+            created_at__gte=period.start_at,
+            created_at__lt=period.end_at,
+        ).select_related("item", "user").order_by("-created_at"))
         textil_m = Decimal("0.00")
         uv_m = Decimal("0.00")
-        for o in orders:
+        for o in orders_created_in(period, stage__in=[Order.Stage.READY, Order.Stage.DELIVERED]).prefetch_related("items"):
             for it in o.items.all():
                 mc = (it.material_code or "").lower()
                 mn = (it.material_name or "").lower()
-                m = Decimal("0.00")
-                if it.calculation_snapshot and "film_used_m" in it.calculation_snapshot:
-                    m = Decimal(str(it.calculation_snapshot["film_used_m"]))
-                elif "metro" in (it.billing_unit or "").lower():
-                    m = Decimal(str(it.billing_quantity))
-                elif it.used_length_cm:
-                    m = Decimal(str(it.used_length_cm)) / Decimal("100")
                 if "uv" in mc or "uv" in mn:
-                    uv_m += m
+                    uv_m += item_meters(it)
                 elif mc == "dtf_textil" or getattr(it, "kind", "") == OrderItem.Kind.MATERIAL:
-                    textil_m += m
-
+                    textil_m += item_meters(it)
         ink_summary = []
         for ink in ink_items:
             movs = [m for m in movements if m.item_id == ink.id]
-            consumed = sum((m.quantity for m in movs), Decimal("0.00"))
             ink_summary.append({
                 "item": ink,
                 "current_stock": ink.quantity,
-                "consumed": consumed,
+                "consumed": sum((m.quantity for m in movs), Decimal("0.00")),
                 "unit": ink.get_unit_display(),
                 "movements_count": len(movs),
             })
+        total_consumed = sum((i["consumed"] for i in ink_summary), Decimal("0.00"))
+        return {
+            "ink_summary": ink_summary,
+            "movements": movements,
+            "textil_meters": textil_m,
+            "uv_meters": uv_m,
+            "total_consumed": total_consumed,
+            "summary": [
+                SummaryMetric("Tinta consumida", total_consumed, "number"),
+                SummaryMetric("DTF Têxtil (m)", textil_m, "meters"),
+                SummaryMetric("DTF UV (m)", uv_m, "meters"),
+            ],
+            "export_sections": [
+                ExportSection(
+                    title="Consumo por tinta",
+                    headers=["Tinta / Verniz", "Estoque atual", "Consumido no período", "Unidade", "Baixas"],
+                    rows=[[i["item"].name, i["current_stock"], i["consumed"], i["unit"], i["movements_count"]] for i in ink_summary],
+                ),
+                ExportSection(
+                    title="Baixas de estoque",
+                    headers=["Data/Hora", "Item", "Quantidade", "Descrição", "Responsável"],
+                    rows=[[m.created_at, m.item.name, m.quantity, m.description, m.user.name if m.user else ""] for m in movements],
+                ),
+            ],
+        }
 
-        month_names = ["", "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"]
-        month_label = f"{month_names[month]} de {year}"
-        prev_month_date = start_date - timedelta(days=1)
-        next_month_date = end_date + timedelta(days=1)
 
-        context = self.get_context_data(
-            year=year,
-            month=month,
-            month_label=month_label,
-            current_month_str=f"{year:04d}-{month:02d}",
-            prev_month_str=prev_month_date.strftime("%Y-%m"),
-            next_month_str=next_month_date.strftime("%Y-%m"),
-            ink_summary=ink_summary,
-            movements=movements,
-            textil_meters=textil_m,
-            uv_meters=uv_m,
-            total_consumed=sum((i["consumed"] for i in ink_summary), Decimal("0.00")),
-        )
-        return self.render_to_response(context)
-
-
-class NewCustomersReportView(LoginRequiredMixin, TemplateView):
+class NewCustomersReportView(LoginRequiredMixin, PeriodReportMixin, TemplateView):
     template_name = "reports/new_customers.html"
+    report_title = "Clientes novos"
+    report_slug = "clientes-novos"
+    period_basis = "data de cadastro do cliente"
 
-    def get_dates(self):
-        today = timezone.localdate()
-        year_str = self.request.GET.get("year", "").strip()
-        month_str = self.request.GET.get("month", "").strip()
-
-        try:
-            year = int(year_str) if year_str else today.year
-        except ValueError:
-            year = today.year
-
-        selected_month = None
-        if month_str and month_str != "todos":
-            try:
-                m = int(month_str)
-                if 1 <= m <= 12:
-                    selected_month = m
-            except ValueError:
-                pass
-
-        return year, selected_month
-
-    def get(self, request, *args, **kwargs):
-        year, selected_month = self.get_dates()
-        today = timezone.localdate()
-
-        if selected_month:
-            _, num_days = calendar.monthrange(year, selected_month)
-            start_date = date(year, selected_month, 1)
-            end_date = date(year, selected_month, num_days)
-        else:
-            start_date = date(year, 1, 1)
-            end_date = date(year, 12, 31)
-
-        start_dt = timezone.make_aware(datetime.combine(start_date, time.min))
-        end_dt = timezone.make_aware(datetime.combine(end_date + timedelta(days=1), time.min))
-
-        clientes_qs = Cliente.objects.filter(
-            created_at__gte=start_dt,
-            created_at__lt=end_dt,
-        ).prefetch_related("pedidos_vinculados").order_by("-created_at")
-
-        month_names = ["", "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"]
-
-        monthly_summary = []
-        for m in range(1, 13):
-            monthly_summary.append({
-                "month_num": m,
-                "month_name": month_names[m],
-                "new_clients_count": 0,
-                "orders_count": 0,
-                "total_spent": Decimal("0.00"),
-            })
+    def build(self, period):
+        clientes_qs = Cliente.objects.filter(created_at__gte=period.start_at, created_at__lt=period.end_at).prefetch_related("pedidos_vinculados").order_by("-created_at")
+        monthly: dict[tuple[int, int], dict] = {}
+        current = period.start.replace(day=1)
+        while current <= period.end:
+            monthly[(current.year, current.month)] = {
+                "month_num": current.month, "year": current.year, "month_name": f"{MONTH_NAMES[current.month]}/{current.year}",
+                "new_clients_count": 0, "orders_count": 0, "total_spent": Decimal("0.00"),
+            }
+            current = date(current.year + (current.month // 12), current.month % 12 + 1, 1)
 
         clientes_data = []
         total_revenue_from_new = Decimal("0.00")
         total_orders_from_new = 0
         clients_with_orders_count = 0
-
         for cli in clientes_qs:
-            cli_created_local = timezone.localtime(cli.created_at)
-            cli_month = cli_created_local.month
+            created_local = timezone.localtime(cli.created_at)
             cli_orders = [o for o in cli.pedidos_vinculados.all() if o.stage != Order.Stage.CANCELLED]
             orders_count = len(cli_orders)
             total_spent = sum((o.total_amount for o in cli_orders), Decimal("0.00"))
-            paid_spent = sum((o.paid_amount for o in cli_orders), Decimal("0.00"))
-
-            if 1 <= cli_month <= 12 and cli_created_local.year == year:
-                monthly_summary[cli_month - 1]["new_clients_count"] += 1
-                monthly_summary[cli_month - 1]["orders_count"] += orders_count
-                monthly_summary[cli_month - 1]["total_spent"] += total_spent
-
+            bucket = monthly.get((created_local.year, created_local.month))
+            if bucket:
+                bucket["new_clients_count"] += 1
+                bucket["orders_count"] += orders_count
+                bucket["total_spent"] += total_spent
             total_revenue_from_new += total_spent
             total_orders_from_new += orders_count
-            if orders_count > 0:
-                clients_with_orders_count += 1
-
+            clients_with_orders_count += 1 if orders_count else 0
             clientes_data.append({
                 "cliente": cli,
                 "created_at": cli.created_at,
                 "orders_count": orders_count,
                 "total_spent": total_spent,
-                "paid_spent": paid_spent,
+                "paid_spent": sum((o.paid_amount for o in cli_orders), Decimal("0.00")),
                 "has_special_price": bool(cli.preco_especial_metro or cli.preco_especial_dtf_uv),
             })
-
-        if request.GET.get("export") == "csv":
-            response = HttpResponse(content_type="text/csv; charset=utf-8")
-            suffix = f"-{selected_month}" if selected_month else ""
-            response["Content-Disposition"] = f'attachment; filename="clientes-novos-{year}{suffix}.csv"'
-            response.write("\ufeff")
-            writer = csv.writer(response, delimiter=";")
-            writer.writerow(["Data de Cadastro", "Nome", "CPF/CNPJ", "WhatsApp", "Preço DTF Têxtil", "Preço DTF UV", "Saldo Crédito", "Qtd Pedidos", "Total Comprado (R$)"])
-            for row in clientes_data:
-                c = row["cliente"]
-                writer.writerow([
-                    timezone.localtime(row["created_at"]).strftime("%d/%m/%Y %H:%M"),
-                    c.nome,
-                    c.cpf_cnpj or "",
-                    c.telefone or "",
-                    f"{c.preco_especial_metro:.2f}" if c.preco_especial_metro else "",
-                    f"{c.preco_especial_dtf_uv:.2f}" if c.preco_especial_dtf_uv else "",
-                    f"{c.saldo_credito:.2f}",
-                    row["orders_count"],
-                    f"{row['total_spent']:.2f}",
-                ])
-            return response
-
-        available_years = list(range(today.year - 2, today.year + 2))
-
-        context = self.get_context_data(
-            year=year,
-            selected_month=selected_month,
-            selected_month_name=month_names[selected_month] if selected_month else "Todos os Meses",
-            available_years=available_years,
-            monthly_summary=monthly_summary,
-            clientes_data=clientes_data,
-            total_clients=len(clientes_data),
-            clients_with_orders_count=clients_with_orders_count,
-            total_orders_from_new=total_orders_from_new,
-            total_revenue_from_new=total_revenue_from_new,
-        )
-        return self.render_to_response(context)
-
-
-class PaymentMethodsReportView(LoginRequiredMixin, TemplateView):
-    template_name = "reports/payment_methods.html"
-
-    def get_dates(self):
-        today = timezone.localdate()
-        start_str = self.request.GET.get("start", "").strip()
-        end_str = self.request.GET.get("end", "").strip()
-
-        start_date = None
-        end_date = None
-
-        if start_str:
-            try:
-                start_date = datetime.strptime(start_str, "%Y-%m-%d").date()
-            except ValueError:
-                pass
-
-        if end_str:
-            try:
-                end_date = datetime.strptime(end_str, "%Y-%m-%d").date()
-            except ValueError:
-                pass
-
-        if not start_date:
-            start_date = today.replace(day=1)
-        if not end_date:
-            end_date = today
-
-        if end_date < start_date:
-            start_date, end_date = end_date, start_date
-
-        return start_date, end_date
-
-    def get(self, request, *args, **kwargs):
-        start_date, end_date = self.get_dates()
-        start_dt = timezone.make_aware(datetime.combine(start_date, time.min))
-        end_dt = timezone.make_aware(datetime.combine(end_date + timedelta(days=1), time.min))
-
-        payments_qs = OrderPayment.objects.filter(
-            created_at__gte=start_dt,
-            created_at__lt=end_dt,
-        ).select_related("order", "order__cliente", "recorded_by").exclude(
-            order__stage=Order.Stage.CANCELLED,
-        ).order_by("-created_at")
-
-        orders_without_splits = Order.objects.filter(
-            created_at__gte=start_dt,
-            created_at__lt=end_dt,
-            paid_amount__gt=Decimal("0.00"),
-            payments__isnull=True,
-        ).exclude(
-            stage=Order.Stage.CANCELLED,
-        ).select_related("cliente", "responsible").order_by("-created_at")
-
-        methods_def = {
-            "pix": {"label": "PIX", "icon": "fa-brands fa-pix", "color": "#22c55e", "badge_bg": "rgba(34, 197, 94, 0.15)", "total": Decimal("0.00"), "count": 0, "transactions": []},
-            "cartao_credito": {"label": "Cartão de Crédito", "icon": "fa-solid fa-credit-card", "color": "#38bdf8", "badge_bg": "rgba(56, 189, 248, 0.15)", "total": Decimal("0.00"), "count": 0, "transactions": []},
-            "cartao_debito": {"label": "Cartão de Débito", "icon": "fa-solid fa-id-card", "color": "#818cf8", "badge_bg": "rgba(129, 140, 248, 0.15)", "total": Decimal("0.00"), "count": 0, "transactions": []},
-            "cartao": {"label": "Cartão (Geral)", "icon": "fa-solid fa-credit-card", "color": "#60a5fa", "badge_bg": "rgba(96, 165, 250, 0.15)", "total": Decimal("0.00"), "count": 0, "transactions": []},
-            "dinheiro": {"label": "Dinheiro (À Vista)", "icon": "fa-solid fa-money-bill-wave", "color": "#34d399", "badge_bg": "rgba(52, 211, 153, 0.15)", "total": Decimal("0.00"), "count": 0, "transactions": []},
-            "transferencia": {"label": "Transferência / TED", "icon": "fa-solid fa-building-columns", "color": "#fbbf24", "badge_bg": "rgba(251, 191, 36, 0.15)", "total": Decimal("0.00"), "count": 0, "transactions": []},
-            "saldo_credito": {"label": "Saldo do Plano / Crédito", "icon": "fa-solid fa-wallet", "color": "#c084fc", "badge_bg": "rgba(192, 132, 252, 0.15)", "total": Decimal("0.00"), "count": 0, "transactions": []},
-            "outro": {"label": "Outros / Diversos", "icon": "fa-solid fa-circle-question", "color": "#9ca3af", "badge_bg": "rgba(156, 163, 175, 0.15)", "total": Decimal("0.00"), "count": 0, "transactions": []},
+        return {
+            "monthly_summary": list(monthly.values()),
+            "clientes_data": clientes_data,
+            "total_clients": len(clientes_data),
+            "clients_with_orders_count": clients_with_orders_count,
+            "total_orders_from_new": total_orders_from_new,
+            "total_revenue_from_new": total_revenue_from_new,
+            "summary": [
+                SummaryMetric("Clientes novos", len(clientes_data), "number"),
+                SummaryMetric("Clientes que compraram", clients_with_orders_count, "number"),
+                SummaryMetric("Total comprado", total_revenue_from_new),
+            ],
+            "export_sections": [ExportSection(
+                headers=["Data de Cadastro", "Nome", "CPF/CNPJ", "WhatsApp", "Preço DTF Têxtil", "Preço DTF UV", "Saldo Crédito", "Qtd Pedidos", "Total Comprado (R$)"],
+                rows=[[
+                    row["created_at"], row["cliente"].nome, row["cliente"].cpf_cnpj or "", row["cliente"].telefone or "",
+                    row["cliente"].preco_especial_metro or "", row["cliente"].preco_especial_dtf_uv or "", row["cliente"].saldo_credito,
+                    row["orders_count"], row["total_spent"],
+                ] for row in clientes_data],
+            )],
         }
 
+
+PAYMENT_METHODS_DEF = {
+    "pix": ("PIX", "fa-brands fa-pix", "#22c55e", "rgba(34, 197, 94, 0.15)"),
+    "cartao_credito": ("Cartão de Crédito", "fa-solid fa-credit-card", "#38bdf8", "rgba(56, 189, 248, 0.15)"),
+    "cartao_debito": ("Cartão de Débito", "fa-solid fa-id-card", "#818cf8", "rgba(129, 140, 248, 0.15)"),
+    "cartao": ("Cartão (Geral)", "fa-solid fa-credit-card", "#60a5fa", "rgba(96, 165, 250, 0.15)"),
+    "dinheiro": ("Dinheiro (À Vista)", "fa-solid fa-money-bill-wave", "#34d399", "rgba(52, 211, 153, 0.15)"),
+    "transferencia": ("Transferência / TED", "fa-solid fa-building-columns", "#fbbf24", "rgba(251, 191, 36, 0.15)"),
+    "saldo_credito": ("Saldo do Plano / Crédito", "fa-solid fa-wallet", "#c084fc", "rgba(192, 132, 252, 0.15)"),
+    "outro": ("Outros / Diversos", "fa-solid fa-circle-question", "#9ca3af", "rgba(156, 163, 175, 0.15)"),
+}
+
+
+class PaymentMethodsReportView(LoginRequiredMixin, PeriodReportMixin, TemplateView):
+    template_name = "reports/payment_methods.html"
+    report_title = "Formas de pagamento"
+    report_slug = "formas-pagamento"
+    period_basis = "data de registro do pagamento (ou de criação do pedido, para pagamento único)"
+    preserved_params = ("method",)
+
+    def build(self, period):
+        payments_qs = OrderPayment.objects.filter(created_at__gte=period.start_at, created_at__lt=period.end_at).select_related(
+            "order", "order__cliente", "recorded_by"
+        ).exclude(order__stage=Order.Stage.CANCELLED).order_by("-created_at")
+        orders_without_splits = orders_created_in(period, paid_amount__gt=Decimal("0.00"), payments__isnull=True).exclude(
+            stage=Order.Stage.CANCELLED
+        ).select_related("cliente", "responsible", "payment_confirmed_by").order_by("-created_at")
+
+        methods_def = {
+            key: {"label": label, "icon": icon, "color": color, "badge_bg": bg, "total": Decimal("0.00"), "count": 0, "transactions": []}
+            for key, (label, icon, color, bg) in PAYMENT_METHODS_DEF.items()
+        }
         all_transactions = []
-        grand_total = Decimal("0.00")
-        total_transactions_count = 0
+
+        def add(method, amount, item_data):
+            method = method if method in methods_def else "outro"
+            item_data.update({"method_key": method, "method_label": methods_def[method]["label"], "method_color": methods_def[method]["color"], "amount": amount})
+            methods_def[method]["total"] += amount
+            methods_def[method]["count"] += 1
+            methods_def[method]["transactions"].append(item_data)
+            all_transactions.append(item_data)
 
         for p in payments_qs:
-            m = p.payment_method or "outro"
-            if m not in methods_def:
-                m = "outro"
-            methods_def[m]["total"] += p.amount
-            methods_def[m]["count"] += 1
-            grand_total += p.amount
-            total_transactions_count += 1
-            item_data = {
-                "date": p.created_at,
-                "order": p.order,
-                "client_name": p.order.client_name,
-                "method_key": m,
-                "method_label": methods_def[m]["label"],
-                "method_color": methods_def[m]["color"],
-                "amount": p.amount,
-                "notes": p.notes,
-                "recorded_by": p.recorded_by.name if p.recorded_by else "—",
-            }
-            methods_def[m]["transactions"].append(item_data)
-            all_transactions.append(item_data)
-
+            add(p.payment_method or "outro", p.amount, {
+                "date": p.created_at, "order": p.order, "client_name": p.order.client_name,
+                "notes": p.notes, "recorded_by": p.recorded_by.name if p.recorded_by else "—",
+            })
         for o in orders_without_splits:
-            m = o.payment_method or "outro"
-            if m not in methods_def:
-                m = "outro"
-            paid = o.paid_amount or Decimal("0.00")
-            methods_def[m]["total"] += paid
-            methods_def[m]["count"] += 1
-            grand_total += paid
-            total_transactions_count += 1
-            item_data = {
-                "date": o.payment_confirmed_at or o.created_at,
-                "order": o,
-                "client_name": o.client_name,
-                "method_key": m,
-                "method_label": methods_def[m]["label"],
-                "method_color": methods_def[m]["color"],
-                "amount": paid,
+            add(o.payment_method or "outro", o.paid_amount or Decimal("0.00"), {
+                "date": o.payment_confirmed_at or o.created_at, "order": o, "client_name": o.client_name,
                 "notes": "Pagamento único registrado no pedido",
                 "recorded_by": o.payment_confirmed_by.name if o.payment_confirmed_by else (o.responsible.name if o.responsible else "—"),
-            }
-            methods_def[m]["transactions"].append(item_data)
-            all_transactions.append(item_data)
-
+            })
         all_transactions.sort(key=lambda x: x["date"], reverse=True)
+        grand_total = sum((t["amount"] for t in all_transactions), Decimal("0.00"))
 
-        selected_method = request.GET.get("method", "").strip()
-        if selected_method and selected_method in methods_def:
+        selected_method = self.request.GET.get("method", "").strip()
+        if selected_method in methods_def:
             display_transactions = methods_def[selected_method]["transactions"]
         else:
             selected_method = ""
@@ -1790,46 +1177,24 @@ class PaymentMethodsReportView(LoginRequiredMixin, TemplateView):
 
         methods_list = []
         for key, val in methods_def.items():
-            pct = (val["total"] / grand_total * Decimal("100.0")) if grand_total > 0 else Decimal("0.0")
-            avg = (val["total"] / Decimal(str(val["count"]))) if val["count"] > 0 else Decimal("0.0")
-            val["pct"] = round(pct, 1)
-            val["avg"] = avg
+            val["pct"] = round((val["total"] / grand_total * Decimal("100.0")) if grand_total > 0 else Decimal("0.0"), 1)
+            val["avg"] = (val["total"] / Decimal(val["count"])) if val["count"] else Decimal("0.0")
             val["key"] = key
             methods_list.append(val)
-
         methods_list.sort(key=lambda x: x["total"], reverse=True)
-
-        if request.GET.get("export") == "csv":
-            response = HttpResponse(content_type="text/csv; charset=utf-8")
-            response["Content-Disposition"] = f'attachment; filename="formas-pagamento-{start_date:%Y%m%d}-{end_date:%Y%m%d}.csv"'
-            response.write("\ufeff")
-            writer = csv.writer(response, delimiter=";")
-            writer.writerow(["Data/Hora", "Pedido", "Cliente", "Forma de Pagamento", "Valor (R$)", "Responsável", "Observação"])
-            for t in display_transactions:
-                writer.writerow([
-                    timezone.localtime(t["date"]).strftime("%d/%m/%Y %H:%M"),
-                    t["order"].number,
-                    t["client_name"],
-                    t["method_label"],
-                    f"{t['amount']:.2f}",
-                    t["recorded_by"],
-                    t["notes"],
-                ])
-            return response
-
-        context = self.get_context_data(
-            start_date=start_date,
-            end_date=end_date,
-            start_str=start_date.strftime("%Y-%m-%d"),
-            end_str=end_date.strftime("%Y-%m-%d"),
-            methods_list=methods_list,
-            selected_method=selected_method,
-            grand_total=grand_total,
-            total_transactions_count=total_transactions_count,
-            transactions=display_transactions,
-            total_filtered_revenue=sum((t["amount"] for t in display_transactions), Decimal("0.00")),
-        )
-        return self.render_to_response(context)
-
-
-
+        return {
+            "methods_list": methods_list,
+            "selected_method": selected_method,
+            "grand_total": grand_total,
+            "total_transactions_count": len(all_transactions),
+            "transactions": display_transactions,
+            "total_filtered_revenue": sum((t["amount"] for t in display_transactions), Decimal("0.00")),
+            "summary": [
+                SummaryMetric("Total recebido", grand_total),
+                SummaryMetric("Transações", len(all_transactions), "number"),
+            ],
+            "export_sections": [ExportSection(
+                headers=["Data/Hora", "Pedido", "Cliente", "Forma de Pagamento", "Valor (R$)", "Responsável", "Observação"],
+                rows=[[t["date"], t["order"].number, t["client_name"], t["method_label"], t["amount"], t["recorded_by"], t["notes"]] for t in display_transactions],
+            )],
+        }
