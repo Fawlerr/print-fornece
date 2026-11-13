@@ -256,7 +256,10 @@ def get_whatsapp_share_links(order: Order, host: str = "") -> dict[str, str]:
     if not phone:
         return {"phone": "", "quote_url": "#", "ready_url": "#", "delivered_url": "#"}
 
-    public_quote_url = f"{host}/orders/quote/{order.quote_token}/" if host else ""
+    from apps.orders.services import quote_fingerprint
+
+    # ?v= identifica a versão do orçamento enviada; se o pedido mudar, a página avisa o cliente.
+    public_quote_url = f"{host}/orders/quote/{order.quote_token}/?v={quote_fingerprint(order)}" if host else ""
 
     quote_msg = build_quote_whatsapp_message(order, public_quote_url)
     ready_msg = build_ready_whatsapp_message(order, public_quote_url)

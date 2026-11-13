@@ -43,6 +43,14 @@
     <a href="{% url 'production:detail' pk=order.pk %}" title="{{ order.client_name }}">{{ order.client_name }}</a>
   </h3>
 
+  {% if order.client_approved_at %}
+    <p class="approved-seal" title="Aprovado pelo cliente no link do WhatsApp">
+      <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
+      <strong>APROVADO</strong>
+      <time datetime="{{ order.client_approved_at|date:'c' }}">{{ order.client_approved_at|date:"d/m H:i" }}</time>
+    </p>
+  {% endif %}
+
   <!-- Alerta Chamativo de Pagamento Pendente na Retirada -->
   {% if order.remaining_amount > 0 %}
     <div class="kanban-unpaid-ready-alert" style="{% if order.stage != 'pronto_retirada' %}display: none;{% else %}display: flex;{% endif %} margin-bottom: 8px; padding: 5px 8px; border-radius: 6px; background: rgba(239, 68, 68, 0.18); border: 1px solid #ef4444; color: #fca5a5; font-size: 0.75rem; font-weight: 700; align-items: center; justify-content: space-between; gap: 4px;">

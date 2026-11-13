@@ -279,9 +279,21 @@
   bindCardClickHandlers();
   updateColumnStates();
 
+  // A6: cards atualizados ao vivo (kanban-live.js) recebem os mesmos comportamentos.
+  document.addEventListener("pf:kanban-card-updated", (event) => {
+    const card = event.detail && event.detail.element;
+    if (!card) return;
+    bindMoveButtons(card);
+    bindCardClickHandlers();
+    bindDrag(card);
+  });
+  document.addEventListener("pf:kanban-refreshed", () => updateColumnStates());
+
   // --- Drag and Drop Setup ---
   let draggedCard = null;
-  document.querySelectorAll(".order-card[draggable]").forEach((card) => {
+  function bindDrag(card) {
+    if (card.dataset.dragBound) return;
+    card.dataset.dragBound = "true";
     card.addEventListener("dragstart", () => {
       draggedCard = card;
       card.classList.add("dragging");
@@ -290,7 +302,8 @@
       draggedCard = null;
       card.classList.remove("dragging");
     });
-  });
+  }
+  document.querySelectorAll(".order-card[draggable]").forEach(bindDrag);
 
   document.querySelectorAll(".kanban-column[data-stage]").forEach((column) => {
     column.addEventListener("dragover", (event) => {

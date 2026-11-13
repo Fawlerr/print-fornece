@@ -939,3 +939,14 @@ label.required {
   .pf-dialog { width: 100vw; max-width: 100vw; margin: auto 0 0; border-radius: 16px 16px 0 0; padding-bottom: calc(20px + env(safe-area-inset-bottom)); }
   .pf-dialog__actions .btn { flex: 1 1 auto; }
 }
+
+/* ===== A6 — Selo APROVADO e Kanban ao vivo ===== */
+.approved-seal { display: inline-flex; align-items: center; gap: 6px; margin: 0 0 8px; padding: 4px 10px; border-radius: 6px; background: #16a34a; color: #fff; font-size: 0.78rem; letter-spacing: 0.02em; }
+.approved-seal strong { font-weight: 800; }
+.approved-seal time { font-weight: 600; opacity: 0.95; }
+.approved-seal--inline { margin: 0 4px 0 0; padding: 2px 8px; }
+.order-card.is-live-updated { animation: pf-live-flash 2.5s ease-out; }
+@keyframes pf-live-flash { 0% { box-shadow: 0 0 0 3px #facc15; } 100% { box-shadow: 0 0 0 0 transparent; } }
+@media (prefers-reduced-motion: reduce) { .order-card.is-live-updated { animation: none; } }
+.pf-dialog label { display: block; }
+.pf-dialog label textarea { display: block; margin-top: 6px; }

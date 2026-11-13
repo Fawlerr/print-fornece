@@ -14,5 +14,6 @@ urlpatterns = [
     path("<int:pk>/cancel/", views.cancel, name="cancel"),
     path("<int:pk>/restore/", views.restore, name="restore"),
     path("<int:pk>/mark-notified/", views.mark_whatsapp_notified, name="mark_whatsapp_notified"),
+    path("updates/", views.kanban_updates, name="kanban_updates"),
 ]
 

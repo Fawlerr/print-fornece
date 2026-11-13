@@ -327,6 +327,86 @@ def _sync_order_items(order: Order, items: list[Quote | ShirtQuote | ServiceQuot
     _sync_adjustment_item(order, total_calc, position=len(items) + 1)
 
 
+def quote_fingerprint(order: Order) -> str:
+    """Impressão digital curta do orçamento (itens + total) — A6.
+
+    Vai no link enviado ao cliente (?v=...). Se o pedido mudar depois do envio,
+    a página informa o cliente em vez de aprovar valores desatualizados.
+    """
+    import hashlib
+
+    parts = [f"total={order.total_amount:.2f}"]
+    for item in order.items.all().order_by("position", "pk"):
+        parts.append("|".join(str(value) for value in (
+            item.kind, item.material_code, item.product_color, item.product_size,
+            item.art_quantity, item.art_width_cm, item.art_height_cm, item.line_total,
+        )))
+    return hashlib.sha256("\n".join(parts).encode("utf-8")).hexdigest()[:12]
+
+
+def quote_state(order: Order, sent_fingerprint: str = "") -> str:
+    """Situação do orçamento para o cliente: pendente, aprovado, cancelado, entregue ou alterado."""
+    if order.stage == Order.Stage.CANCELLED:
+        return "cancelado"
+    if order.client_approved_at:
+        return "aprovado"
+    if order.stage == Order.Stage.DELIVERED:
+        return "entregue"
+    if sent_fingerprint and sent_fingerprint != quote_fingerprint(order):
+        return "alterado"
+    return "pendente"
+
+
+def approve_quote(*, token: str, sent_fingerprint: str = "", ip: str | None = None, request=None) -> tuple[str, Order]:
+    """Aprovação do orçamento pelo cliente (A6). Só por POST; idempotente.
+
+    Retorna (situação, pedido). Situação "aprovado_agora" quando esta chamada aprovou;
+    nos demais casos nada é gravado (já aprovado, cancelado, entregue ou alterado).
+    """
+    with transaction.atomic():
+        order = Order.objects.select_for_update().select_related("responsible").get(quote_token=token)
+        state = quote_state(order, sent_fingerprint)
+        if state != "pendente":
+            return state, order
+
+        now = timezone.now()
+        previous_stage = order.stage
+        order.client_approved_at = now
+        order.client_approved_ip = ip or None
+        order.client_approved_fingerprint = quote_fingerprint(order)
+        update_fields = ["client_approved_at", "client_approved_ip", "client_approved_fingerprint", "updated_at"]
+        # Mantém o movimento atual do card: Novo -> Aguardando pagamento (ou Pagamento confirmado se já pago).
+        if order.stage in (Order.Stage.NEW, Order.Stage.AWAITING_PAYMENT):
+            new_stage = Order.Stage.PAYMENT_CONFIRMED if order.payment_status == Order.PaymentStatus.PAID else Order.Stage.AWAITING_PAYMENT
+            if new_stage != previous_stage:
+                order.stage = new_stage
+                order.stage_updated_at = now
+                update_fields += ["stage", "stage_updated_at"]
+        order.save(update_fields=update_fields)
+        if order.stage != previous_stage:
+            OrderStageHistory.objects.create(order=order, previous_stage=previous_stage, new_stage=order.stage, user=None)
+        local_now = timezone.localtime(now)
+        OrderHistory.objects.create(
+            order=order,
+            user=None,
+            action="aprovacao_orcamento",
+            description=(
+                f"Orçamento APROVADO pelo cliente pelo link do WhatsApp em {local_now:%d/%m/%Y às %H:%M}"
+                f" (IP {ip or 'não identificado'}). Etapa: {order.get_stage_display()}."
+            ),
+        )
+        record_audit(None, "aprovacao_orcamento", "pedido", order.pk, before={"etapa": previous_stage}, after={"etapa": order.stage, "ip": ip}, request=request)
+        if order.responsible_id:
+            responsible = order.responsible
+            transaction.on_commit(lambda: notify_user(
+                responsible,
+                "Cliente aprovou o orçamento",
+                f"{order.client_name} aprovou o orçamento do pedido {order.number}.",
+                f"/production/{order.pk}/",
+            ))
+        return "aprovado_agora", order
+
+
 def _record_shirt_discount(order: Order, items, actor, request=None) -> None:
     """Registra no histórico e na auditoria o desconto por camisa aplicado."""
     discounted = [q for q in items if isinstance(q, ShirtQuote) and q.discount_total > 0]

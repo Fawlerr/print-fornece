@@ -78,7 +78,7 @@
     <button class="btn btn-secondary btn-small" type="submit">Filtrar</button>
   </form>
 
-  <div class="kanban" aria-label="Etapas dos pedidos">
+  <div class="kanban" aria-label="Etapas dos pedidos" data-kanban-live="{% url 'production:kanban_updates' %}" data-kanban-now="{{ kanban_now }}" data-kanban-filtered="{% if request.GET %}true{% else %}false{% endif %}">
     {% for column in kanban_columns %}
       <section class="kanban-column kanban-column-{{ column.stage }}" data-stage="{{ column.stage }}" aria-labelledby="stage-{{ column.stage }}">
         <div class="kanban-title"><span id="stage-{{ column.stage }}">{{ column.label }}</span><span>{{ column.orders|length }}</span></div>
@@ -92,4 +92,9 @@
       </section>
     {% endfor %}
   </div>
+{% endblock %}
+
+{% block extra_scripts %}
+  {% load static %}
+  <script src="{% static 'js/kanban-live.js' %}" defer></script>
 {% endblock %}

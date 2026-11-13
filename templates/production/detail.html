@@ -61,6 +61,7 @@
         <div><small>Pagamento</small><strong>{{ order.get_payment_status_display }}</strong></div>
         <div><small>Responsável</small><strong>{% if order.responsible.is_dev and not user.is_dev %}Equipe Técnica{% else %}{{ order.responsible.name|default:"Não definido" }}{% endif %}</strong></div>
         <div><small>Entrega prevista</small><strong>{% if order.due_at %}{{ order.due_at|date:"d/m/Y H:i" }}{% else %}Não definida{% endif %}</strong></div>
+        <div><small>Aprovação do cliente</small><strong>{% if order.client_approved_at %}<span class="approved-seal approved-seal--inline"><i class="fa-solid fa-circle-check" aria-hidden="true"></i> APROVADO</span> em {{ order.client_approved_at|date:"d/m/Y H:i" }}{% else %}Aguardando aprovação pelo link{% endif %}</strong></div>
         {% with estimate=order.estimated_production_time %}
           {% if estimate.production_minutes %}
             <div><small>Produção estimada (horário útil)</small><strong>{{ estimate.display }} · pronto ~{{ estimate.estimated_due_at|date:"d/m H:i" }}</strong></div>

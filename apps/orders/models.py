@@ -94,6 +94,10 @@ class Order(models.Model):
     correction_reason = models.CharField("motivo da correção / defeito", max_length=255, blank=True, default="")
     discount_advance = models.DecimalField("abatimento / entrada já paga", max_digits=12, decimal_places=2, default=0)
     discount_reason = models.CharField("motivo do abatimento / desconto", max_length=255, blank=True, default="")
+    # A6 — aprovação do orçamento pelo cliente (link do WhatsApp)
+    client_approved_at = models.DateTimeField("aprovado pelo cliente em", null=True, blank=True)
+    client_approved_ip = models.GenericIPAddressField("IP da aprovação", null=True, blank=True)
+    client_approved_fingerprint = models.CharField("versão do orçamento aprovada", max_length=16, blank=True, default="")
     # A4 — impressão automática da nota ao entrar em "Pagamento confirmado"
     receipt_print_requested_at = models.DateTimeField("impressão da nota solicitada em", null=True, blank=True)
     receipt_auto_printed_at = models.DateTimeField("nota impressa automaticamente em", null=True, blank=True)

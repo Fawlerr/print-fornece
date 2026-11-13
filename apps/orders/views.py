@@ -14,7 +14,6 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 from django.views.generic import CreateView, UpdateView
 
-from apps.notifications.services import notify_role
 from apps.notifications.whatsapp import get_whatsapp_share_links
 from apps.audit.services import record_audit
 from apps.business.hours import get_business_hours
@@ -698,53 +697,63 @@ def art_preview_view(request, pk: int):
 
 
 def public_quote_view(request, token: str):
-    """Public customer view for viewing and approving order quotes."""
-    order = get_object_or_404(Order, quote_token=token)
+    """Página pública do orçamento (A6). GET apenas mostra — nunca aprova.
+
+    O WhatsApp abre o link sozinho para gerar a pré-visualização; por isso a
+    aprovação só acontece no clique do botão (POST em ``approve_quote_action``).
+    """
+    order = get_object_or_404(Order.objects.prefetch_related("items", "attachments"), quote_token=token)
     from apps.notifications.whatsapp import get_print_whatsapp_phone, build_payment_confirmation_for_store
     import urllib.parse
+
+    from .services import quote_fingerprint, quote_state
+
     print_phone = get_print_whatsapp_phone()
     confirm_msg = build_payment_confirmation_for_store(order, payment_method=order.get_payment_method_display() if order.payment_method else "Stone / PIX")
     print_whatsapp_url = f"https://wa.me/{print_phone}?text={urllib.parse.quote(confirm_msg)}" if print_phone else ""
+    sent_fingerprint = (request.GET.get("v") or "").strip()[:16]
 
     context = {
         "order": order,
         "token": token,
-        "is_approved": order.stage not in (Order.Stage.NEW, Order.Stage.CANCELLED),
+        "quote_state": quote_state(order, sent_fingerprint),
+        "fingerprint": sent_fingerprint or quote_fingerprint(order),
         "print_whatsapp_url": print_whatsapp_url,
         "business_hours_text": get_business_hours().describe(),
     }
-    return render(request, "orders/public_quote.html", context)
+    response = render(request, "orders/public_quote.html", context)
+    response["X-Robots-Tag"] = "noindex, nofollow"
+    return response
 
 
+@require_POST
 def approve_quote_action(request, token: str):
-    """Action for customer approving quote via public link."""
-    if request.method != "POST":
-        return redirect("orders:public_quote", token=token)
-    
-    order = get_object_or_404(Order, quote_token=token)
-    
-    if order.stage in (Order.Stage.NEW, Order.Stage.AWAITING_PAYMENT):
-        previous_stage = order.stage
-        new_stage = Order.Stage.PAYMENT_CONFIRMED if order.payment_status == Order.PaymentStatus.PAID else Order.Stage.AWAITING_PAYMENT
-        
-        order.stage = new_stage
-        order.stage_updated_at = timezone.now()
-        order.save(update_fields=["stage", "stage_updated_at", "updated_at"])
-        
-        OrderStageHistory.objects.create(order=order, previous_stage=previous_stage, new_stage=new_stage, user=None)
-        OrderHistory.objects.create(
-            order=order,
-            user=None,
-            action="aprovacao_orcamento",
-            description=f"Orçamento APROVADO pelo cliente via link público. Etapa avançada para {order.get_stage_display()}.",
-        )
-        record_audit(None, "aprovacao_orcamento", "pedido", order.pk, before={"etapa": previous_stage}, after={"etapa": new_stage}, request=request)
-        notify_role("administrador", "Orçamento Aprovado! 🎉", f"O cliente aprovou o orçamento do pedido {order.number}.", f"/production/{order.pk}/")
-        messages.success(request, "Orçamento aprovado com sucesso! A equipe já recebeu a confirmação.")
-    else:
-        messages.info(request, "Este orçamento já foi aprovado anteriormente.")
+    """Aprovação do orçamento pelo cliente: só por POST (clique), idempotente."""
+    from .services import approve_quote
 
-    return redirect("orders:public_quote", token=token)
+    sent_fingerprint = (request.POST.get("v") or "").strip()[:16]
+    ip = request.META.get("HTTP_X_FORWARDED_FOR", "").split(",")[0].strip() or request.META.get("REMOTE_ADDR")
+    try:
+        state, order = approve_quote(token=token, sent_fingerprint=sent_fingerprint, ip=ip, request=request)
+    except Order.DoesNotExist:
+        raise Http404("Orçamento não encontrado.") from None
+
+    if state == "aprovado_agora":
+        messages.success(request, "Orçamento aprovado! A equipe da Print Fornece já recebeu a confirmação.")
+    elif state == "aprovado":
+        local = timezone.localtime(order.client_approved_at)
+        messages.info(request, f"Este orçamento já foi aprovado em {local:%d/%m/%Y às %H:%M}.")
+    elif state == "cancelado":
+        messages.error(request, "Este pedido foi cancelado e não pode ser aprovado.")
+    elif state == "entregue":
+        messages.info(request, "Este pedido já foi entregue.")
+    elif state == "alterado":
+        messages.error(request, "Este orçamento foi atualizado depois do envio do link. Peça o link novo à loja.")
+
+    url = reverse("orders:public_quote", kwargs={"token": token})
+    if sent_fingerprint:
+        url += f"?v={sent_fingerprint}"
+    return redirect(url)
 
 
 @login_required

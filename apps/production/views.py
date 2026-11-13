@@ -26,6 +26,46 @@ from .capacity import get_daily_capacity_overview, evaluate_order_capacity
 from .services import cancel_order, finish_order, move_order_stage, restore_order
 
 
+FULL_KANBAN_STAGES = [
+    Order.Stage.NEW,
+    Order.Stage.AWAITING_PAYMENT,
+    Order.Stage.PAYMENT_CONFIRMED,
+    Order.Stage.PRE_PRESS,
+    Order.Stage.PRODUCTION,
+    Order.Stage.READY,
+    Order.Stage.DELIVERED,
+]
+
+
+def kanban_stage_config(user) -> tuple[list[str], dict]:
+    """Colunas visíveis para o usuário e a etapa anterior/seguinte de cada coluna."""
+    is_prepress_only = getattr(user, "is_prepress_production_only", False)
+    if is_prepress_only:
+        # Paula vê a partir de Pagamento Confirmado
+        stages = FULL_KANBAN_STAGES[2:]
+    else:
+        stages = list(FULL_KANBAN_STAGES)
+    neighbors = {
+        Order.Stage.NEW: (None, Order.Stage.AWAITING_PAYMENT),
+        Order.Stage.AWAITING_PAYMENT: (Order.Stage.NEW, Order.Stage.PAYMENT_CONFIRMED),
+        Order.Stage.PAYMENT_CONFIRMED: (None if is_prepress_only else Order.Stage.AWAITING_PAYMENT, Order.Stage.PRE_PRESS),
+        Order.Stage.PRE_PRESS: (Order.Stage.PAYMENT_CONFIRMED, Order.Stage.PRODUCTION),
+        Order.Stage.PRODUCTION: (Order.Stage.PRE_PRESS, Order.Stage.READY),
+        Order.Stage.READY: (Order.Stage.PRODUCTION, Order.Stage.DELIVERED),
+        Order.Stage.DELIVERED: (Order.Stage.READY, None),
+    }
+    return stages, neighbors
+
+
+def kanban_cards_queryset():
+    return Order.objects.select_related("responsible", "notified_whatsapp_by").prefetch_related(
+        Prefetch("attachments", queryset=OrderAttachment.objects.filter(removed_at__isnull=True)),
+        Prefetch("items", queryset=OrderItem.objects.all()),
+    ).annotate(
+        attachment_count=Count("attachments", filter=Q(attachments__removed_at__isnull=True))
+    )
+
+
 class KanbanView(LoginRequiredMixin, TemplateView):
     template_name = "production/kanban.html"
 
@@ -38,36 +78,11 @@ class KanbanView(LoginRequiredMixin, TemplateView):
         form = OrderFilterForm(self.request.GET or None)
         recent_delivered_cutoff = timezone.now() - timedelta(days=7)
 
-        full_stages_list = [
-            Order.Stage.NEW,
-            Order.Stage.AWAITING_PAYMENT,
-            Order.Stage.PAYMENT_CONFIRMED,
-            Order.Stage.PRE_PRESS,
-            Order.Stage.PRODUCTION,
-            Order.Stage.READY,
-            Order.Stage.DELIVERED,
-        ]
+        active_stages_list, previous_next = kanban_stage_config(user)
 
-        if getattr(user, "is_prepress_production_only", False):
-            # Paula vê a partir de Pagamento Confirmado
-            active_stages_list = [
-                Order.Stage.PAYMENT_CONFIRMED,
-                Order.Stage.PRE_PRESS,
-                Order.Stage.PRODUCTION,
-                Order.Stage.READY,
-                Order.Stage.DELIVERED,
-            ]
-        else:
-            active_stages_list = full_stages_list
-
-        orders = Order.objects.filter(
+        orders = kanban_cards_queryset().filter(
             Q(stage__in=active_stages_list) &
             (~Q(stage=Order.Stage.DELIVERED) | Q(stage=Order.Stage.DELIVERED, stage_updated_at__gte=recent_delivered_cutoff) | Q(stage=Order.Stage.DELIVERED, finished_at__gte=recent_delivered_cutoff) | Q(stage=Order.Stage.DELIVERED, created_at__gte=recent_delivered_cutoff))
-        ).select_related("responsible").prefetch_related(
-            Prefetch("attachments", queryset=OrderAttachment.objects.filter(removed_at__isnull=True)),
-            Prefetch("items", queryset=OrderItem.objects.all()),
-        ).annotate(
-            attachment_count=Count("attachments", filter=Q(attachments__removed_at__isnull=True))
         )
         if form.is_valid():
             data = form.cleaned_data
@@ -102,17 +117,6 @@ class KanbanView(LoginRequiredMixin, TemplateView):
             if order.stage in columns:
                 columns[order.stage].append(order)
 
-        is_prepress_only = getattr(user, "is_prepress_production_only", False)
-        previous_next = {
-            Order.Stage.NEW: (None, Order.Stage.AWAITING_PAYMENT),
-            Order.Stage.AWAITING_PAYMENT: (Order.Stage.NEW, Order.Stage.PAYMENT_CONFIRMED),
-            Order.Stage.PAYMENT_CONFIRMED: (None if is_prepress_only else Order.Stage.AWAITING_PAYMENT, Order.Stage.PRE_PRESS),
-            Order.Stage.PRE_PRESS: (Order.Stage.PAYMENT_CONFIRMED, Order.Stage.PRODUCTION),
-            Order.Stage.PRODUCTION: (Order.Stage.PRE_PRESS, Order.Stage.READY),
-            Order.Stage.READY: (Order.Stage.PRODUCTION, Order.Stage.DELIVERED),
-            Order.Stage.DELIVERED: (Order.Stage.READY, None),
-        }
-
         kanban_columns = []
         for stage in active_stages_list:
             is_locked = False
@@ -140,6 +144,7 @@ class KanbanView(LoginRequiredMixin, TemplateView):
             "stage_choices": Order.Stage.choices,
             "active_users": User.objects.filter(is_active=True).only("id", "name").order_by("name"),
             "daily_capacity": get_daily_capacity_overview(),
+            "kanban_now": timezone.now().isoformat(),
         })
         return context
 
@@ -187,6 +192,47 @@ class OrderDetailView(LoginRequiredMixin, DetailView):
         from apps.business.models import BusinessSettings
         context["cancellation_pin_configured"] = BusinessSettings.load().has_cancellation_pin
         return context
+
+
+@login_required
+def kanban_updates(request):
+    """A6: cards alterados desde ``since`` (polling curto do Kanban, sem recarregar a página).
+
+    Devolve o HTML do card já renderizado, para atualizar selos (ex.: APROVADO),
+    pagamento e coluna em tempo real.
+    """
+    from datetime import datetime, timedelta
+
+    from django.template.loader import render_to_string
+
+    now = timezone.now()
+    since = None
+    raw = (request.GET.get("since") or "").strip().replace(" ", "+")
+    if raw:
+        try:
+            since = datetime.fromisoformat(raw)
+            if timezone.is_naive(since):
+                since = timezone.make_aware(since)
+        except ValueError:
+            since = None
+    if since is None or since < now - timedelta(hours=1):
+        since = now - timedelta(minutes=2)
+
+    stages, neighbors = kanban_stage_config(request.user)
+    payload = []
+    for order in kanban_cards_queryset().filter(updated_at__gt=since).order_by("updated_at")[:100]:
+        visible = order.stage in stages
+        html = ""
+        if visible:
+            previous_stage, next_stage = neighbors.get(order.stage, (None, None))
+            html = render_to_string("production/_kanban_card.html", {
+                "order": order,
+                "previous_stage": previous_stage,
+                "next_stage": next_stage,
+                "finalize": order.stage == Order.Stage.READY,
+            }, request=request)
+        payload.append({"id": order.pk, "stage": order.stage, "visible": visible, "html": html})
+    return JsonResponse({"now": now.isoformat(), "orders": payload})
 
 
 def _order_for_request(request, pk: int) -> Order:
