@@ -636,10 +636,15 @@ MINUTES_PER_METER = 15  # Regra de negócio: 15 minutos por metro impresso
 def calculate_order_production_time(
     total_meters: Decimal | float | int | str,
     start_time: datetime | None = None,
+    business_hours=None,
 ) -> dict:
     """
     Calcula automaticamente o tempo de entrega e produção do pedido com base na
     regra de negócio de 15 minutos de produção para cada metro impresso.
+
+    Com ``business_hours`` (apps.business.hours.BusinessHours) a previsão conta
+    somente horas úteis; pedidos feitos fora do expediente começam a contar na
+    próxima abertura.
     """
     try:
         meters_dec = Decimal(str(total_meters or 0))
@@ -665,7 +670,10 @@ def calculate_order_production_time(
             display_str = f"{hours}h"
 
     base_time = start_time or timezone.now()
-    estimated_due_at = base_time + timedelta(minutes=total_minutes) if total_minutes > 0 else base_time
+    if business_hours is not None:
+        estimated_due_at = business_hours.add_business_minutes(base_time, total_minutes)
+    else:
+        estimated_due_at = base_time + timedelta(minutes=total_minutes) if total_minutes > 0 else base_time
 
     return {
         "total_meters": float(meters_dec),

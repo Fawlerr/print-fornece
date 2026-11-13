@@ -11,6 +11,7 @@
 
   <nav class="settings-toc" aria-label="Seções das configurações">
     <a href="#desconto_camisa">Desconto em camisas</a>
+    <a href="#horario">Horário de funcionamento</a>
   </nav>
 
   {% with form=forms.desconto_camisa %}
@@ -33,6 +34,29 @@
         {% include "includes/form_fields.html" with form=form %}
         <div class="form-actions">
           <button class="btn btn-primary" type="submit">Salvar desconto</button>
+        </div>
+      </form>
+    </section>
+  {% endwith %}
+
+  {% with form=forms.horario %}
+    <section class="card form-card settings-section" id="horario" aria-labelledby="horario_title">
+      <div class="section-heading">
+        <div>
+          <h2 id="horario_title">Horário de funcionamento</h2>
+          <p>
+            Fonte única do expediente: aparece nas mensagens do WhatsApp e na página do cliente, e é usado no prazo estimado
+            de produção e nos alertas de pedido parado (contados só em horário útil).
+          </p>
+        </div>
+        <span class="status-pill status-pill--on">{{ business_hours_text }}</span>
+      </div>
+      <form method="post" novalidate>
+        {% csrf_token %}
+        <input type="hidden" name="section" value="horario">
+        {% include "includes/form_fields.html" with form=form %}
+        <div class="form-actions">
+          <button class="btn btn-primary" type="submit">Salvar horário</button>
         </div>
       </form>
     </section>

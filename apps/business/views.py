@@ -9,7 +9,8 @@ from django.shortcuts import redirect, render
 from apps.accounts.permissions import require_administrator
 from apps.audit.services import record_audit
 
-from .forms import ShirtDiscountSettingsForm
+from .forms import BusinessHoursSettingsForm, ShirtDiscountSettingsForm
+from .hours import get_business_hours
 from .models import BusinessSettings
 
 # Campos sensíveis nunca vão para a auditoria (nem em hash).
@@ -18,6 +19,7 @@ SENSITIVE_FIELDS = {"cancellation_pin_hash"}
 # Cada seção da tela é um formulário independente, salvo por um botão próprio.
 SECTION_FORMS = {
     "desconto_camisa": ShirtDiscountSettingsForm,
+    "horario": BusinessHoursSettingsForm,
 }
 
 
@@ -61,4 +63,8 @@ def settings_view(request):
             return redirect(f"{request.path}#{section}")
         messages.error(request, "Revise os campos destacados.")
 
-    return render(request, "business/settings.html", {"config": config, "forms": forms})
+    return render(request, "business/settings.html", {
+        "config": config,
+        "forms": forms,
+        "business_hours_text": get_business_hours(config).describe(),
+    })

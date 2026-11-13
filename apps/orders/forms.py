@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal
 
 from django import forms
-from django.utils import timezone
 
 from .models import Order
 
@@ -79,6 +78,8 @@ class OrderForm(forms.ModelForm):
         self.fields["description"].required = False
         self.fields["responsible"].queryset = self.fields["responsible"].queryset.filter(is_active=True).order_by("name")
         self.fields["shift"].required = False
+        from apps.business.hours import get_business_hours
+        self.fields["due_at"].help_text = f"Expediente: {get_business_hours().describe()}."
         for name in ("total_amount", "paid_amount", "discount_advance"):
             value = self.initial.get(name)
             if value is not None and not isinstance(value, str):

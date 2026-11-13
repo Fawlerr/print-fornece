@@ -83,7 +83,7 @@
     </div>
 
     <section class="card card-pad dashboard-card">
-      <div class="section-heading"><h2>Alertas de produção</h2><p>Prazo ultrapassado ou mais de 48 h sem movimentação.</p></div>
+      <div class="section-heading"><h2>Alertas de produção</h2><p>Prazo ultrapassado ou mais de {{ idle_label }} sem movimentação (conta só o horário de funcionamento).</p></div>
       {% if late_orders %}
         <div class="table-wrap">
           <table class="data-table">

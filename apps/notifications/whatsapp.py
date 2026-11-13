@@ -3,6 +3,7 @@ from __future__ import annotations
 import urllib.parse
 from decimal import Decimal
 from django.utils import timezone
+from apps.business.hours import get_business_hours
 from apps.orders.models import Order, OrderItem
 
 
@@ -212,8 +213,7 @@ def build_ready_whatsapp_message(order: Order, public_quote_url: str = "") -> st
         f"Local de Retirada: Print Fornece\n"
         f"Av. Coronel Estevam, 1534 - Alecrim\n\n"
         f"Horário de Funcionamento:\n"
-        f"Seg a Sex: 8h às 17h\n"
-        f"Sáb: 8h às 12h\n\n"
+        f"{get_business_hours().describe(chr(10))}\n\n"
         f"Vai mandar entregador? Por favor, nos envie o comprovante/print com os dados da corrida ou link e oriente o motorista a informar o seu nome ({order.client_name}) ao chegar. Assim, garantimos a entrega correta e rápida!\n\n"
         f"Qualquer dúvida, estamos à disposição."
     )

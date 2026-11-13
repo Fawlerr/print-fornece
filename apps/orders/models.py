@@ -226,8 +226,10 @@ class Order(models.Model):
 
     @property
     def estimated_production_time(self) -> dict:
+        from apps.business.hours import get_business_hours
+
         from .calculator import calculate_order_production_time
-        return calculate_order_production_time(self.total_meters, start_time=self.created_at)
+        return calculate_order_production_time(self.total_meters, start_time=self.created_at, business_hours=get_business_hours())
 
     @property
     def estimated_production_minutes(self) -> int:

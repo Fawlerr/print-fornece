@@ -6,7 +6,34 @@ from django import forms
 
 from apps.orders.calculator import SHIRTS
 
+from .hours import WEEKDAY_CHOICES
 from .models import BusinessSettings
+
+
+class BusinessHoursSettingsForm(forms.ModelForm):
+    business_days = forms.TypedMultipleChoiceField(
+        label="Dias de funcionamento",
+        coerce=int,
+        widget=forms.CheckboxSelectMultiple,
+        choices=WEEKDAY_CHOICES,
+    )
+
+    class Meta:
+        model = BusinessSettings
+        fields = ["business_days", "business_open_time", "business_close_time"]
+        widgets = {
+            "business_open_time": forms.TimeInput(attrs={"type": "time"}, format="%H:%M"),
+            "business_close_time": forms.TimeInput(attrs={"type": "time"}, format="%H:%M"),
+        }
+
+    def clean(self):
+        cleaned = super().clean()
+        opens, closes = cleaned.get("business_open_time"), cleaned.get("business_close_time")
+        if opens and closes and opens >= closes:
+            self.add_error("business_close_time", "O horário de fechamento deve ser depois da abertura.")
+        if not cleaned.get("business_days"):
+            self.add_error("business_days", "Escolha ao menos um dia de funcionamento.")
+        return cleaned
 
 
 class ShirtDiscountSettingsForm(forms.ModelForm):

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime
 from decimal import Decimal
 
 from django.conf import settings
@@ -11,6 +12,11 @@ def default_shirt_discount_models() -> list[str]:
     from apps.orders.calculator import SHIRTS
 
     return list(SHIRTS.keys())
+
+
+def default_business_days() -> list[int]:
+    """Segunda (0) a sexta (4)."""
+    return [0, 1, 2, 3, 4]
 
 
 class BusinessSettings(models.Model):
@@ -44,6 +50,11 @@ class BusinessSettings(models.Model):
     shirt_discount_models = models.JSONField(
         "modelos participantes", default=default_shirt_discount_models, blank=True,
     )
+
+    # A3 — horário de funcionamento (padrão: segunda a sexta, 8h às 17h)
+    business_days = models.JSONField("dias de funcionamento", default=default_business_days, blank=True)
+    business_open_time = models.TimeField("abre às", default=datetime.time(8, 0))
+    business_close_time = models.TimeField("fecha às", default=datetime.time(17, 0))
 
     updated_at = models.DateTimeField("atualizado em", auto_now=True)
     updated_by = models.ForeignKey(

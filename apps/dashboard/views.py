@@ -12,8 +12,12 @@ from django.utils import timezone
 from django.views.generic import TemplateView
 
 from apps.accounts.permissions import AdministratorRequiredMixin
+from apps.business.hours import get_business_hours
 from apps.expenses.models import Expense
 from apps.orders.models import Order, OrderHistory
+
+
+IDLE_BUSINESS_DAYS = 2
 
 
 @login_required
@@ -32,7 +36,10 @@ class DashboardView(LoginRequiredMixin, AdministratorRequiredMixin, TemplateView
         month_start = today_start.replace(day=1)
         next_month_start = (month_start + timedelta(days=32)).replace(day=1)
         trend_start = today_start - timedelta(days=6)
-        idle_cutoff = now - timedelta(hours=48)
+        # Pedido "parado": mais de 2 dias úteis sem movimentação (conta só o expediente).
+        business_hours = get_business_hours()
+        idle_cutoff = business_hours.subtract_business_minutes(now, IDLE_BUSINESS_DAYS * business_hours.minutes_per_day)
+        context["idle_label"] = f"{IDLE_BUSINESS_DAYS} dias úteis"
 
         orders = Order.objects.all()
         money_field = DecimalField(max_digits=12, decimal_places=2)

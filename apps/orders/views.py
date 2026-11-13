@@ -17,6 +17,7 @@ from django.views.generic import CreateView, UpdateView
 from apps.notifications.services import notify_role
 from apps.notifications.whatsapp import get_whatsapp_share_links
 from apps.audit.services import record_audit
+from apps.business.hours import get_business_hours
 from apps.business.services import shirt_discount_rule
 
 from .art_preview import generate_art_preview_image
@@ -639,6 +640,7 @@ def public_quote_view(request, token: str):
         "token": token,
         "is_approved": order.stage not in (Order.Stage.NEW, Order.Stage.CANCELLED),
         "print_whatsapp_url": print_whatsapp_url,
+        "business_hours_text": get_business_hours().describe(),
     }
     return render(request, "orders/public_quote.html", context)
 
