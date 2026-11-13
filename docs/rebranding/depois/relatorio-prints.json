@@ -1,0 +1,506 @@
+[
+  {
+    "tela": "01-login",
+    "tamanho": "desktop-1280",
+    "status": 200,
+    "rolagem_horizontal_px": 0,
+    "erros_console": []
+  },
+  {
+    "tela": "02-dashboard",
+    "tamanho": "desktop-1280",
+    "status": 200,
+    "rolagem_horizontal_px": 0,
+    "erros_console": []
+  },
+  {
+    "tela": "03-novo-pedido",
+    "tamanho": "desktop-1280",
+    "status": 200,
+    "rolagem_horizontal_px": 0,
+    "erros_console": []
+  },
+  {
+    "tela": "04-editar-pedido",
+    "tamanho": "desktop-1280",
+    "status": 200,
+    "rolagem_horizontal_px": 0,
+    "erros_console": []
+  },
+  {
+    "tela": "05-kanban",
+    "tamanho": "desktop-1280",
+    "status": 200,
+    "rolagem_horizontal_px": 0,
+    "erros_console": []
+  },
+  {
+    "tela": "06-detalhe-pedido",
+    "tamanho": "desktop-1280",
+    "status": 200,
+    "rolagem_horizontal_px": 0,
+    "erros_console": []
+  },
+  {
+    "tela": "07-clientes",
+    "tamanho": "desktop-1280",
+    "status": 200,
+    "rolagem_horizontal_px": 0,
+    "erros_console": []
+  },
+  {
+    "tela": "08-novo-cliente",
+    "tamanho": "desktop-1280",
+    "status": 200,
+    "rolagem_horizontal_px": 0,
+    "erros_console": []
+  },
+  {
+    "tela": "09-estoque",
+    "tamanho": "desktop-1280",
+    "status": 200,
+    "rolagem_horizontal_px": 0,
+    "erros_console": []
+  },
+  {
+    "tela": "10-novo-insumo",
+    "tamanho": "desktop-1280",
+    "status": 200,
+    "rolagem_horizontal_px": 0,
+    "erros_console": []
+  },
+  {
+    "tela": "11-caixa",
+    "tamanho": "desktop-1280",
+    "status": 200,
+    "rolagem_horizontal_px": 0,
+    "erros_console": []
+  },
+  {
+    "tela": "12-caixa-beta",
+    "tamanho": "desktop-1280",
+    "status": 200,
+    "rolagem_horizontal_px": 0,
+    "erros_console": []
+  },
+  {
+    "tela": "13-despesas",
+    "tamanho": "desktop-1280",
+    "status": 200,
+    "rolagem_horizontal_px": 0,
+    "erros_console": []
+  },
+  {
+    "tela": "14-nova-despesa",
+    "tamanho": "desktop-1280",
+    "status": 200,
+    "rolagem_horizontal_px": 0,
+    "erros_console": []
+  },
+  {
+    "tela": "15-relatorio-geral",
+    "tamanho": "desktop-1280",
+    "status": 200,
+    "rolagem_horizontal_px": 0,
+    "erros_console": []
+  },
+  {
+    "tela": "16-rel-producao",
+    "tamanho": "desktop-1280",
+    "status": 200,
+    "rolagem_horizontal_px": 0,
+    "erros_console": []
+  },
+  {
+    "tela": "17-rel-materiais",
+    "tamanho": "desktop-1280",
+    "status": 200,
+    "rolagem_horizontal_px": 0,
+    "erros_console": []
+  },
+  {
+    "tela": "18-rel-equipe",
+    "tamanho": "desktop-1280",
+    "status": 200,
+    "rolagem_horizontal_px": 0,
+    "erros_console": []
+  },
+  {
+    "tela": "19-rel-clientes",
+    "tamanho": "desktop-1280",
+    "status": 200,
+    "rolagem_horizontal_px": 0,
+    "erros_console": []
+  },
+  {
+    "tela": "20-rel-produtos",
+    "tamanho": "desktop-1280",
+    "status": 200,
+    "rolagem_horizontal_px": 0,
+    "erros_console": []
+  },
+  {
+    "tela": "21-rel-consumo-diario",
+    "tamanho": "desktop-1280",
+    "status": 200,
+    "rolagem_horizontal_px": 0,
+    "erros_console": []
+  },
+  {
+    "tela": "22-rel-tintas",
+    "tamanho": "desktop-1280",
+    "status": 200,
+    "rolagem_horizontal_px": 0,
+    "erros_console": []
+  },
+  {
+    "tela": "23-rel-clientes-novos",
+    "tamanho": "desktop-1280",
+    "status": 200,
+    "rolagem_horizontal_px": 0,
+    "erros_console": []
+  },
+  {
+    "tela": "24-rel-formas-pagamento",
+    "tamanho": "desktop-1280",
+    "status": 200,
+    "rolagem_horizontal_px": 0,
+    "erros_console": []
+  },
+  {
+    "tela": "25-usuarios",
+    "tamanho": "desktop-1280",
+    "status": 200,
+    "rolagem_horizontal_px": 0,
+    "erros_console": []
+  },
+  {
+    "tela": "26-novo-usuario",
+    "tamanho": "desktop-1280",
+    "status": 200,
+    "rolagem_horizontal_px": 0,
+    "erros_console": []
+  },
+  {
+    "tela": "27-perfil",
+    "tamanho": "desktop-1280",
+    "status": 200,
+    "rolagem_horizontal_px": 0,
+    "erros_console": []
+  },
+  {
+    "tela": "28-trocar-senha",
+    "tamanho": "desktop-1280",
+    "status": 200,
+    "rolagem_horizontal_px": 0,
+    "erros_console": []
+  },
+  {
+    "tela": "29-configuracoes",
+    "tamanho": "desktop-1280",
+    "status": 200,
+    "rolagem_horizontal_px": 0,
+    "erros_console": []
+  },
+  {
+    "tela": "30-notificacoes",
+    "tamanho": "desktop-1280",
+    "status": 200,
+    "rolagem_horizontal_px": 0,
+    "erros_console": []
+  },
+  {
+    "tela": "31-relatos-bug",
+    "tamanho": "desktop-1280",
+    "status": 200,
+    "rolagem_horizontal_px": 0,
+    "erros_console": []
+  },
+  {
+    "tela": "32-stone-console",
+    "tamanho": "desktop-1280",
+    "status": 200,
+    "rolagem_horizontal_px": 0,
+    "erros_console": []
+  },
+  {
+    "tela": "33-pagina-cliente",
+    "tamanho": "desktop-1280",
+    "status": 200,
+    "rolagem_horizontal_px": 0,
+    "erros_console": []
+  },
+  {
+    "tela": "34-nota-impressao",
+    "tamanho": "desktop-1280",
+    "status": 200,
+    "rolagem_horizontal_px": 0,
+    "erros_console": []
+  },
+  {
+    "tela": "35-fatura-agrupada",
+    "tamanho": "desktop-1280",
+    "status": 200,
+    "rolagem_horizontal_px": 0,
+    "erros_console": []
+  },
+  {
+    "tela": "36-esqueci-senha",
+    "tamanho": "desktop-1280",
+    "status": 200,
+    "rolagem_horizontal_px": 0,
+    "erros_console": []
+  },
+  {
+    "tela": "01-login",
+    "tamanho": "celular-390",
+    "status": 200,
+    "rolagem_horizontal_px": 0,
+    "erros_console": []
+  },
+  {
+    "tela": "02-dashboard",
+    "tamanho": "celular-390",
+    "status": 200,
+    "rolagem_horizontal_px": 0,
+    "erros_console": []
+  },
+  {
+    "tela": "03-novo-pedido",
+    "tamanho": "celular-390",
+    "status": 200,
+    "rolagem_horizontal_px": 0,
+    "erros_console": []
+  },
+  {
+    "tela": "04-editar-pedido",
+    "tamanho": "celular-390",
+    "status": 200,
+    "rolagem_horizontal_px": 0,
+    "erros_console": []
+  },
+  {
+    "tela": "05-kanban",
+    "tamanho": "celular-390",
+    "status": 200,
+    "rolagem_horizontal_px": 0,
+    "erros_console": []
+  },
+  {
+    "tela": "06-detalhe-pedido",
+    "tamanho": "celular-390",
+    "status": 200,
+    "rolagem_horizontal_px": 0,
+    "erros_console": []
+  },
+  {
+    "tela": "07-clientes",
+    "tamanho": "celular-390",
+    "status": 200,
+    "rolagem_horizontal_px": 0,
+    "erros_console": []
+  },
+  {
+    "tela": "08-novo-cliente",
+    "tamanho": "celular-390",
+    "status": 200,
+    "rolagem_horizontal_px": 0,
+    "erros_console": []
+  },
+  {
+    "tela": "09-estoque",
+    "tamanho": "celular-390",
+    "status": 200,
+    "rolagem_horizontal_px": 0,
+    "erros_console": []
+  },
+  {
+    "tela": "10-novo-insumo",
+    "tamanho": "celular-390",
+    "status": 200,
+    "rolagem_horizontal_px": 0,
+    "erros_console": []
+  },
+  {
+    "tela": "11-caixa",
+    "tamanho": "celular-390",
+    "status": 200,
+    "rolagem_horizontal_px": 0,
+    "erros_console": []
+  },
+  {
+    "tela": "12-caixa-beta",
+    "tamanho": "celular-390",
+    "status": 200,
+    "rolagem_horizontal_px": 0,
+    "erros_console": []
+  },
+  {
+    "tela": "13-despesas",
+    "tamanho": "celular-390",
+    "status": 200,
+    "rolagem_horizontal_px": 0,
+    "erros_console": []
+  },
+  {
+    "tela": "14-nova-despesa",
+    "tamanho": "celular-390",
+    "status": 200,
+    "rolagem_horizontal_px": 0,
+    "erros_console": []
+  },
+  {
+    "tela": "15-relatorio-geral",
+    "tamanho": "celular-390",
+    "status": 200,
+    "rolagem_horizontal_px": 0,
+    "erros_console": []
+  },
+  {
+    "tela": "16-rel-producao",
+    "tamanho": "celular-390",
+    "status": 200,
+    "rolagem_horizontal_px": 0,
+    "erros_console": []
+  },
+  {
+    "tela": "17-rel-materiais",
+    "tamanho": "celular-390",
+    "status": 200,
+    "rolagem_horizontal_px": 0,
+    "erros_console": []
+  },
+  {
+    "tela": "18-rel-equipe",
+    "tamanho": "celular-390",
+    "status": 200,
+    "rolagem_horizontal_px": 0,
+    "erros_console": []
+  },
+  {
+    "tela": "19-rel-clientes",
+    "tamanho": "celular-390",
+    "status": 200,
+    "rolagem_horizontal_px": 0,
+    "erros_console": []
+  },
+  {
+    "tela": "20-rel-produtos",
+    "tamanho": "celular-390",
+    "status": 200,
+    "rolagem_horizontal_px": 0,
+    "erros_console": []
+  },
+  {
+    "tela": "21-rel-consumo-diario",
+    "tamanho": "celular-390",
+    "status": 200,
+    "rolagem_horizontal_px": 0,
+    "erros_console": []
+  },
+  {
+    "tela": "22-rel-tintas",
+    "tamanho": "celular-390",
+    "status": 200,
+    "rolagem_horizontal_px": 0,
+    "erros_console": []
+  },
+  {
+    "tela": "23-rel-clientes-novos",
+    "tamanho": "celular-390",
+    "status": 200,
+    "rolagem_horizontal_px": 0,
+    "erros_console": []
+  },
+  {
+    "tela": "24-rel-formas-pagamento",
+    "tamanho": "celular-390",
+    "status": 200,
+    "rolagem_horizontal_px": 0,
+    "erros_console": []
+  },
+  {
+    "tela": "25-usuarios",
+    "tamanho": "celular-390",
+    "status": 200,
+    "rolagem_horizontal_px": 0,
+    "erros_console": []
+  },
+  {
+    "tela": "26-novo-usuario",
+    "tamanho": "celular-390",
+    "status": 200,
+    "rolagem_horizontal_px": 0,
+    "erros_console": []
+  },
+  {
+    "tela": "27-perfil",
+    "tamanho": "celular-390",
+    "status": 200,
+    "rolagem_horizontal_px": 0,
+    "erros_console": []
+  },
+  {
+    "tela": "28-trocar-senha",
+    "tamanho": "celular-390",
+    "status": 200,
+    "rolagem_horizontal_px": 0,
+    "erros_console": []
+  },
+  {
+    "tela": "29-configuracoes",
+    "tamanho": "celular-390",
+    "status": 200,
+    "rolagem_horizontal_px": 0,
+    "erros_console": []
+  },
+  {
+    "tela": "30-notificacoes",
+    "tamanho": "celular-390",
+    "status": 200,
+    "rolagem_horizontal_px": 0,
+    "erros_console": []
+  },
+  {
+    "tela": "31-relatos-bug",
+    "tamanho": "celular-390",
+    "status": 200,
+    "rolagem_horizontal_px": 0,
+    "erros_console": []
+  },
+  {
+    "tela": "32-stone-console",
+    "tamanho": "celular-390",
+    "status": 200,
+    "rolagem_horizontal_px": 0,
+    "erros_console": []
+  },
+  {
+    "tela": "33-pagina-cliente",
+    "tamanho": "celular-390",
+    "status": 200,
+    "rolagem_horizontal_px": 0,
+    "erros_console": []
+  },
+  {
+    "tela": "34-nota-impressao",
+    "tamanho": "celular-390",
+    "status": 200,
+    "rolagem_horizontal_px": 0,
+    "erros_console": []
+  },
+  {
+    "tela": "35-fatura-agrupada",
+    "tamanho": "celular-390",
+    "status": 200,
+    "rolagem_horizontal_px": 0,
+    "erros_console": []
+  },
+  {
+    "tela": "36-esqueci-senha",
+    "tamanho": "celular-390",
+    "status": 200,
+    "rolagem_horizontal_px": 0,
+    "erros_console": []
+  }
+]

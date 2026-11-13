@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Print Fornece — Guia visual (proposta)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,500..800&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+  <style>
+    /* ============================================================
+       TOKENS — a identidade inteira mora aqui (tema escuro é o padrão)
+       ============================================================ */
+    :root, [data-theme="dark"] {
+      --font-display: "Archivo", "Arial Narrow", sans-serif;
+      --font-body: "IBM Plex Sans", system-ui, sans-serif;
+      --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+
+      --bg: #0E1210; --surface: #161B18; --surface-2: #1E2420; --line: #2C342F; --line-strong: #3B453F;
+      --text: #EEF2EE; --muted: #A3AEA7;
+      --brand: #2FBF6A; --brand-ink: #06140B; --brand-text: #4ADE80; --brand-soft: #12301D;
+      --danger: #C62828; --danger-ink: #FFFFFF; --focus: #FACC15;
+
+      /* status (cada etapa do pedido tem a sua tinta) — fg sobre bg, AA garantido */
+      --st-novo-fg: #67E8F9; --st-novo-bg: #0B2A30;
+      --st-aguardando-fg: #FDE047; --st-aguardando-bg: #2E2706;
+      --st-confirmado-fg: #86EFAC; --st-confirmado-bg: #0D2B19;
+      --st-pre-fg: #F0ABFC; --st-pre-bg: #2D0F31;
+      --st-producao-fg: #FDBA74; --st-producao-bg: #33190A;
+      --st-pronto-fg: #93C5FD; --st-pronto-bg: #0F1F3A;
+      --st-entregue-fg: #CBD5E1; --st-entregue-bg: #1E2329;
+      --st-cancelado-fg: #FCA5A5; --st-cancelado-bg: #3A1212;
+
+      --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px; --space-5: 24px; --space-6: 32px; --space-7: 48px;
+      --radius-sm: 4px; --radius: 6px; --radius-lg: 10px; --radius-pill: 999px;
+      --shadow-1: 0 1px 0 rgba(0,0,0,.35); --shadow-2: 0 6px 16px rgba(0,0,0,.35);
+      --tap: 44px;
+      --fs-xs: 12px; --fs-sm: 14px; --fs-md: 16px; --fs-lg: 18px; --fs-xl: 22px; --fs-2xl: 28px; --fs-3xl: 36px;
+    }
+    [data-theme="light"] {
+      --bg: #F5F6F2; --surface: #FFFFFF; --surface-2: #EEF1EC; --line: #DCE1DB; --line-strong: #C3CBC3;
+      --text: #141A16; --muted: #56615A;
+      --brand: #1A7A43; --brand-ink: #FFFFFF; --brand-text: #1A7A43; --brand-soft: #DFF2E6;
+      --danger: #B42318; --focus: #B45309;
+      --st-novo-fg: #0E6676; --st-novo-bg: #DDF5F9;
+      --st-aguardando-fg: #7A5A00; --st-aguardando-bg: #FFF4C2;
+      --st-confirmado-fg: #17663A; --st-confirmado-bg: #DCF5E5;
+      --st-pre-fg: #8E2A9B; --st-pre-bg: #F8E3FB;
+      --st-producao-fg: #9A3F06; --st-producao-bg: #FFE9D6;
+      --st-pronto-fg: #1D4FA8; --st-pronto-bg: #E0ECFF;
+      --st-entregue-fg: #46525F; --st-entregue-bg: #E9EDF1;
+      --st-cancelado-fg: #A3201E; --st-cancelado-bg: #FDE3E3;
+      --shadow-1: 0 1px 0 rgba(20,26,22,.08); --shadow-2: 0 6px 16px rgba(20,26,22,.10);
+    }
+
+    /* ============== base ============== */
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--text); font: 400 var(--fs-md)/1.5 var(--font-body); }
+    h1, h2, h3 { font-family: var(--font-display); font-stretch: 85%; letter-spacing: -.01em; margin: 0; }
+    h1 { font-size: var(--fs-3xl); font-weight: 800; line-height: 1.05; }
+    h2 { font-size: var(--fs-xl); font-weight: 700; margin-bottom: var(--space-3); }
+    h3 { font-size: var(--fs-lg); font-weight: 700; }
+    p { margin: 0 0 var(--space-3); }
+    .muted { color: var(--muted); }
+    .num { font-variant-numeric: tabular-nums; }
+    :focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+    .wrap { max-width: 1160px; margin: 0 auto; padding: var(--space-5) var(--space-4) var(--space-7); }
+    .section { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: var(--space-5); margin-bottom: var(--space-5); }
+    .grid { display: grid; gap: var(--space-4); grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+    .row { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: center; }
+    header.top { display: flex; justify-content: space-between; align-items: flex-end; gap: var(--space-4); flex-wrap: wrap; margin-bottom: var(--space-5); }
+    .eyebrow { font: 600 var(--fs-xs)/1 var(--font-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--brand-text); }
+
+    /* ============== componentes ============== */
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); min-height: var(--tap); padding: 0 var(--space-4); border-radius: var(--radius); border: 1px solid transparent; font: 600 var(--fs-sm)/1 var(--font-body); cursor: pointer; text-decoration: none; }
+    .btn-primary { background: var(--brand); color: var(--brand-ink); }
+    .btn-primary:hover { filter: brightness(1.08); }
+    .btn-secondary { background: var(--surface-2); color: var(--text); border-color: var(--line-strong); }
+    .btn-ghost { background: transparent; color: var(--text); border-color: var(--line); }
+    .btn-danger { background: var(--danger); color: #fff; }
+    .btn[disabled] { opacity: .55; cursor: not-allowed; }
+
+    .field { display: grid; gap: 6px; font-size: var(--fs-sm); font-weight: 600; }
+    .field input, .field select { min-height: var(--tap); padding: 0 var(--space-3); border-radius: var(--radius); border: 1px solid var(--line-strong); background: var(--bg); color: var(--text); font: 400 var(--fs-md) var(--font-body); }
+    .field small { font-weight: 400; color: var(--muted); }
+    .field.has-error input { border-color: var(--st-cancelado-fg); }
+    .field.has-error small { color: var(--st-cancelado-fg); }
+
+    .chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: var(--radius-pill); font: 600 var(--fs-xs)/1.4 var(--font-body); }
+    .chip::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+    .st-novo { color: var(--st-novo-fg); background: var(--st-novo-bg); }
+    .st-aguardando { color: var(--st-aguardando-fg); background: var(--st-aguardando-bg); }
+    .st-confirmado { color: var(--st-confirmado-fg); background: var(--st-confirmado-bg); }
+    .st-pre { color: var(--st-pre-fg); background: var(--st-pre-bg); }
+    .st-producao { color: var(--st-producao-fg); background: var(--st-producao-bg); }
+    .st-pronto { color: var(--st-pronto-fg); background: var(--st-pronto-bg); }
+    .st-entregue { color: var(--st-entregue-fg); background: var(--st-entregue-bg); }
+    .st-cancelado { color: var(--st-cancelado-fg); background: var(--st-cancelado-bg); }
+
+    .swatch { border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+    .swatch div { height: 56px; }
+    .swatch p { margin: 0; padding: var(--space-2) var(--space-3); font: 500 var(--fs-xs)/1.4 var(--font-mono); color: var(--muted); }
+
+    /* card do Kanban: a faixa da esquerda tem a cor da etapa */
+    .kcard { position: relative; background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--radius); padding: var(--space-3) var(--space-3) var(--space-3) calc(var(--space-3) + 4px); display: grid; gap: var(--space-2); }
+    .kcard::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; border-radius: var(--radius) 0 0 var(--radius); background: var(--stage, var(--line-strong)); }
+    .kcard .head { display: flex; justify-content: space-between; gap: var(--space-2); align-items: center; }
+    .kcard .number { font: 600 var(--fs-sm) var(--font-mono); }
+    .kcard .client { font: 700 var(--fs-md)/1.25 var(--font-body); }
+    .kcard .meta { display: flex; flex-wrap: wrap; gap: var(--space-2); font-size: var(--fs-xs); color: var(--muted); }
+    .kcard .actions { display: flex; gap: var(--space-2); }
+    .kcard .actions .btn { flex: 1; min-height: 40px; }
+    .seal { display: inline-flex; align-items: center; gap: 6px; width: fit-content; padding: 4px 10px; border-radius: var(--radius-sm); background: var(--brand); color: var(--brand-ink); font: 800 var(--fs-xs)/1 var(--font-display); letter-spacing: .06em; }
+
+    .kanban-demo { display: grid; gap: var(--space-3); grid-template-columns: repeat(4, minmax(220px, 1fr)); overflow-x: auto; }
+    .kcol { background: var(--bg); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: var(--space-3); display: grid; gap: var(--space-3); align-content: start; }
+    .kcol h3 { display: flex; justify-content: space-between; font-size: var(--fs-sm); text-transform: uppercase; letter-spacing: .04em; }
+    .kcol h3 span { font: 600 var(--fs-xs) var(--font-mono); color: var(--muted); }
+
+    .tabs { display: flex; gap: var(--space-1); overflow-x: auto; border-bottom: 1px solid var(--line); }
+    .tabs a { min-height: var(--tap); display: inline-flex; align-items: center; padding: 0 var(--space-3); color: var(--muted); text-decoration: none; border-bottom: 3px solid transparent; white-space: nowrap; font-weight: 600; font-size: var(--fs-sm); }
+    .tabs a[aria-current] { color: var(--text); border-bottom-color: var(--brand); }
+
+    .alert { border-radius: var(--radius); padding: var(--space-3) var(--space-4); border: 1px solid; font-size: var(--fs-sm); }
+    .alert-ok { color: var(--st-confirmado-fg); background: var(--st-confirmado-bg); border-color: currentColor; }
+    .alert-warn { color: var(--st-aguardando-fg); background: var(--st-aguardando-bg); border-color: currentColor; }
+    .alert-error { color: var(--st-cancelado-fg); background: var(--st-cancelado-bg); border-color: currentColor; }
+
+    .stat { background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--radius); padding: var(--space-4); }
+    .stat small { display: block; color: var(--muted); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: .06em; }
+    .stat strong { font: 800 var(--fs-2xl)/1.1 var(--font-display); font-stretch: 85%; font-variant-numeric: tabular-nums; }
+    .stat .delta-up { color: var(--st-confirmado-fg); font-size: var(--fs-xs); font-weight: 700; }
+
+    .skeleton { border-radius: var(--radius); background: linear-gradient(90deg, var(--surface-2), var(--line), var(--surface-2)); background-size: 200% 100%; animation: sk 1.2s infinite; height: 14px; }
+    @keyframes sk { to { background-position: -200% 0; } }
+    @media (prefers-reduced-motion: reduce) { .skeleton { animation: none; } }
+    .empty { text-align: center; padding: var(--space-6) var(--space-4); border: 1px dashed var(--line-strong); border-radius: var(--radius-lg); }
+
+    .table { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
+    .table th { text-align: left; font: 600 var(--fs-xs) var(--font-body); text-transform: uppercase; letter-spacing: .05em; color: var(--muted); padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--line-strong); }
+    .table td { padding: var(--space-3); border-bottom: 1px solid var(--line); }
+    .table td.money { text-align: right; font-variant-numeric: tabular-nums; }
+
+    .phone { width: 390px; max-width: 100%; border: 1px solid var(--line-strong); border-radius: 22px; overflow: hidden; background: var(--bg); }
+    .phone .bar { display: flex; justify-content: space-between; align-items: center; padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--line); background: var(--surface); }
+    .phone .body { padding: var(--space-3); display: grid; gap: var(--space-3); }
+    .bottom-nav { display: grid; grid-template-columns: repeat(5, 1fr); border-top: 1px solid var(--line); background: var(--surface); }
+    .bottom-nav a { min-height: 56px; display: grid; place-items: center; gap: 2px; font-size: 11px; color: var(--muted); text-decoration: none; padding: 6px 0; }
+    .bottom-nav a[aria-current] { color: var(--brand-text); font-weight: 700; }
+    .sheet { border-top: 1px solid var(--line-strong); border-radius: 16px 16px 0 0; background: var(--surface); padding: var(--space-4); display: grid; gap: var(--space-3); }
+
+    .contrast td:last-child { font-family: var(--font-mono); }
+    @media (max-width: 720px) {
+      h1 { font-size: var(--fs-2xl); }
+      .kanban-demo { grid-template-columns: repeat(4, 85%); scroll-snap-type: x mandatory; }
+      .kcol { scroll-snap-align: start; }
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <p class="eyebrow">Print Fornece · Proposta de identidade · para aprovação</p>
+      <h1>Gráfica de verdade:<br>tinta, papel e etapa clara.</h1>
+    </div>
+    <div class="row" role="group" aria-label="Tema">
+      <button class="btn btn-secondary" type="button" data-theme-btn="dark" aria-pressed="true">Tema escuro (padrão)</button>
+      <button class="btn btn-ghost" type="button" data-theme-btn="light" aria-pressed="false">Tema claro</button>
+    </div>
+  </header>
+
+  <section class="section" aria-labelledby="ideia">
+    <h2 id="ideia">A ideia</h2>
+    <p>O visual sai da própria gráfica: o <strong>verde da marca</strong> continua sendo a cor de ação, e <strong>cada etapa do pedido ganha a cor de uma tinta</strong> (ciano, amarelo, verde, magenta, laranja, azul). A equipe reconhece a etapa de longe, pela cor, sem precisar ler.</p>
+    <p class="muted">Títulos em <strong>Archivo condensada</strong> (lembra a fonte "estêncil" do logo e economiza espaço nos cards), textos em <strong>IBM Plex Sans</strong> (lê bem o dia inteiro) e números com largura fixa, para os valores se alinharem nas tabelas. Cantos discretos (4–10 px), sombras quase nulas, sem gradiente e sem emoji: a hierarquia vem de tamanho, peso e cor.</p>
+  </section>
+
+  <section class="section" aria-labelledby="cores">
+    <h2 id="cores">Cores</h2>
+    <div class="grid">
+      <div class="swatch"><div style="background:var(--brand)"></div><p>--brand · ação principal</p></div>
+      <div class="swatch"><div style="background:var(--bg)"></div><p>--bg · fundo</p></div>
+      <div class="swatch"><div style="background:var(--surface)"></div><p>--surface · cartões</p></div>
+      <div class="swatch"><div style="background:var(--surface-2)"></div><p>--surface-2 · destaque</p></div>
+      <div class="swatch"><div style="background:var(--danger)"></div><p>--danger · cancelar/excluir</p></div>
+      <div class="swatch"><div style="background:var(--focus)"></div><p>--focus · foco do teclado</p></div>
+    </div>
+    <h3 style="margin-top:var(--space-5)">Etapas do pedido (sempre as mesmas cores, em todo o sistema)</h3>
+    <div class="row" style="margin-top:var(--space-3)">
+      <span class="chip st-novo">Novo pedido</span>
+      <span class="chip st-aguardando">Aguardando pagamento</span>
+      <span class="chip st-confirmado">Pagamento confirmado</span>
+      <span class="chip st-pre">Pré-impressão</span>
+      <span class="chip st-producao">Em produção</span>
+      <span class="chip st-pronto">Pronto p/ retirada</span>
+      <span class="chip st-entregue">Entregue</span>
+      <span class="chip st-cancelado">Cancelado</span>
+    </div>
+    <h3 style="margin-top:var(--space-5)">Contraste (WCAG AA exige 4,5:1)</h3>
+    <table class="table contrast" style="margin-top:var(--space-2)">
+      <thead><tr><th>Combinação</th><th>Escuro</th><th>Claro</th></tr></thead>
+      <tbody>
+        <tr><td>Texto principal sobre cartão</td><td>15,4</td><td>17,7</td></tr>
+        <tr><td>Texto secundário sobre cartão</td><td>7,6</td><td>6,5</td></tr>
+        <tr><td>Botão principal (texto sobre verde)</td><td>7,9</td><td>5,4</td></tr>
+        <tr><td>Etapas (pior caso entre as 8)</td><td>8,7</td><td>5,8</td></tr>
+        <tr><td>Botão de perigo</td><td>5,6</td><td>6,2</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="section" aria-labelledby="tipo">
+    <h2 id="tipo">Tipografia e espaçamento</h2>
+    <div class="grid">
+      <div><p class="muted">Título de página · Archivo 800</p><h1 style="font-size:var(--fs-2xl)">Quadro de produção</h1></div>
+      <div><p class="muted">Título de seção · Archivo 700</p><h2>Pedidos do dia</h2></div>
+      <div><p class="muted">Texto · IBM Plex Sans 400 / 16 px</p><p>Confira a arte antes de imprimir o filme.</p></div>
+      <div><p class="muted">Número · tabular</p><p class="num" style="font:800 var(--fs-2xl) var(--font-display)">R$ 1.250,00</p></div>
+    </div>
+    <p class="muted" style="margin-top:var(--space-4)">Espaços em múltiplos de 4 px (4, 8, 12, 16, 24, 32, 48). Áreas de toque de no mínimo 44 × 44 px.</p>
+  </section>
+
+  <section class="section" aria-labelledby="comp">
+    <h2 id="comp">Componentes</h2>
+    <div class="row">
+      <button class="btn btn-primary" type="button">Salvar pedido</button>
+      <button class="btn btn-secondary" type="button">Exportar CSV</button>
+      <button class="btn btn-ghost" type="button">Voltar</button>
+      <button class="btn btn-danger" type="button">Cancelar pedido</button>
+      <button class="btn btn-primary" type="button" disabled>Salvando…</button>
+    </div>
+    <div class="grid" style="margin-top:var(--space-5)">
+      <label class="field">Nome do cliente<input value="Camila Souza"><small>Como aparece na nota.</small></label>
+      <label class="field">WhatsApp<input type="tel" inputmode="tel" value="(84) 99999-0000"></label>
+      <label class="field has-error">Valor pago (R$)<input inputmode="decimal" value="abc"><small>Informe um valor em reais, ex.: 120,00.</small></label>
+    </div>
+    <div class="grid" style="margin-top:var(--space-5)">
+      <div class="alert alert-ok" role="status">Pedido 0101 salvo.</div>
+      <div class="alert alert-warn">Pagamento parcial: faltam R$ 60,00.</div>
+      <div class="alert alert-error" role="alert">Não foi possível salvar. Verifique a conexão e tente de novo.</div>
+    </div>
+    <div class="grid" style="margin-top:var(--space-5)">
+      <div class="stat"><small>Faturamento do mês</small><strong>R$ 18.430,00</strong><div class="delta-up">▲ +12,4% vs. mês passado</div></div>
+      <div class="stat"><small>Metros impressos</small><strong class="num">312,6 m</strong></div>
+      <div class="stat" aria-busy="true"><small>Carregando…</small><div class="skeleton" style="width:70%;margin-top:10px"></div><div class="skeleton" style="width:40%;margin-top:8px"></div></div>
+      <div class="empty"><strong>Nenhum pedido nesta etapa</strong><p class="muted">Quando um pedido entrar aqui, ele aparece nesta coluna.</p><a class="btn btn-secondary" href="#">Novo pedido</a></div>
+    </div>
+    <div style="margin-top:var(--space-5)">
+      <nav class="tabs" aria-label="Relatórios (exemplo)"><a href="#" aria-current="page">Visão geral</a><a href="#">Vendas por produto</a><a href="#">Produção</a><a href="#">Ranking da equipe</a><a href="#">Caixa</a></nav>
+      <table class="table" style="margin-top:var(--space-3)">
+        <thead><tr><th>Pedido</th><th>Cliente</th><th>Etapa</th><th style="text-align:right">Total</th></tr></thead>
+        <tbody>
+          <tr><td class="num">0101</td><td>Camila Souza</td><td><span class="chip st-novo">Novo</span></td><td class="money">R$ 120,00</td></tr>
+          <tr><td class="num">0104</td><td>Loja Bom Preço</td><td><span class="chip st-producao">Em produção</span></td><td class="money">R$ 480,00</td></tr>
+        </tbody>
+      </table>
+      <p class="muted" style="margin-top:var(--space-2)">No celular, tabelas largas viram lista de cartões (uma linha = um cartão).</p>
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="kanban">
+    <h2 id="kanban">Kanban</h2>
+    <div class="kanban-demo">
+      <div class="kcol"><h3>Novo <span>1</span></h3>
+        <article class="kcard" style="--stage:var(--st-novo-fg)">
+          <div class="head"><span class="number">#0101</span><span class="chip st-cancelado">Não pago</span></div>
+          <div class="client">Camila Souza</div>
+          <div class="meta"><span>DTF Têxtil · 28×30 cm · 4 un</span><span>Entrega 13/11 10:00</span></div>
+          <div class="actions"><button class="btn btn-ghost" type="button" aria-label="Mover para…">Mover para…</button><button class="btn btn-secondary" type="button">Avançar ›</button></div>
+        </article>
+      </div>
+      <div class="kcol"><h3>Aguardando pagamento <span>1</span></h3>
+        <article class="kcard" style="--stage:var(--st-aguardando-fg)">
+          <div class="head"><span class="number">#0102</span><span class="chip st-aguardando">Resta R$ 150,00</span></div>
+          <span class="seal">✓ APROVADO · 12/11 21:59</span>
+          <div class="client">Estamparia Exemplo</div>
+          <div class="meta"><span>Camisas · desc. −R$ 18,00</span></div>
+        </article>
+      </div>
+      <div class="kcol"><h3>Pagamento confirmado <span>1</span></h3>
+        <article class="kcard" style="--stage:var(--st-confirmado-fg)">
+          <div class="head"><span class="number">#0103</span><span class="chip st-confirmado">Pago</span></div>
+          <div class="client">Rafael Lima</div>
+          <div class="actions"><button class="btn btn-ghost" type="button">Reimprimir nota</button></div>
+        </article>
+      </div>
+      <div class="kcol"><h3>Em produção <span>1</span></h3>
+        <article class="kcard" style="--stage:var(--st-producao-fg)">
+          <div class="head"><span class="number">#0104</span><span class="chip st-confirmado">Pago</span></div>
+          <div class="client">Loja Bom Preço</div>
+          <div class="meta"><span>⚡ Urgente</span></div>
+        </article>
+      </div>
+    </div>
+    <p class="muted" style="margin-top:var(--space-3)">No celular: uma coluna por vez, com abas no topo e rolagem com encaixe; cada card tem "Mover para…" além do arrastar.</p>
+  </section>
+
+  <section class="section" aria-labelledby="mobile">
+    <h2 id="mobile">Celular (390 px)</h2>
+    <div class="row" style="align-items:flex-start">
+      <div class="phone" aria-label="Exemplo de tela no celular">
+        <div class="bar"><strong style="font-family:var(--font-display);font-size:var(--fs-lg)">Produção</strong><button class="btn btn-ghost" type="button" aria-label="Filtros" style="min-height:40px">Filtros</button></div>
+        <nav class="tabs" aria-label="Etapas" style="padding:0 var(--space-2)"><a href="#" aria-current="page">Novo · 1</a><a href="#">Aguardando · 1</a><a href="#">Confirmado · 1</a><a href="#">Produção · 1</a></nav>
+        <div class="body">
+          <article class="kcard" style="--stage:var(--st-novo-fg)"><div class="head"><span class="number">#0101</span><span class="chip st-cancelado">Não pago</span></div><div class="client">Camila Souza</div><div class="actions"><button class="btn btn-ghost" type="button">Mover para…</button><button class="btn btn-secondary" type="button">Avançar ›</button></div></article>
+          <div class="sheet" role="dialog" aria-label="Mover pedido (painel inferior)"><strong>Mover #0101 para</strong>
+            <button class="btn btn-secondary" type="button">Aguardando pagamento</button><button class="btn btn-secondary" type="button">Pagamento confirmado</button></div>
+        </div>
+        <nav class="bottom-nav" aria-label="Menu"><a href="#">Início</a><a href="#">Novo</a><a href="#" aria-current="page">Produção</a><a href="#">Caixa</a><a href="#">Mais</a></nav>
+      </div>
+      <div style="flex:1;min-width:240px">
+        <ul>
+          <li>Menu lateral vira menu inferior (5 atalhos) + "Mais" em gaveta.</li>
+          <li>Modais viram painel que sobe de baixo; formulários longos têm o botão principal fixo no rodapé.</li>
+          <li>Campos com o teclado certo (<code>inputmode</code> número, telefone, e-mail) e rótulos sempre visíveis.</li>
+          <li>Respeita a área segura do iPhone (notch e barra inferior).</li>
+          <li>Carregando (esqueleto), vazio (mensagem + ação) e erro (o que houve + como resolver) em todas as listas.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="plano">
+    <h2 id="plano">Como será aplicado (depois da sua aprovação)</h2>
+    <ol>
+      <li>Um único arquivo de tokens (<code>static/css/tokens.css</code>) com os dois temas; tema escuro padrão e opção de tema claro salva por usuário (campo novo no cadastro, migração aditiva).</li>
+      <li>Base e componentes reutilizáveis (<code>components.css</code>), substituindo os 4 CSS atuais que se sobrepõem e os ~2.500 estilos escritos dentro dos templates.</li>
+      <li>Aplicação por área, com commits separados: navegação, Kanban, pedidos, relatórios, cadastros, configurações, páginas públicas e nota.</li>
+      <li>PWA instalável (manifesto com nome e ícones; o service worker atual será revisado para não mostrar versões antigas).</li>
+      <li>Prints de "depois" (1280 e 390 px) e Lighthouse comparado com o "antes".</li>
+    </ol>
+    <p class="muted">Nenhuma regra de negócio, rota, permissão ou comportamento do backend muda nesta etapa.</p>
+  </section>
+</div>
+<script>
+  document.querySelectorAll("[data-theme-btn]").forEach((btn) => btn.addEventListener("click", () => {
+    document.documentElement.dataset.theme = btn.dataset.themeBtn;
+    document.querySelectorAll("[data-theme-btn]").forEach((b) => {
+      const on = b === btn; b.setAttribute("aria-pressed", String(on));
+      b.className = "btn " + (on ? "btn-secondary" : "btn-ghost");
+    });
+  }));
+</script>
+</body>
+</html>
