@@ -1,0 +1,14 @@
+{% comment %}
+  Detalhamento do preço de uma linha de camisa: tabela, atacado, desconto por camisa e valor final.
+  Uso: {% include "orders/_shirt_price_breakdown.html" with item=item %}
+  Só exibe quando há desconto por camisa (pedidos antigos não têm e não mudam).
+{% endcomment %}
+{% if item.kind == "produto" and item.has_shirt_discount %}
+  <span class="shirt-price-breakdown">
+    {% if item.table_unit_price %}Tabela R$ {{ item.table_unit_price|floatformat:2 }}{% endif %}
+    {% if item.wholesale_unit_price %} · Atacado R$ {{ item.wholesale_unit_price|floatformat:2 }}{% endif %}
+    · <span class="shirt-price-breakdown__discount">Desconto −R$ {{ item.discount_per_unit|floatformat:2 }}/camisa</span>
+    · Final R$ {{ item.unit_price|floatformat:2 }}/camisa
+    · <strong>Desconto no item: −R$ {{ item.discount_total|floatformat:2 }}</strong>
+  </span>
+{% endif %}

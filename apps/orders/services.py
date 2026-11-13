@@ -1,15 +1,12 @@
 from __future__ import annotations
 
 import json
-import mimetypes
-import secrets
 from decimal import Decimal
 from pathlib import Path
 
 from django.conf import settings
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
-from django.db.models import Max
 from django.utils import timezone
 
 from apps.audit.services import record_audit
@@ -21,9 +18,12 @@ from .calculator import (
     Quote,
     ShirtQuote,
     ServiceQuote,
+    apply_shirt_volume_discount,
+    brl,
     calculate_quote,
     calculate_shirt_quote,
     calculate_service_quote,
+    shirt_calculation_detail,
 )
 from .models import Order, OrderAttachment, OrderHistory, OrderItem, OrderNote, OrderStageHistory
 from apps.production.capacity import evaluate_order_capacity
@@ -147,6 +147,101 @@ def _parse_items_from_payload(payload, cliente=None) -> list[Quote | ShirtQuote 
     return calculated_items
 
 
+def price_cart(payload, cliente=None) -> tuple[list[Quote | ShirtQuote | ServiceQuote], list[dict]]:
+    """Recalcula o carrinho inteiro no backend com as regras vigentes.
+
+    Fonte da verdade para preços: o navegador só exibe. Inclui o desconto por
+    camisa configurado pelo administrador.
+    """
+    from apps.business.services import shirt_discount_rule
+
+    items = _parse_items_from_payload(payload, cliente=cliente)
+    return apply_shirt_volume_discount(items, shirt_discount_rule())
+
+
+def _normalize_decimal(value) -> str:
+    if value in (None, ""):
+        return ""
+    try:
+        return format(Decimal(str(value)).normalize(), "f")
+    except Exception:
+        return str(value)
+
+
+def _quote_signature(quote: Quote | ShirtQuote | ServiceQuote) -> tuple:
+    if isinstance(quote, Quote):
+        return ("material", quote.material.code, _normalize_decimal(quote.art_width_cm), _normalize_decimal(quote.art_height_cm), quote.quantity)
+    if isinstance(quote, ShirtQuote):
+        return ("produto", quote.shirt.code, quote.color, quote.size, quote.quantity)
+    custom = quote.service.code == "item_avulso"
+    return (
+        "servico",
+        quote.service.code,
+        quote.service.name if custom else "",
+        _normalize_decimal(quote.unit_price) if custom else "",
+        quote.quantity,
+    )
+
+
+def _order_item_signature(item: OrderItem) -> tuple:
+    if item.kind == OrderItem.Kind.MATERIAL:
+        return ("material", item.material_code, _normalize_decimal(item.art_width_cm), _normalize_decimal(item.art_height_cm), item.art_quantity)
+    if item.kind == OrderItem.Kind.PRODUCT:
+        return ("produto", item.material_code, item.product_color, item.product_size, item.art_quantity)
+    custom = item.material_code == "item_avulso"
+    return (
+        "servico",
+        item.material_code,
+        item.material_name if custom else "",
+        _normalize_decimal(item.unit_price) if custom else "",
+        item.art_quantity,
+    )
+
+
+def order_items_unchanged(order: Order, items: list[Quote | ShirtQuote | ServiceQuote]) -> bool:
+    """True quando o carrinho enviado é igual aos itens já gravados no pedido.
+
+    Nesse caso os preços originais são preservados (o pedido não é recalculado
+    com as regras vigentes). Qualquer mudança de quantidade, tamanho, cor,
+    modelo, medida ou inclusão/remoção de item conta como alteração.
+    """
+    stored = [
+        _order_item_signature(item)
+        for item in order.items.exclude(kind=OrderItem.Kind.ADJUSTMENT)
+    ]
+    sent = [_quote_signature(quote) for quote in items]
+    return sorted(map(repr, stored)) == sorted(map(repr, sent))
+
+
+def _sync_adjustment_item(order: Order, calculated_total: Decimal, position: int) -> None:
+    """Mantém o item de ajuste manual coerente com o total informado no pedido."""
+    OrderItem.objects.filter(order=order, kind=OrderItem.Kind.ADJUSTMENT).delete()
+    adjustment = (order.total_amount - calculated_total).quantize(Decimal("0.01"))
+    if adjustment == Decimal("0.00"):
+        return
+    formatted = f"{adjustment:.2f}".replace(".", ",")
+    OrderItem.objects.create(
+        order=order,
+        position=position,
+        kind=OrderItem.Kind.ADJUSTMENT,
+        material_code="manual_adjustment",
+        material_name="Ajuste manual do valor",
+        category="Ajuste",
+        billing_quantity=Decimal("1.00"),
+        billing_unit="Ajuste",
+        pricing_rule="Ajuste manual do valor",
+        unit_price=adjustment,
+        line_total=adjustment,
+        calculation_detail=f"1,00 (Ajuste) X R$ {formatted}",
+        calculation_snapshot={
+            "source": "manual_total_adjustment",
+            "calculated_total": str(calculated_total),
+            "order_total": str(order.total_amount),
+            "adjustment": str(adjustment),
+        },
+    )
+
+
 def _sync_order_items(order: Order, items: list[Quote | ShirtQuote | ServiceQuote]) -> None:
     if not items:
         return
@@ -199,10 +294,12 @@ def _sync_order_items(order: Order, items: list[Quote | ShirtQuote | ServiceQuot
                 art_quantity=quote.quantity,
                 billing_quantity=Decimal(quote.quantity),
                 billing_unit=quote.shirt.unit,
-                pricing_rule=quote.pricing_rule,
+                pricing_rule=quote.pricing_rule[:120],
                 unit_price=quote.unit_price,
                 line_total=quote.total,
-                calculation_detail=f"{quote.quantity} un ({quote.color}, {quote.size}) × R$ {quote.unit_price:.2f}".replace(".", ","),
+                discount_per_unit=quote.discount_per_unit,
+                discount_total=quote.discount_total,
+                calculation_detail=shirt_calculation_detail(quote)[:255],
                 calculation_snapshot=quote.persisted_snapshot(),
             )
             total_calc += quote.total
@@ -227,29 +324,26 @@ def _sync_order_items(order: Order, items: list[Quote | ShirtQuote | ServiceQuot
             total_calc += quote.total
 
     # Check for manual price adjustment
-    adjustment = (order.total_amount - total_calc).quantize(Decimal("0.01"))
-    if adjustment != Decimal("0.00"):
-        formatted = f"{adjustment:.2f}".replace(".", ",")
-        OrderItem.objects.create(
-            order=order,
-            position=len(items) + 1,
-            kind=OrderItem.Kind.ADJUSTMENT,
-            material_code="manual_adjustment",
-            material_name="Ajuste manual do valor",
-            category="Ajuste",
-            billing_quantity=Decimal("1.00"),
-            billing_unit="Ajuste",
-            pricing_rule="Ajuste manual do valor",
-            unit_price=adjustment,
-            line_total=adjustment,
-            calculation_detail=f"1,00 (Ajuste) X R$ {formatted}",
-            calculation_snapshot={
-                "source": "manual_total_adjustment",
-                "calculated_total": str(total_calc),
-                "order_total": str(order.total_amount),
-                "adjustment": str(adjustment),
-            },
-        )
+    _sync_adjustment_item(order, total_calc, position=len(items) + 1)
+
+
+def _record_shirt_discount(order: Order, items, actor, request=None) -> None:
+    """Registra no histórico e na auditoria o desconto por camisa aplicado."""
+    discounted = [q for q in items if isinstance(q, ShirtQuote) and q.discount_total > 0]
+    if not discounted:
+        return
+    total = sum((q.discount_total for q in discounted), Decimal("0.00"))
+    parts = "; ".join(
+        f"{q.quantity}× Camisa {q.shirt.name} {q.color} {q.size}: -{brl(q.discount_per_unit)}/camisa"
+        for q in discounted
+    )
+    OrderHistory.objects.create(
+        order=order,
+        user=actor,
+        action="desconto_camisa",
+        description=f"Desconto por camisa aplicado ({parts}). Total de desconto: {brl(total)}.",
+    )
+    record_audit(actor, "desconto_camisa", "pedido", order.pk, after={"desconto_total": str(total)}, request=request)
 
 
 def _snapshot_receipt_on_payment(order: Order, actor) -> None:
@@ -270,7 +364,7 @@ def _snapshot_receipt_on_payment(order: Order, actor) -> None:
 def create_order(*, form, actor, files, request=None) -> Order:
     payload = form.cleaned_data.get("calculation_payload")
     cliente = form.cleaned_data.get("cliente")
-    items = _parse_items_from_payload(payload, cliente=cliente)
+    items, _hints = price_cart(payload, cliente=cliente)
 
     with transaction.atomic():
         order = form.save(commit=False)
@@ -305,6 +399,7 @@ def create_order(*, form, actor, files, request=None) -> Order:
 
         desc_criacao = f"Pedido criado.{' (Correção por Defeito)' if order.is_correction else ''}"
         OrderHistory.objects.create(order=order, user=actor, action="criacao", description=desc_criacao)
+        _record_shirt_discount(order, items, actor, request=request)
         if order.payment_status == Order.PaymentStatus.PAID:
             OrderHistory.objects.create(
                 order=order,
@@ -341,7 +436,9 @@ def update_order(*, order: Order, form, actor, files, request=None, previous_sta
     require_order_access(actor, order)
     payload = form.cleaned_data.get("calculation_payload")
     cliente = form.cleaned_data.get("cliente") if hasattr(form, "cleaned_data") else getattr(order, "cliente", None)
-    items = _parse_items_from_payload(payload, cliente=cliente)
+    items, _hints = price_cart(payload, cliente=cliente)
+    # Preserva os preços originais quando nada mudou nos itens (A1, decisão 6).
+    items_preserved = bool(items) and order_items_unchanged(order, items)
 
     previous = previous_state or {
         "payment_status": order.payment_status,
@@ -382,8 +479,13 @@ def update_order(*, order: Order, form, actor, files, request=None, previous_sta
                 if dirty:
                     single_split.save(update_fields=["payment_method", "amount"])
 
-        if items:
+        if items_preserved:
+            kept = list(updated.items.exclude(kind=OrderItem.Kind.ADJUSTMENT))
+            kept_total = sum((item.line_total for item in kept), Decimal("0.00"))
+            _sync_adjustment_item(updated, kept_total, position=len(kept) + 1)
+        elif items:
             _sync_order_items(updated, items)
+            _record_shirt_discount(updated, items, actor, request=request)
 
         if payment_just_confirmed:
             OrderHistory.objects.create(

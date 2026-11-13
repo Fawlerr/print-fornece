@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Configurações do negócio | Print Fornece{% endblock %}
+{% block page_heading %}Configurações do negócio{% endblock %}
+
+{% block content %}
+  <p class="settings-intro">
+    Valores usados pelo sistema inteiro. Só administradores veem esta tela, e toda alteração fica registrada na auditoria.
+    {% if config.updated_by %}<br><small>Última alteração: {{ config.updated_at|date:"d/m/Y H:i" }} por {{ config.updated_by.name|default:config.updated_by.email }}.</small>{% endif %}
+  </p>
+
+  <nav class="settings-toc" aria-label="Seções das configurações">
+    <a href="#desconto_camisa">Desconto em camisas</a>
+  </nav>
+
+  {% with form=forms.desconto_camisa %}
+    <section class="card form-card settings-section" id="desconto_camisa" aria-labelledby="desconto_camisa_title">
+      <div class="section-heading">
+        <div>
+          <h2 id="desconto_camisa_title">Desconto em camisas</h2>
+          <p>
+            Vale para cada grupo de camisas do <strong>mesmo modelo e mesma cor</strong>, quando <strong>todas</strong> são do mesmo tamanho
+            e a quantidade atinge o mínimo. É aplicado em cima do preço de atacado (a partir de 5 un). Só vale para pedidos novos ou itens alterados.
+          </p>
+        </div>
+        <span class="status-pill {% if config.shirt_discount_enabled %}status-pill--on{% else %}status-pill--off{% endif %}">
+          {% if config.shirt_discount_enabled %}Ativo{% else %}Desativado{% endif %}
+        </span>
+      </div>
+      <form method="post" novalidate>
+        {% csrf_token %}
+        <input type="hidden" name="section" value="desconto_camisa">
+        {% include "includes/form_fields.html" with form=form %}
+        <div class="form-actions">
+          <button class="btn btn-primary" type="submit">Salvar desconto</button>
+        </div>
+      </form>
+    </section>
+  {% endwith %}
+
+{% endblock %}

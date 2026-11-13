@@ -236,6 +236,11 @@ class Order(models.Model):
         return self.estimated_production_time["display"]
 
     @property
+    def shirt_discount_total(self) -> Decimal:
+        """Total de desconto por camisa do pedido (usa os itens pré-carregados quando houver)."""
+        return sum((item.discount_total or Decimal("0.00") for item in self.items.all()), Decimal("0.00"))
+
+    @property
     def primary_attachment(self) -> OrderAttachment | None:
         attachments = getattr(self, "_prefetched_objects_cache", {}).get("attachments")
         if attachments is not None:
@@ -298,6 +303,9 @@ class OrderItem(models.Model):
     billing_unit = models.CharField(max_length=30)
     unit_price = models.DecimalField(max_digits=12, decimal_places=2)
     line_total = models.DecimalField(max_digits=12, decimal_places=2)
+    # Desconto por camisa (A1). Pedidos anteriores ficam com 0 — nunca são recalculados.
+    discount_per_unit = models.DecimalField("desconto por unidade", max_digits=12, decimal_places=2, default=0)
+    discount_total = models.DecimalField("desconto total do item", max_digits=12, decimal_places=2, default=0)
     pricing_rule = models.CharField(max_length=120)
     calculation_detail = models.CharField(max_length=255, blank=True)
     calculation_snapshot = models.JSONField(default=dict, blank=True)
@@ -310,6 +318,33 @@ class OrderItem(models.Model):
 
     def __str__(self) -> str:
         return f"{self.order.number} - {self.material_name}"
+
+    def _snapshot_decimal(self, key: str) -> Decimal | None:
+        raw = (self.calculation_snapshot or {}).get(key)
+        if raw in (None, ""):
+            return None
+        try:
+            return Decimal(str(raw))
+        except Exception:
+            return None
+
+    @property
+    def table_unit_price(self) -> Decimal | None:
+        """Preço de tabela da camisa (gravado no momento da venda)."""
+        return self._snapshot_decimal("table_unit_price")
+
+    @property
+    def wholesale_unit_price(self) -> Decimal | None:
+        """Preço de atacado da camisa, quando a linha atingiu o atacado."""
+        return self._snapshot_decimal("wholesale_unit_price")
+
+    @property
+    def price_before_discount(self) -> Decimal:
+        return (self.unit_price or Decimal("0.00")) + (self.discount_per_unit or Decimal("0.00"))
+
+    @property
+    def has_shirt_discount(self) -> bool:
+        return bool(self.discount_total and self.discount_total > 0)
 
 
 class OrderHistory(models.Model):

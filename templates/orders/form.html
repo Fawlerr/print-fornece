@@ -93,7 +93,7 @@
     </div>
 
     <!-- Seção de Catálogo e Carrinho de Múltiplos Produtos / Serviços -->
-    <section class="calculator-panel" data-order-calculator data-endpoint="{{ calculator_endpoint }}" aria-labelledby="calculator-title">
+    <section class="calculator-panel" data-order-calculator data-endpoint="{{ calculator_endpoint }}" data-cart-endpoint="{{ calculator_cart_endpoint }}" data-edit-mode="{% if object.pk %}true{% else %}false{% endif %}" aria-labelledby="calculator-title">
       <div class="calculator-heading">
         <div>
           <p class="eyebrow"><i class="fa-solid fa-layer-group"></i> Catálogo e Orçamento</p>
@@ -172,6 +172,13 @@
             </span>
           </label>
         </div>
+        {% if shirt_discount_rule.enabled %}
+          <p class="shirt-discount-note">
+            <i class="fa-solid fa-tag" aria-hidden="true"></i>
+            Desconto extra de <strong>{{ shirt_discount_rule.describe_value }}</strong> por camisa com
+            <strong>{{ shirt_discount_rule.min_quantity }} ou mais</strong> do mesmo modelo, cor e tamanho (em cima do atacado).
+          </p>
+        {% endif %}
 
         <div class="calculator-inputs" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; align-items: flex-end;">
           <label for="shirt-color">Cor da Camisa
@@ -281,6 +288,11 @@
             </tbody>
           </table>
         </div>
+        <div class="cart-discount-summary" data-cart-discount-summary hidden>
+          <i class="fa-solid fa-tag" aria-hidden="true"></i>
+          Desconto por camisa neste pedido: <strong data-cart-discount-total>R$ 0,00</strong>
+        </div>
+        <ul class="cart-hints" data-cart-hints aria-live="polite" hidden></ul>
       </div>
 
       <p class="calculator-note" style="margin-top: 12px;">

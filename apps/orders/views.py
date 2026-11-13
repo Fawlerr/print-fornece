@@ -17,6 +17,7 @@ from django.views.generic import CreateView, UpdateView
 from apps.notifications.services import notify_role
 from apps.notifications.whatsapp import get_whatsapp_share_links
 from apps.audit.services import record_audit
+from apps.business.services import shirt_discount_rule
 
 from .art_preview import generate_art_preview_image
 from .calculator import (
@@ -30,7 +31,7 @@ from .calculator import (
 from .forms import OrderForm
 from .models import Order, OrderAttachment, OrderHistory, OrderItem, OrderStageHistory
 from .pdf import generate_order_receipt_pdf
-from .services import create_order, require_order_access, update_order
+from .services import create_order, price_cart, require_order_access, update_order
 
 
 class OrderCreateView(LoginRequiredMixin, CreateView):
@@ -47,6 +48,8 @@ class OrderCreateView(LoginRequiredMixin, CreateView):
         context["calculator_materials"] = material_catalogue()
         context["catalogue"] = full_catalogue()
         context["calculator_endpoint"] = reverse("orders:calculate_quote")
+        context["calculator_cart_endpoint"] = reverse("orders:calculate_cart")
+        context["shirt_discount_rule"] = shirt_discount_rule()
         existing_items = []
         if self.request.POST.get("calculation_payload"):
             try:
@@ -173,6 +176,8 @@ class OrderUpdateView(LoginRequiredMixin, UpdateView):
         context["calculator_materials"] = material_catalogue()
         context["catalogue"] = full_catalogue()
         context["calculator_endpoint"] = reverse("orders:calculate_quote")
+        context["calculator_cart_endpoint"] = reverse("orders:calculate_cart")
+        context["shirt_discount_rule"] = shirt_discount_rule()
         is_locked = self._is_post_payment_locked(self.object)
         is_post_payment = self.object.stage in [Order.Stage.DELIVERED, Order.Stage.CANCELLED]
         context["is_post_payment_locked"] = is_locked
@@ -568,6 +573,46 @@ def calculate_order_quote(request):
     return JsonResponse({"ok": True, "quote": quote.payload()})
 
 
+def calculate_cart_quote(request):
+    """Recalcula o carrinho inteiro no servidor (inclui o desconto por camisa).
+
+    O navegador chama este endpoint sempre que itens, quantidades ou tamanhos
+    mudam. O resultado é apenas exibido; ao salvar, o backend recalcula de novo.
+    """
+    if not request.user.is_authenticated:
+        return JsonResponse({"message": "Autenticação necessária."}, status=403)
+    if request.method != "POST":
+        return JsonResponse({"message": "Método não permitido."}, status=405)
+    try:
+        payload = json.loads(request.body or "{}")
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return JsonResponse({"message": "Dados do orçamento inválidos."}, status=400)
+    if not isinstance(payload, dict) or not isinstance(payload.get("items"), list):
+        return JsonResponse({"message": "Dados do orçamento inválidos."}, status=400)
+
+    cliente = None
+    cliente_id = payload.get("cliente_id")
+    if cliente_id:
+        from apps.payments.models import Cliente
+        cliente = Cliente.objects.filter(pk=cliente_id).first()
+
+    try:
+        quotes, hints = price_cart({"items": payload["items"]}, cliente=cliente)
+    except ValidationError as exc:
+        return JsonResponse({"message": exc.messages[0]}, status=422)
+
+    items = [quote.payload() for quote in quotes]
+    discount_total = sum((Decimal(item.get("discount_total") or "0") for item in items), Decimal("0.00"))
+    total = sum((Decimal(item["total"]) for item in items), Decimal("0.00"))
+    return JsonResponse({
+        "ok": True,
+        "items": items,
+        "hints": hints,
+        "discount_total": format(discount_total, "f"),
+        "total": format(total, "f"),
+    })
+
+
 def art_preview_view(request, pk: int):
     """Serve composite artwork preview image on gray background with watermark."""
     order = get_object_or_404(Order, pk=pk)
@@ -684,7 +729,10 @@ def grouped_invoice_view(request):
                 "unit_price": it.unit_price,
                 "total": it.line_total,
                 "detail": it.calculation_detail or it.pricing_rule,
+                "item": it,
             })
+
+    shirt_discount_total = sum((o.shirt_discount_total for o in orders), Decimal("0.00"))
 
     all_payments = []
     for o in orders:
@@ -703,6 +751,7 @@ def grouped_invoice_view(request):
         "orders_count": len(orders),
         "order_ids_str": ",".join(str(o.id) for o in orders),
         "all_items": all_items,
+        "shirt_discount_total": shirt_discount_total,
         "all_payments": all_payments,
         "total_amount": total_amount,
         "total_paid": total_paid,
@@ -780,7 +829,7 @@ def order_stone_create_charge(request, pk: int) -> JsonResponse:
             "trace_id": getattr(exc, "trace_id", ""),
             "error_parameter": getattr(exc, "error_parameter", ""),
         }, status=422 if getattr(exc, "http_status", None) == 422 else 400)
-    except Exception as exc:
+    except Exception:
         return JsonResponse({
             "success": False,
             "error": "Não foi possível gerar a cobrança na Stone. Tente novamente ou use outra forma de pagamento.",
@@ -829,9 +878,7 @@ def order_stone_dev_logs(request, pk: int) -> JsonResponse:
 
     from apps.payments.models import StoneLogIntegracao
     from django.db.models import Q
-    import re
 
-    order_digits = re.sub(r"\D", "", order.number)
     logs = StoneLogIntegracao.objects.filter(
         Q(order_id=order.number) |
         Q(order_id__icontains=order.number) |
@@ -859,25 +906,25 @@ def order_stone_dev_logs(request, pk: int) -> JsonResponse:
         })
 
     logs_data = []
-    for l in logs:
+    for log_entry in logs:
         logs_data.append({
-            "id": l.pk,
-            "trace_id": l.trace_id,
-            "timestamp": l.timestamp.strftime("%d/%m/%Y %H:%M:%S") if l.timestamp else "",
-            "nivel": l.nivel,
-            "tipo_evento": l.tipo_evento,
-            "mensagem": l.mensagem,
-            "endpoint": l.endpoint,
-            "metodo_http": l.metodo_http,
-            "http_status": l.http_status,
-            "duracao_ms": l.duracao_ms,
-            "order_id": l.order_id,
-            "charge_id": l.charge_id,
-            "webhook_event_id": l.webhook_event_id,
-            "request_headers": l.request_headers,
-            "request_body": l.request_body,
-            "response_headers": l.response_headers,
-            "response_body": l.response_body,
+            "id": log_entry.pk,
+            "trace_id": log_entry.trace_id,
+            "timestamp": log_entry.timestamp.strftime("%d/%m/%Y %H:%M:%S") if log_entry.timestamp else "",
+            "nivel": log_entry.nivel,
+            "tipo_evento": log_entry.tipo_evento,
+            "mensagem": log_entry.mensagem,
+            "endpoint": log_entry.endpoint,
+            "metodo_http": log_entry.metodo_http,
+            "http_status": log_entry.http_status,
+            "duracao_ms": log_entry.duracao_ms,
+            "order_id": log_entry.order_id,
+            "charge_id": log_entry.charge_id,
+            "webhook_event_id": log_entry.webhook_event_id,
+            "request_headers": log_entry.request_headers,
+            "request_body": log_entry.request_body,
+            "response_headers": log_entry.response_headers,
+            "response_body": log_entry.response_body,
         })
 
     from django.conf import settings

@@ -195,9 +195,17 @@ class ShirtQuote:
     color: str
     size: str
     quantity: int
-    unit_price: Decimal
+    unit_price: Decimal  # preço final por camisa (já com atacado e desconto)
     total: Decimal
     pricing_rule: str
+    table_unit_price: Decimal = Decimal("0.00")  # preço de tabela (1 a 4 un)
+    wholesale_unit_price: Decimal | None = None  # preço de atacado, se a linha atingiu o atacado
+    discount_per_unit: Decimal = Decimal("0.00")  # desconto por camisa (mesmo modelo, cor e tamanho)
+    discount_total: Decimal = Decimal("0.00")
+
+    @property
+    def price_before_discount(self) -> Decimal:
+        return self.unit_price + self.discount_per_unit
 
     def payload(self) -> dict[str, str | int]:
         return {
@@ -209,14 +217,60 @@ class ShirtQuote:
             "product_size": self.size,
             "quantity": self.quantity,
             "unit": self.shirt.unit,
+            "table_unit_price": decimal_string(self.table_unit_price),
+            "wholesale_unit_price": decimal_string(self.wholesale_unit_price) if self.wholesale_unit_price is not None else "",
+            "price_before_discount": decimal_string(self.price_before_discount),
+            "discount_per_unit": decimal_string(self.discount_per_unit),
+            "discount_total": decimal_string(self.discount_total),
             "unit_price": decimal_string(self.unit_price),
             "total": decimal_string(self.total),
             "pricing_rule": self.pricing_rule,
-            "calculation_detail": f"{self.quantity} un ({self.color}, {self.size}) × R$ {self.unit_price:.2f}".replace(".", ","),
+            "calculation_detail": shirt_calculation_detail(self),
         }
 
     def persisted_snapshot(self) -> dict[str, str | int]:
         return self.payload()
+
+
+def brl(value: Decimal) -> str:
+    """Formata um valor em reais no padrão brasileiro (R$ 1.234,56)."""
+    text = f"{Decimal(value):,.2f}"
+    return "R$ " + text.replace(",", "_").replace(".", ",").replace("_", ".")
+
+
+def shirt_calculation_detail(quote: "ShirtQuote") -> str:
+    detail = f"{quote.quantity} un ({quote.color}, {quote.size}) × {brl(quote.unit_price)}"
+    if quote.discount_per_unit > 0:
+        detail += f" (já com desconto de {brl(quote.discount_per_unit)}/camisa)"
+    return detail
+
+
+@dataclass(frozen=True)
+class ShirtDiscountRule:
+    """Regra de desconto por camisa lida da configuração do negócio.
+
+    O desconto vale para cada grupo de camisas do MESMO modelo e MESMA cor quando
+    todas são do MESMO tamanho e a quantidade do grupo atinge o mínimo. É aplicado
+    em cima do preço da linha (tabela ou atacado).
+    """
+
+    enabled: bool = False
+    kind: str = "fixo"  # "fixo" (R$ por camisa) ou "percentual"
+    value: Decimal = Decimal("0.00")
+    min_quantity: int = 6
+    eligible_codes: frozenset[str] = frozenset()
+
+    def discount_for(self, base_unit_price: Decimal) -> Decimal:
+        if self.kind == "percentual":
+            discount = (base_unit_price * self.value / Decimal("100")).quantize(MONEY_CENT, rounding=ROUND_HALF_UP)
+        else:
+            discount = Decimal(self.value).quantize(MONEY_CENT, rounding=ROUND_HALF_UP)
+        return max(Decimal("0.00"), min(discount, base_unit_price))
+
+    def describe_value(self) -> str:
+        if self.kind == "percentual":
+            return f"{format(self.value.normalize(), 'f').replace('.', ',')}%"
+        return brl(self.value)
 
 
 @dataclass(frozen=True)
@@ -427,9 +481,11 @@ def calculate_shirt_quote(*, shirt_code: str, color: str, size: str, quantity: i
 
     if qty >= shirt.tier_threshold:
         unit_price = shirt.price_tiered
+        wholesale = shirt.price_tiered
         rule = f"Preço atacado (a partir de {shirt.tier_threshold} un: R$ {shirt.price_tiered:.2f}/un)".replace(".", ",")
     else:
         unit_price = shirt.price_single
+        wholesale = None
         rule = f"Preço unitário padrão (1 a {shirt.tier_threshold - 1} un: R$ {shirt.price_single:.2f}/un)".replace(".", ",")
 
     total = (Decimal(qty) * unit_price).quantize(MONEY_CENT, rounding=ROUND_HALF_UP)
@@ -441,7 +497,87 @@ def calculate_shirt_quote(*, shirt_code: str, color: str, size: str, quantity: i
         unit_price=unit_price,
         total=total,
         pricing_rule=rule,
+        table_unit_price=shirt.price_single,
+        wholesale_unit_price=wholesale,
     )
+
+
+def apply_shirt_volume_discount(quotes: list, rule: ShirtDiscountRule) -> tuple[list, list[dict]]:
+    """Aplica o desconto por camisa e devolve (itens recalculados, dicas para a tela).
+
+    Regras (validadas sempre no backend):
+    - agrupa as linhas de camisa por (modelo, cor);
+    - o grupo ganha desconto somente se todas as camisas forem do mesmo tamanho
+      e a quantidade total do grupo for >= ``rule.min_quantity``;
+    - o desconto é calculado por unidade (arredondado a centavos) em cima do preço
+      da linha (tabela ou atacado) e só então multiplicado pela quantidade;
+    - itens que não são camisa não mudam.
+    """
+    from collections import OrderedDict
+    from dataclasses import replace
+
+    # Sempre parte do preço sem desconto, para que a regra seja removida
+    # automaticamente quando o grupo deixa de cumpri-la.
+    base: list = []
+    for quote in quotes:
+        if isinstance(quote, ShirtQuote) and quote.discount_per_unit > 0:
+            unit = quote.price_before_discount
+            quote = replace(
+                quote,
+                unit_price=unit,
+                total=(Decimal(quote.quantity) * unit).quantize(MONEY_CENT, rounding=ROUND_HALF_UP),
+                discount_per_unit=Decimal("0.00"),
+                discount_total=Decimal("0.00"),
+                pricing_rule=quote.pricing_rule.split(" + desconto")[0],
+            )
+        base.append(quote)
+
+    if not rule.enabled or rule.value <= 0:
+        return base, []
+
+    groups: "OrderedDict[tuple[str, str], list[int]]" = OrderedDict()
+    for index, quote in enumerate(base):
+        if isinstance(quote, ShirtQuote) and quote.shirt.code in rule.eligible_codes:
+            groups.setdefault((quote.shirt.code, quote.color), []).append(index)
+
+    hints: list[dict] = []
+    for (code, color), indexes in groups.items():
+        lines = [base[i] for i in indexes]
+        sizes = {line.size for line in lines}
+        quantity = sum(line.quantity for line in lines)
+        label = f"Camisa {lines[0].shirt.name} {color}"
+        if len(sizes) == 1 and quantity >= rule.min_quantity:
+            for i in indexes:
+                line = base[i]
+                per_unit = rule.discount_for(line.unit_price)
+                if per_unit <= 0:
+                    continue
+                unit = line.unit_price - per_unit
+                base[i] = replace(
+                    line,
+                    unit_price=unit,
+                    total=(Decimal(line.quantity) * unit).quantize(MONEY_CENT, rounding=ROUND_HALF_UP),
+                    discount_per_unit=per_unit,
+                    discount_total=(Decimal(line.quantity) * per_unit).quantize(MONEY_CENT, rounding=ROUND_HALF_UP),
+                    pricing_rule=f"{line.pricing_rule} + desconto {brl(per_unit)}/camisa",
+                )
+            hints.append({"group": label, "status": "aplicado", "message": f"{label}: desconto de {rule.describe_value()} por camisa aplicado."})
+        elif len(sizes) == 1:
+            missing = rule.min_quantity - quantity
+            plural = "unidade" if missing == 1 else "unidades"
+            hints.append({
+                "group": label,
+                "status": "faltam",
+                "missing": missing,
+                "message": f"{label}: com mais {missing} {plural} do mesmo tamanho ({next(iter(sizes))}), este item ganha desconto de {rule.describe_value()} por camisa.",
+            })
+        else:
+            hints.append({
+                "group": label,
+                "status": "tamanhos_misturados",
+                "message": f"{label}: tamanhos misturados ({', '.join(sorted(sizes))}) não têm o desconto. Ele só vale com {rule.min_quantity} ou mais camisas todas do mesmo tamanho.",
+            })
+    return base, hints
 
 
 def calculate_service_quote(

@@ -77,6 +77,7 @@ class ReportView(LoginRequiredMixin, AdministratorRequiredMixin, TemplateView):
         completed = sum(order.stage in (Order.Stage.DELIVERED, "finalizado") for order in orders)
         cancelled = sum(order.stage == Order.Stage.CANCELLED for order in orders)
         ticket = sum((order.total_amount for order in active), Decimal("0")) / len(active) if active else Decimal("0")
+        shirt_discount = OrderItem.objects.filter(order__in=[o.pk for o in active]).aggregate(total=Sum("discount_total"))["total"] or Decimal("0")
         expenses = Expense.objects.filter(status=Expense.Status.ACTIVE, expense_date__range=(start, end)).aggregate(total=Sum("amount"))["total"] or Decimal("0")
         context = self.get_context_data(
             filter_form=form,
@@ -87,6 +88,7 @@ class ReportView(LoginRequiredMixin, AdministratorRequiredMixin, TemplateView):
             expenses=expenses,
             profit=paid - expenses,
             ticket=ticket,
+            shirt_discount=shirt_discount,
             completed=completed,
             cancelled=cancelled,
             stage_durations=self._stage_durations(orders),
@@ -1186,6 +1188,7 @@ class ProductSalesReportView(LoginRequiredMixin, AdministratorRequiredMixin, Tem
                         "quantity": Decimal("0.00"),
                         "meters": Decimal("0.00"),
                         "revenue": Decimal("0.00"),
+                        "discount": Decimal("0.00"),
                         "orders_count": 0,
                         "orders_set": set(),
                         "unit": item.billing_unit or "un",
@@ -1203,12 +1206,14 @@ class ProductSalesReportView(LoginRequiredMixin, AdministratorRequiredMixin, Tem
                 products_map[key]["quantity"] += qty
                 products_map[key]["meters"] += meters
                 products_map[key]["revenue"] += item.line_total
+                products_map[key]["discount"] += item.discount_total or Decimal("0.00")
                 products_map[key]["orders_set"].add(order.id)
 
         rows = []
         grand_total_revenue = Decimal("0.00")
         grand_total_qty = Decimal("0.00")
         grand_total_meters = Decimal("0.00")
+        grand_total_discount = Decimal("0.00")
 
         for k, v in products_map.items():
             v["orders_count"] = len(v["orders_set"])
@@ -1216,6 +1221,7 @@ class ProductSalesReportView(LoginRequiredMixin, AdministratorRequiredMixin, Tem
             grand_total_revenue += v["revenue"]
             grand_total_qty += v["quantity"]
             grand_total_meters += v["meters"]
+            grand_total_discount += v["discount"]
             rows.append(v)
 
         rows.sort(key=lambda x: x["revenue"], reverse=True)
@@ -1224,7 +1230,7 @@ class ProductSalesReportView(LoginRequiredMixin, AdministratorRequiredMixin, Tem
             r["percentage"] = (float(r["revenue"] / grand_total_revenue) * 100) if grand_total_revenue > 0 else 0.0
 
         if request.GET.get("export") == "csv":
-            return self._csv_export(rows, year, month, grand_total_qty, grand_total_meters, grand_total_revenue)
+            return self._csv_export(rows, year, month, grand_total_qty, grand_total_meters, grand_total_revenue, grand_total_discount)
 
         month_names = ["", "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"]
         month_label = f"{month_names[month]} de {year}"
@@ -1242,19 +1248,20 @@ class ProductSalesReportView(LoginRequiredMixin, AdministratorRequiredMixin, Tem
             grand_total_qty=grand_total_qty,
             grand_total_meters=grand_total_meters,
             grand_total_revenue=grand_total_revenue,
+            grand_total_discount=grand_total_discount,
             total_orders_count=len(orders),
         )
         return self.render_to_response(context)
 
     @staticmethod
-    def _csv_export(rows, year, month, grand_qty, grand_meters, grand_revenue):
+    def _csv_export(rows, year, month, grand_qty, grand_meters, grand_revenue, grand_discount=Decimal("0.00")):
         response = HttpResponse(content_type="text/csv; charset=utf-8")
         response["Content-Disposition"] = f'attachment; filename="relatorio-vendas-produtos-{year:04d}-{month:02d}.csv"'
         response.write("\ufeff")
         writer = csv.writer(response, delimiter=";")
         writer.writerow(["PRINT FORNECE - RELATÓRIO DE VENDAS POR PRODUTO", f"{month:02d}/{year:04d}"])
         writer.writerow([])
-        writer.writerow(["Categoria", "Produto / Item", "Qtd. Vendida", "Unidade", "Metros (m)", "Qtd. Pedidos", "Preço Médio (R$)", "Faturamento Total (R$)", "Participação (%)"])
+        writer.writerow(["Categoria", "Produto / Item", "Qtd. Vendida", "Unidade", "Metros (m)", "Qtd. Pedidos", "Preço Médio (R$)", "Desconto por camisa (R$)", "Faturamento Total (R$)", "Participação (%)"])
         for r in rows:
             writer.writerow([
                 r["category"],
@@ -1264,11 +1271,12 @@ class ProductSalesReportView(LoginRequiredMixin, AdministratorRequiredMixin, Tem
                 f"{r['meters']:.2f}".replace(".", ","),
                 r["orders_count"],
                 f"{r['avg_price']:.2f}".replace(".", ","),
+                f"{r['discount']:.2f}".replace(".", ","),
                 f"{r['revenue']:.2f}".replace(".", ","),
                 f"{r['percentage']:.1f}%".replace(".", ","),
             ])
         writer.writerow([])
-        writer.writerow(["TOTAL GERAL", "", f"{grand_qty:.2f}".replace(".", ","), "", f"{grand_meters:.2f}".replace(".", ","), "", "", f"{grand_revenue:.2f}".replace(".", ","), "100%"])
+        writer.writerow(["TOTAL GERAL", "", f"{grand_qty:.2f}".replace(".", ","), "", f"{grand_meters:.2f}".replace(".", ","), "", "", f"{grand_discount:.2f}".replace(".", ","), f"{grand_revenue:.2f}".replace(".", ","), "100%"])
         return response
 
 

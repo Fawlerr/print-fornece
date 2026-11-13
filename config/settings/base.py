@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     "apps.bug_reports",
     "apps.inventory",
     "apps.backups",
+    "apps.business",
 ]
 
 MIDDLEWARE = [

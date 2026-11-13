@@ -148,6 +148,14 @@ def get_reduced_measures_summary(order: Order) -> str:
     return "Conforme especificações"
 
 
+def get_shirt_discount_line(order: Order) -> str:
+    """Linha com o desconto por camisa do pedido (vazia quando não há desconto)."""
+    discount = order.shirt_discount_total
+    if discount <= Decimal("0.00"):
+        return ""
+    return f"Desconto por camisa (6+ iguais): -R$ {format_money_br(discount)}\n"
+
+
 def build_quote_whatsapp_message(order: Order, public_quote_url: str = "") -> str:
     """Template enxuto solicitado pelo cliente com foco direto no que importa."""
     medida = get_reduced_measures_summary(order)
@@ -165,6 +173,7 @@ def build_quote_whatsapp_message(order: Order, public_quote_url: str = "") -> st
         f"Olá, {order.client_name}. Segue seu orçamento:\n\n"
         f"━━━━━━━━━━━━━━━\n"
         f"Medida: {medida}\n"
+        f"{get_shirt_discount_line(order)}"
         f"TOTAL: R$ {valor_total}\n"
         f"━━━━━━━━━━━━━━━\n"
         f"Prazo estimado: {prazo}\n"
@@ -195,6 +204,7 @@ def build_ready_whatsapp_message(order: Order, public_quote_url: str = "") -> st
         f"Material no nome de: {order.client_name}\n"
         f"━━━━━━━━━━━━━━━\n"
         f"Itens:{resumo_itens}\n"
+        f"{get_shirt_discount_line(order)}"
         f"{payment_info}\n"
         f"{alerta_liberacao}"
         f"{link_part}"
@@ -228,6 +238,7 @@ def build_delivered_whatsapp_message(order: Order, public_quote_url: str = "") -
         f"Seu pedido #{order.number} foi entregue com sucesso.\n"
         f"━━━━━━━━━━━━━━━\n"
         f"Itens entregues:{resumo_itens}\n"
+        f"{get_shirt_discount_line(order)}"
         f"{payment_info}\n"
         f"{link_part}"
         f"━━━━━━━━━━━━━━━\n"

@@ -101,6 +101,7 @@
                   <span style="color: #94a3b8; font-size: 0.80rem;">({{ it.product_color }}, Tam. {{ it.product_size }})</span>
                 {% endif %}
                 <small style="display: block; color: #94a3b8; font-size: 0.78rem;">{{ it.detail }}</small>
+                {% include "orders/_shirt_price_breakdown.html" with item=it.item %}
               </td>
               <td style="padding: 8px 10px; text-align: center;">{{ it.quantity }} {{ it.unit|default:"un" }}</td>
               <td style="padding: 8px 10px; text-align: right;">R$ {{ it.unit_price|floatformat:2 }}</td>
@@ -138,6 +139,12 @@
       <span style="color: #cbd5e1;">Subtotal dos {{ orders_count }} Pedidos:</span>
       <strong style="color: #fff;">R$ {{ total_amount|floatformat:2 }}</strong>
     </div>
+    {% if shirt_discount_total > 0 %}
+      <div class="order-discount-total">
+        <span>Desconto por camisa (já incluído no subtotal):</span>
+        <strong>−R$ {{ shirt_discount_total|floatformat:2 }}</strong>
+      </div>
+    {% endif %}
     <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 1rem; color: #22c55e;">
       <span>Total Já Pago:</span>
       <strong>- R$ {{ total_paid|floatformat:2 }}</strong>

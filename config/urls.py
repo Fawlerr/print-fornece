@@ -5,13 +5,14 @@ from django.views.static import serve
 
 from apps.dashboard.views import home
 from apps.reports.views import CashRegisterBetaView, CashRegisterReportView
-from . import health, views
+from . import health
 
 urlpatterns = [
     path("health/", health.health_check, name="health"),
     path("admin/", admin.site.urls),
     path("", home, name="home"),
     path("accounts/", include("apps.accounts.urls")),
+    path("configuracoes/", include("apps.business.urls")),
     path("dashboard/", include("apps.dashboard.urls")),
     path("orders/", include("apps.orders.urls")),
     path("production/", include("apps.production.urls")),

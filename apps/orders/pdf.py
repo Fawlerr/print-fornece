@@ -100,6 +100,14 @@ def _item_flowable(item, styles):
         attr_txt = " · ".join(filter(bool, [color_txt, size_txt]))
         if attr_txt:
             artwork = f"<br/><font size=7.8><b>{attr_txt}</b></font>"
+    if getattr(item, "has_shirt_discount", False):
+        parts = []
+        if item.table_unit_price:
+            parts.append(f"Tabela {_money(item.table_unit_price)}")
+        if item.wholesale_unit_price:
+            parts.append(f"Atacado {_money(item.wholesale_unit_price)}")
+        parts.append(f"Desc. -{_money(item.discount_per_unit)}/camisa")
+        artwork += f"<br/><font size=7.8><b>{' · '.join(parts)}</b></font>"
     details = Paragraph(
         f"{calculation}{artwork}",
         styles["item_details"],
@@ -245,6 +253,10 @@ def generate_order_receipt_pdf(order) -> bytes:
     items = list(order.items.all()) if hasattr(order, "items") else []
     if items:
         story.extend(_item_flowable(item, styles) for item in items)
+        shirt_discount = sum((item.discount_total or Decimal("0.00") for item in items), Decimal("0.00"))
+        if shirt_discount > 0:
+            story.append(Paragraph(f"<b>Desconto por camisa (já incluído): -{_money(shirt_discount)}</b>", styles["body"]))
+            story.append(Spacer(1, 2.0 * mm))
     else:
         story.append(_legacy_item_flowable(order, snapshot["total"], styles))
 

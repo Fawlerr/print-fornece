@@ -848,3 +848,28 @@ label.required {
 
 
 
+
+/* ===== A1 — Desconto por camisa ===== */
+.shirt-discount-note { margin: 0 0 12px; padding: 8px 12px; border-radius: 6px; font-size: 0.86rem; background: rgba(250, 204, 21, 0.12); border: 1px solid rgba(250, 204, 21, 0.4); color: #fde68a; }
+.cart-discount-summary { margin-top: 12px; padding: 8px 12px; border-radius: 6px; font-size: 0.9rem; background: rgba(250, 204, 21, 0.12); border: 1px solid rgba(250, 204, 21, 0.4); color: #fde68a; }
+.cart-hints { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 6px; }
+.cart-hint { padding: 8px 12px; border-radius: 6px; font-size: 0.84rem; border: 1px solid rgba(148, 163, 184, 0.35); background: rgba(148, 163, 184, 0.1); color: #e2e8f0; }
+.cart-hint--aplicado { border-color: rgba(34, 197, 94, 0.45); background: rgba(34, 197, 94, 0.12); color: #bbf7d0; }
+.cart-hint--faltam { border-color: rgba(56, 189, 248, 0.45); background: rgba(56, 189, 248, 0.1); color: #bae6fd; }
+.cart-hint--tamanhos_misturados { border-color: rgba(251, 146, 60, 0.45); background: rgba(251, 146, 60, 0.1); color: #fed7aa; }
+.price-was { color: #94a3b8; }
+.price-breakdown, .shirt-price-breakdown { display: block; margin-top: 3px; font-size: 0.78rem; color: #cbd5e1; }
+.shirt-price-breakdown__discount { color: #fde68a; font-weight: 600; }
+.order-discount-total { display: flex; justify-content: space-between; gap: 8px; margin: 10px 0 8px; padding: 8px 4px; font-size: 0.92rem; color: #fde68a; }
+.badge-shirt-discount { display: inline-flex; align-items: center; gap: 4px; width: fit-content; font-size: 0.70rem; font-weight: 700; padding: 2px 6px; border-radius: 4px; background: rgba(250, 204, 21, 0.14); color: #fde68a; border: 1px solid rgba(250, 204, 21, 0.4); }
+
+/* ===== Configurações do negócio ===== */
+.settings-intro { margin: 0 0 12px; color: var(--muted, #94a3b8); }
+.settings-toc { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.settings-toc a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 14px; border-radius: 6px; border: 1px solid rgba(148, 163, 184, 0.35); color: inherit; text-decoration: none; }
+.settings-section { margin-bottom: 20px; scroll-margin-top: 80px; }
+.settings-section ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
+.settings-section ul label { display: inline-flex; gap: 8px; align-items: center; min-height: 44px; }
+.status-pill { display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 999px; font-size: 0.78rem; font-weight: 700; white-space: nowrap; }
+.status-pill--on { background: rgba(34, 197, 94, 0.15); color: #86efac; border: 1px solid rgba(34, 197, 94, 0.45); }
+.status-pill--off { background: rgba(148, 163, 184, 0.15); color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.45); }

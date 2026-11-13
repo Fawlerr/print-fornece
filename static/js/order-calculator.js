@@ -5,6 +5,10 @@
   if (!calculator) return;
 
   const endpoint = calculator.dataset.endpoint;
+  const cartEndpoint = calculator.dataset.cartEndpoint || "";
+  const discountSummary = calculator.querySelector("[data-cart-discount-summary]");
+  const discountTotalEl = calculator.querySelector("[data-cart-discount-total]");
+  const hintsList = calculator.querySelector("[data-cart-hints]");
   const status = calculator.querySelector("[data-calculator-status]");
   const cartTbody = calculator.querySelector("[data-cart-tbody]");
   const cartCount = calculator.querySelector("[data-cart-count]");
@@ -57,6 +61,15 @@
     minimumFractionDigits: minDec,
     maximumFractionDigits: maxDec,
   });
+
+  const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, (ch) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+  }[ch]));
+
+  const toNumber = (value) => {
+    const parsed = parseFloat(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  };
 
   const csrfToken = () => document.querySelector("input[name='csrfmiddlewaretoken']")?.value || "";
 
@@ -111,8 +124,78 @@
     }
   };
 
+  // Preço unitário da linha. Para camisas com desconto mostra tabela, atacado,
+  // desconto por camisa e o preço final (valores vindos do servidor).
+  const unitPriceCell = (item) => {
+    const discount = toNumber(item.discount_per_unit);
+    if (item.kind !== "produto" || discount <= 0) {
+      return money(item.unit_price);
+    }
+    const parts = [`Tabela ${money(item.table_unit_price)}`];
+    if (item.wholesale_unit_price) parts.push(`Atacado ${money(item.wholesale_unit_price)}`);
+    parts.push(`Desconto \u2212${money(discount)}/camisa`);
+    return `<s class="price-was">${money(item.price_before_discount)}</s> <strong>${money(item.unit_price)}</strong>
+      <br><small class="price-breakdown">${parts.join(" · ")}</small>`;
+  };
+
+  const renderHints = (hints) => {
+    if (!hintsList) return;
+    hintsList.innerHTML = "";
+    (hints || []).forEach((hint) => {
+      const li = document.createElement("li");
+      li.className = `cart-hint cart-hint--${hint.status}`;
+      li.textContent = hint.message;
+      hintsList.appendChild(li);
+    });
+    hintsList.hidden = !hints || hints.length === 0;
+  };
+
+  const renderDiscountSummary = () => {
+    const totalDiscount = cartItems.reduce((sum, it) => sum + toNumber(it.discount_total), 0);
+    if (discountTotalEl) discountTotalEl.textContent = money(totalDiscount);
+    if (discountSummary) discountSummary.hidden = totalDiscount <= 0;
+  };
+
+  // Recalcula o carrinho inteiro no servidor (fonte da verdade dos preços).
+  // O desconto por camisa aparece ou some automaticamente conforme a regra.
+  let repriceSeq = 0;
+  const repriceCart = async () => {
+    if (!cartEndpoint) return;
+    if (cartItems.length === 0) {
+      renderHints([]);
+      return;
+    }
+    const seq = ++repriceSeq;
+    const { customerId } = getSelectedCustomerInfo();
+    try {
+      const response = await fetch(cartEndpoint, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { Accept: "application/json", "Content-Type": "application/json", "X-CSRFToken": csrfToken() },
+        body: JSON.stringify({ items: cartItems, cliente_id: customerId }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (seq !== repriceSeq) return; // resposta antiga: ignora
+      if (!response.ok || !Array.isArray(data.items)) {
+        setStatus(data.message || "Não foi possível recalcular o pedido.", true);
+        return;
+      }
+      cartItems = data.items;
+      renderCart();
+      renderHints(data.hints);
+    } catch (_err) {
+      setStatus("Falha de conexão ao recalcular o pedido.", true);
+    }
+  };
+
+  const commitCartChange = async () => {
+    renderCart();
+    await repriceCart();
+  };
+
   const renderCart = () => {
     if (!cartTbody) return;
+    renderDiscountSummary();
     cartTbody.innerHTML = "";
 
     if (cartItems.length === 0) {
@@ -149,11 +232,11 @@
       const tr = document.createElement("tr");
       tr.innerHTML = `
         <td>
-          <strong>${specText}</strong>
-          ${item.pricing_rule ? `<br><small class="text-muted" style="font-size: 0.78rem;">${item.pricing_rule}</small>` : ""}
+          <strong>${escapeHtml(specText)}</strong>
+          ${item.pricing_rule ? `<br><small class="text-muted" style="font-size: 0.78rem;">${escapeHtml(item.pricing_rule)}</small>` : ""}
         </td>
-        <td>${measureText}</td>
-        <td>${money(item.unit_price)}</td>
+        <td>${escapeHtml(measureText)}</td>
+        <td>${unitPriceCell(item)}</td>
         <td><strong style="color: #10b981;">${money(item.total)}</strong></td>
         <td style="text-align: center;">
           <button type="button" class="btn btn-danger btn-small" data-remove-item="${index}" title="Remover item" style="padding: 4px 8px; font-size: 0.8rem;">
@@ -210,7 +293,7 @@
       btn.addEventListener("click", () => {
         const idx = parseInt(btn.dataset.removeItem, 10);
         cartItems.splice(idx, 1);
-        renderCart();
+        commitCartChange();
         setStatus("Item removido do pedido.");
       });
     });
@@ -258,7 +341,7 @@
 
       if (quote) {
         cartItems.push(quote);
-        renderCart();
+        await commitCartChange();
         setStatus(`Item ${quote.material_name} adicionado ao pedido!`);
       }
     });
@@ -278,18 +361,28 @@
       }
 
       addShirtBtn.disabled = true;
+      // Mesma camisa (modelo, cor e tamanho) já no carrinho: soma na mesma linha.
+      const existingIndex = cartItems.findIndex((it) => it.kind === "produto"
+        && it.material_code === shirtModel && it.product_color === color && it.product_size === size);
+      const totalQty = existingIndex >= 0
+        ? parseInt(cartItems[existingIndex].quantity, 10) + parseInt(qty, 10)
+        : qty;
       const quote = await calculateItem({
         kind: "produto",
         shirt_code: shirtModel,
         color,
         size,
-        quantity: qty,
+        quantity: totalQty,
       });
       addShirtBtn.disabled = false;
 
       if (quote) {
-        cartItems.push(quote);
-        renderCart();
+        if (existingIndex >= 0) {
+          cartItems[existingIndex] = quote;
+        } else {
+          cartItems.push(quote);
+        }
+        await commitCartChange();
         setStatus(`Camisa ${quote.material_name} (${color}, ${size}) adicionada!`);
       }
     });
@@ -316,7 +409,7 @@
 
       if (quote) {
         cartItems.push(quote);
-        renderCart();
+        await commitCartChange();
         setStatus(`${quote.material_name} adicionado!`);
       }
     });
@@ -350,7 +443,7 @@
 
       if (quote) {
         cartItems.push(quote);
-        renderCart();
+        await commitCartChange();
         setStatus(`Item avulso "${quote.material_name}" adicionado ao pedido!`);
         if (customNameInput) customNameInput.value = "";
         if (customPriceInput) customPriceInput.value = "";
@@ -383,7 +476,7 @@
         }
       }
       if (updated) {
-        renderCart();
+        await commitCartChange();
         setStatus(`Preço especial de R$ ${special}/m aplicado automaticamente!`);
       }
     }
@@ -411,6 +504,8 @@
     } catch (_e) {}
   }
   if (loadedItems.length > 0) {
+    // Ao abrir um pedido existente, mostra os preços gravados. O recálculo com as
+    // regras vigentes só acontece quando algum item for alterado.
     cartItems = loadedItems;
     renderCart();
   }
