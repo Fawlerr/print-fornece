@@ -1,0 +1,9 @@
+# Dependências somente de desenvolvimento/testes. NÃO são instaladas na imagem de produção
+# (o Dockerfile instala apenas requirements.txt).
+# Instale primeiro as dependências da aplicação (requirements.txt) e depois este arquivo:
+#   pip install -r requirements-dev.txt
+#   python -m playwright install chromium   (apenas para os prints automatizados de telas)
+pytest>=8.3,<10
+pytest-django>=4.9,<5
+ruff>=0.8,<1
+playwright>=1.48,<2

@@ -1,0 +1,13 @@
+# Configuração do linter (ruff). Uso recomendado: verificar apenas os arquivos alterados,
+# por exemplo:  ruff check $(git diff --name-only --diff-filter=AM origin/main -- '*.py')
+line-length = 160
+target-version = "py312"
+extend-exclude = ["**/migrations/*", "staticfiles", "media", ".venv"]
+
+[lint]
+# Erros reais (pyflakes) e erros graves de sintaxe/estilo (pycodestyle E9/E7).
+select = ["F", "E9", "E7"]
+ignore = ["E731"]
+
+[lint.per-file-ignores]
+"config/settings/*.py" = ["F403", "F405"]
