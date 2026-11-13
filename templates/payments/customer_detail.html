@@ -27,17 +27,17 @@
 
   <!-- Navegação em Abas -->
   <div class="no-print" style="display: flex; gap: 8px; border-bottom: 1px solid var(--line); margin-bottom: 22px; padding-bottom: 10px; overflow-x: auto;">
-    <button type="button" class="btn tab-btn active" id="btn-tab-overview" onclick="switchCustomerTab('tab-overview', this)" style="background: rgba(36,211,102,0.18); color: #24d366; border-color: rgba(36,211,102,0.4);">
+    <button type="button" class="btn tab-btn active" id="btn-tab-overview" onclick="switchCustomerTab('tab-overview', this)" style="background: var(--brand-soft); color: var(--brand-text); border-color: color-mix(in srgb, var(--brand) 55%, transparent);">
       <i class="fa-solid fa-id-card"></i> Visão Geral & Pedidos
     </button>
     <button type="button" class="btn btn-secondary tab-btn" id="btn-tab-volume" onclick="switchCustomerTab('tab-volume', this)">
-      <i class="fa-solid fa-layer-group" style="color: #22c55e;"></i> Plano de Volume & Assinatura
+      <i class="fa-solid fa-layer-group" style="color: var(--brand-text);"></i> Plano de Volume & Assinatura
       {% if cliente.metros_saldo > 0 %}
         <span class="badge badge-pronto" style="margin-left: 6px; font-size: 0.72rem;">{{ cliente.metros_saldo|floatformat:1 }}m</span>
       {% endif %}
     </button>
     <button type="button" class="btn btn-secondary tab-btn" id="btn-tab-files" onclick="switchCustomerTab('tab-files', this)">
-      <i class="fa-solid fa-folder-open" style="color: #f59e0b;"></i> Arquivos & Artes ({{ arquivos_registrados|length }})
+      <i class="fa-solid fa-folder-open" style="color: var(--st-producao-fg);"></i> Arquivos & Artes ({{ arquivos_registrados|length }})
     </button>
   </div>
 
@@ -47,14 +47,14 @@
       <!-- Dados do Cliente -->
       <section class="card card-pad">
         <div class="section-heading" style="margin-top: 0;">
-          <h3><i class="fa-solid fa-user-circle" style="color: #38bdf8;"></i> Informações de Contato</h3>
+          <h3><i class="fa-solid fa-user-circle" style="color: var(--st-novo-fg);"></i> Informações de Contato</h3>
         </div>
         <div class="detail-grid" style="margin-bottom: 16px;">
           <div>
             <small>WhatsApp / Telefone</small>
             <strong>
               {% if cliente.telefone %}
-                <a href="https://wa.me/55{{ cliente.telefone|cut:' '|cut:'-'|cut:'('|cut:')' }}" target="_blank" style="color: #22c55e;">
+                <a href="https://wa.me/55{{ cliente.telefone|cut:' '|cut:'-'|cut:'('|cut:')' }}" target="_blank" style="color: var(--brand-text);">
                   <i class="fa-brands fa-whatsapp"></i> {{ cliente.telefone }}
                 </a>
               {% else %}
@@ -72,32 +72,32 @@
           </div>
           <div>
             <small>Preço Especial DTF Têxtil</small>
-            <strong style="color: {% if cliente.preco_especial_metro %}#22c55e{% else %}#9ca3af{% endif %};">
+            <strong style="color: {% if cliente.preco_especial_metro %}var(--brand-text){% else %}var(--muted){% endif %};">
               {% if cliente.preco_especial_metro %}R$ {{ cliente.preco_especial_metro|floatformat:2 }} / m{% else %}Tabela Padrão{% endif %}
             </strong>
           </div>
           <div>
             <small>Preço Especial DTF UV</small>
-            <strong style="color: {% if cliente.preco_especial_dtf_uv %}#c084fc{% else %}#9ca3af{% endif %};">
+            <strong style="color: {% if cliente.preco_especial_dtf_uv %}var(--st-pre-fg){% else %}var(--muted){% endif %};">
               {% if cliente.preco_especial_dtf_uv %}R$ {{ cliente.preco_especial_dtf_uv|floatformat:2 }} / m{% else %}Tabela Padrão{% endif %}
             </strong>
           </div>
           <div>
             <small>Saldo em Créditos (R$)</small>
-            <strong style="color: {% if cliente.saldo_credito > 0 %}#22c55e{% else %}#9ca3af{% endif %}; font-size: 1.15rem;">
+            <strong style="color: {% if cliente.saldo_credito > 0 %}var(--brand-text){% else %}var(--muted){% endif %}; font-size: 1.15rem;">
               R$ {{ cliente.saldo_credito|floatformat:2 }}
             </strong>
           </div>
           <div>
             <small>Saldo em Metros (Plano)</small>
-            <strong style="color: #38bdf8; font-size: 1.15rem;">
+            <strong style="color: var(--st-novo-fg); font-size: 1.15rem;">
               {{ cliente.metros_saldo|floatformat:1 }} metros
             </strong>
           </div>
         </div>
 
         {% if cliente.observacoes %}
-          <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); padding: 12px; border-radius: 8px;">
+          <div style="background: var(--surface-2); border: 1px solid var(--line); padding: 12px; border-radius: 8px;">
             <small style="color: var(--muted); font-weight: 700; display: block; margin-bottom: 4px;">Observações Internas:</small>
             <p style="margin: 0; font-size: 0.9rem;">{{ cliente.observacoes|linebreaksbr }}</p>
           </div>
@@ -105,23 +105,23 @@
       </section>
 
       <!-- Resumo Rápido do Plano & Atalho -->
-      <section class="card card-pad" style="border: 1px solid rgba(34, 197, 94, 0.3); background: radial-gradient(circle at 90% 10%, rgba(34, 197, 94, 0.08) 0%, transparent 60%), var(--panel);">
+      <section class="card card-pad" style="border: 1px solid color-mix(in srgb, var(--brand) 55%, transparent); background: var(--brand-soft);">
         <div class="section-heading" style="margin-top: 0;">
           <h3 style="display: flex; align-items: center; gap: 8px;">
-            <i class="fa-solid fa-layer-group" style="color: #22c55e;"></i> Resumo de Assinatura & Crédito
+            <i class="fa-solid fa-layer-group" style="color: var(--brand-text);"></i> Resumo de Assinatura & Crédito
           </h3>
         </div>
         <p style="font-size: 0.88rem; color: var(--muted); margin-bottom: 16px;">
           Este cliente possui condições de produção ativa. Utilize a aba dedicada para fazer recargas ou simular lotes.
         </p>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 18px;">
-          <div style="background: rgba(0,0,0,0.25); padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
+          <div style="background: var(--surface-2); padding: 12px; border-radius: 8px; border: 1px solid var(--line);">
             <small class="text-muted">Metros Restantes</small>
-            <div style="font-size: 1.4rem; font-weight: 800; color: #38bdf8;">{{ cliente.metros_saldo|floatformat:1 }} m</div>
+            <div style="font-size: 1.4rem; font-weight: 800; color: var(--st-novo-fg);">{{ cliente.metros_saldo|floatformat:1 }} m</div>
           </div>
-          <div style="background: rgba(0,0,0,0.25); padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
+          <div style="background: var(--surface-2); padding: 12px; border-radius: 8px; border: 1px solid var(--line);">
             <small class="text-muted">Crédito Disponível</small>
-            <div style="font-size: 1.4rem; font-weight: 800; color: #22c55e;">R$ {{ cliente.saldo_credito|floatformat:2 }}</div>
+            <div style="font-size: 1.4rem; font-weight: 800; color: var(--brand-text);">R$ {{ cliente.saldo_credito|floatformat:2 }}</div>
           </div>
         </div>
         <button type="button" class="btn btn-secondary btn-small" onclick="switchCustomerTab('tab-volume', document.getElementById('btn-tab-volume'))">
@@ -135,14 +135,14 @@
       <div class="section-heading" style="margin-top: 0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
         <div>
           <h3 style="margin: 0; display: flex; align-items: center; gap: 8px;">
-            <i class="fa-solid fa-receipt" style="color: #34d399;"></i> Histórico de Pedidos do Cliente
+            <i class="fa-solid fa-receipt" style="color: var(--brand-text);"></i> Histórico de Pedidos do Cliente
           </h3>
           <p style="margin: 4px 0 0; font-size: 0.84rem; color: var(--muted);">
             Selecione 2 ou mais pedidos nas caixas de seleção abaixo para emitir uma <strong>Fatura Agrupada Única</strong>.
           </p>
         </div>
         <div class="button-row no-print">
-          <button type="button" id="btn-group-invoice" class="btn btn-primary" onclick="generateGroupedInvoice()" style="display: none; background: #38bdf8; color: #082f49; border-color: #38bdf8;">
+          <button type="button" id="btn-group-invoice" class="btn btn-primary" onclick="generateGroupedInvoice()" style="display: none; background: var(--st-novo-bg); color: var(--st-novo-fg); border-color: var(--st-novo-fg);">
             <i class="fa-solid fa-file-invoice-dollar"></i> Gerar Fatura Agrupada (<span id="selected-orders-count">0</span>)
           </button>
         </div>
@@ -171,7 +171,7 @@
                   <input type="checkbox" class="order-chk" value="{{ pedido.pk }}" onchange="updateGroupInvoiceButton()">
                 </td>
                 <td>
-                  <a href="{% url 'production:detail' pk=pedido.pk %}" style="font-weight: 700; color: #38bdf8;">#{{ pedido.number }}</a>
+                  <a href="{% url 'production:detail' pk=pedido.pk %}" style="font-weight: 700; color: var(--st-novo-fg);">#{{ pedido.number }}</a>
                 </td>
                 <td>{{ pedido.created_at|date:"d/m/Y H:i" }}</td>
                 <td>
@@ -207,10 +207,10 @@
   <div id="tab-volume" class="customer-tab-content" style="display: none;">
     <div class="grid two-col" style="margin-bottom: 24px;">
       <!-- Recarga de Pacote -->
-      <section class="card card-pad" style="border: 1px solid rgba(34, 197, 94, 0.3); background: radial-gradient(circle at 90% 10%, rgba(34, 197, 94, 0.08) 0%, transparent 60%), var(--panel);">
+      <section class="card card-pad" style="border: 1px solid color-mix(in srgb, var(--brand) 55%, transparent); background: var(--brand-soft);">
         <div class="section-heading" style="margin-top: 0;">
           <h3 style="display: flex; align-items: center; gap: 8px;">
-            <i class="fa-solid fa-cart-plus" style="color: #22c55e;"></i> Adicionar Recarga ao Plano de Volume
+            <i class="fa-solid fa-cart-plus" style="color: var(--brand-text);"></i> Adicionar Recarga ao Plano de Volume
           </h3>
         </div>
         <p style="font-size: 0.86rem; color: var(--muted); line-height: 1.4; margin-bottom: 16px;">
@@ -244,41 +244,41 @@
       <!-- Status Atual da Assinatura / Tabela -->
       <section class="card card-pad">
         <div class="section-heading" style="margin-top: 0;">
-          <h3><i class="fa-solid fa-sliders" style="color: #38bdf8;"></i> Condições Contratadas</h3>
+          <h3><i class="fa-solid fa-sliders" style="color: var(--st-novo-fg);"></i> Condições Contratadas</h3>
         </div>
         <div style="display: grid; gap: 14px;">
-          <div style="padding: 14px; background: rgba(0,0,0,0.2); border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
+          <div style="padding: 14px; background: var(--surface-2); border-radius: 8px; border: 1px solid var(--line);">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
               <span class="text-muted" style="font-size: 0.85rem;">Preço Especial DTF Têxtil</span>
-              <strong style="color: #22c55e; font-size: 1.1rem;">
+              <strong style="color: var(--brand-text); font-size: 1.1rem;">
                 {% if cliente.preco_especial_metro %}R$ {{ cliente.preco_especial_metro|floatformat:2 }} / m{% else %}Tabela Geral{% endif %}
               </strong>
             </div>
             <small class="text-muted">Aplica automaticamente no cálculo de DTF Têxtil vinculado a este cliente.</small>
           </div>
 
-          <div style="padding: 14px; background: rgba(0,0,0,0.2); border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
+          <div style="padding: 14px; background: var(--surface-2); border-radius: 8px; border: 1px solid var(--line);">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
               <span class="text-muted" style="font-size: 0.85rem;">Preço Especial DTF UV</span>
-              <strong style="color: #c084fc; font-size: 1.1rem;">
+              <strong style="color: var(--st-pre-fg); font-size: 1.1rem;">
                 {% if cliente.preco_especial_dtf_uv %}R$ {{ cliente.preco_especial_dtf_uv|floatformat:2 }} / m{% else %}Tabela Geral{% endif %}
               </strong>
             </div>
             <small class="text-muted">Aplica automaticamente no cálculo de DTF UV vinculado a este cliente.</small>
           </div>
 
-          <div style="padding: 14px; background: rgba(0,0,0,0.2); border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
+          <div style="padding: 14px; background: var(--surface-2); border-radius: 8px; border: 1px solid var(--line);">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
               <span class="text-muted" style="font-size: 0.85rem;">Saldo de Metragem Ativo</span>
-              <strong style="color: #38bdf8; font-size: 1.1rem;">{{ cliente.metros_saldo|floatformat:1 }} metros</strong>
+              <strong style="color: var(--st-novo-fg); font-size: 1.1rem;">{{ cliente.metros_saldo|floatformat:1 }} metros</strong>
             </div>
             <small class="text-muted">Consumido a cada pedido DTF Têxtil ou DTF UV finalizado.</small>
           </div>
 
-          <div style="padding: 14px; background: rgba(0,0,0,0.2); border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
+          <div style="padding: 14px; background: var(--surface-2); border-radius: 8px; border: 1px solid var(--line);">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
               <span class="text-muted" style="font-size: 0.85rem;">Saldo em Moeda (R$)</span>
-              <strong style="color: #22c55e; font-size: 1.1rem;">R$ {{ cliente.saldo_credito|floatformat:2 }}</strong>
+              <strong style="color: var(--brand-text); font-size: 1.1rem;">R$ {{ cliente.saldo_credito|floatformat:2 }}</strong>
             </div>
             <small class="text-muted">Pode ser abatido no fechamento ou na entrada de novos serviços.</small>
           </div>
@@ -293,7 +293,7 @@
       <div class="section-heading" style="margin-top: 0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
         <div>
           <h3 style="margin: 0; display: flex; align-items: center; gap: 8px;">
-            <i class="fa-solid fa-folder-open" style="color: #f59e0b;"></i> Banco de Artes e Arquivos do Cliente
+            <i class="fa-solid fa-folder-open" style="color: var(--st-producao-fg);"></i> Banco de Artes e Arquivos do Cliente
           </h3>
           <p style="margin: 4px 0 0; font-size: 0.84rem; color: var(--muted);">
             Logos, gabaritos e matrizes vinculados permanentemente a este cliente para reutilização rápida.
@@ -305,7 +305,7 @@
       </div>
 
       <!-- Box de Upload de Arquivo do Cliente -->
-      <div id="upload-cliente-arquivo-box" style="display: none; background: rgba(255,255,255,0.03); border: 1px dashed rgba(255,255,255,0.15); border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+      <div id="upload-cliente-arquivo-box" style="display: none; background: var(--surface-2); border: 1px dashed var(--line-strong); border-radius: 8px; padding: 16px; margin-bottom: 16px;">
         <form method="post" action="{% url 'payments:customer_add_arquivo' pk=cliente.pk %}" enctype="multipart/form-data">
           {% csrf_token %}
           <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 12px; align-items: end;">
@@ -326,9 +326,9 @@
 
       <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px;">
         {% for arq in arquivos_registrados %}
-          <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 12px; display: flex; flex-direction: column; justify-content: space-between;">
+          <div style="background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; padding: 12px; display: flex; flex-direction: column; justify-content: space-between;">
             <div style="display: flex; gap: 10px; align-items: flex-start; margin-bottom: 8px;">
-              <i class="fa-solid fa-file-lines" style="color: #38bdf8; font-size: 1.4rem; margin-top: 2px;"></i>
+              <i class="fa-solid fa-file-lines" style="color: var(--st-novo-fg); font-size: 1.4rem; margin-top: 2px;"></i>
               <div style="overflow: hidden;">
                 <strong style="font-size: 0.88rem; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ arq.nome }}">
                   {{ arq.nome }}
@@ -336,7 +336,7 @@
                 <small class="text-muted" style="font-size: 0.76rem;">{{ arq.created_at|date:"d/m/Y H:i" }}</small>
               </div>
             </div>
-            <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 8px; margin-top: 4px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--line); padding-top: 8px; margin-top: 4px;">
               <span class="text-muted" style="font-size: 0.75rem;">{{ arq.tamanho|filesizeformat }}</span>
               <a href="{{ arq.arquivo.url }}" download class="btn btn-secondary btn-small" style="font-size: 0.75rem; padding: 3px 8px;">
                 <i class="fa-solid fa-download"></i> Baixar
@@ -345,7 +345,7 @@
           </div>
         {% empty %}
           <div style="grid-column: 1/-1; text-align: center; padding: 24px; color: var(--muted);">
-            <i class="fa-solid fa-folder" style="font-size: 2rem; color: #475569; display: block; margin-bottom: 8px;"></i>
+            <i class="fa-solid fa-folder" style="font-size: 2rem; color: var(--muted); display: block; margin-bottom: 8px;"></i>
             Nenhum arquivo registrado ainda para este cliente. Toque em "Registrar Novo Arquivo" acima.
           </div>
         {% endfor %}

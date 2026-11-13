@@ -570,10 +570,10 @@
         .map((u) => {
           const initial = (u.name || u.email || "?").charAt(0).toUpperCase();
           const selfBadge = u.is_self
-            ? `<span class="badge" style="background: rgba(59, 130, 246, 0.2); color: #93c5fd; border: 1px solid rgba(59, 130, 246, 0.4); padding: 2px 7px; font-size: 0.72rem;">Você</span>`
+            ? `<span class="badge" style="background: var(--st-pronto-bg); color: var(--st-pronto-fg); border: 1px solid color-mix(in srgb, var(--st-pronto-fg) 55%, transparent); padding: 2px 7px; font-size: 0.72rem;">Você</span>`
             : "";
-          const roleBadge = `<span class="badge" style="background: #202823; color: #a9b7ad; font-size: 0.74rem;">${u.role_label}</span>`;
-          const sectorBadge = `<span class="badge" style="background: #19221d; color: #7f8e82; font-size: 0.72rem;">${u.sector_label}</span>`;
+          const roleBadge = `<span class="badge" style="background: var(--surface); color: var(--muted); font-size: 0.74rem;">${u.role_label}</span>`;
+          const sectorBadge = `<span class="badge" style="background: var(--surface); color: var(--muted); font-size: 0.72rem;">${u.sector_label}</span>`;
 
           let timerBox = "";
           if (canViewTimers) {
@@ -633,15 +633,15 @@
 
               <div class="online-user-details-row">
                 <span title="Última atividade registrada: ${u.last_activity_formatted || ""}">
-                  <i class="fa-regular fa-clock" style="color: #24d366;"></i>
-                  Última ação: <strong style="color: #f5f7f5;">${u.last_activity_relative}</strong>
+                  <i class="fa-regular fa-clock" style="color: var(--brand-text);"></i>
+                  Última ação: <strong style="color: var(--text);">${u.last_activity_relative}</strong>
                 </span>
                 <span title="Tela que o colaborador está visualizando">
-                  <i class="fa-regular fa-compass" style="color: #60a5fa;"></i>
+                  <i class="fa-regular fa-compass" style="color: var(--st-pronto-fg);"></i>
                   ${u.last_seen_page}
                 </span>
                 <span title="Dispositivo de acesso">
-                  <i class="fa-solid fa-laptop" style="color: #9da69f;"></i>
+                  <i class="fa-solid fa-laptop" style="color: var(--muted);"></i>
                   ${u.last_seen_device}
                 </span>
               </div>

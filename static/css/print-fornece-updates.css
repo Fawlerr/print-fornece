@@ -28,7 +28,7 @@
 
 .order-item-row {
   align-items: center;
-  background: #101411;
+  background: var(--bg);
   border: 1px solid var(--line);
   border-radius: 8px;
   display: flex;
@@ -49,8 +49,8 @@
 
 /* Native order calculator */
 .calculator-panel {
-  background: linear-gradient(135deg, rgba(36, 211, 102, 0.10), rgba(16, 20, 17, 0.98) 44%);
-  border: 1px solid rgba(36, 211, 102, 0.38);
+  background: var(--brand-soft);
+  border: 1px solid color-mix(in srgb, var(--brand) 55%, transparent);
   border-radius: 12px;
   margin: 24px 0;
   padding: 20px;
@@ -84,10 +84,10 @@
 }
 
 .calculator-status {
-  background: rgba(36, 211, 102, 0.12);
-  border: 1px solid rgba(36, 211, 102, 0.28);
+  background: var(--brand-soft);
+  border: 1px solid color-mix(in srgb, var(--brand) 55%, transparent);
   border-radius: 999px;
-  color: #b8f7ce;
+  color: var(--brand-text);
   flex: 0 0 auto;
   font-size: 12px;
   font-weight: 700;
@@ -97,9 +97,9 @@
 }
 
 .calculator-status.is-error {
-  background: rgba(239, 68, 68, .13);
-  border-color: rgba(239, 68, 68, .4);
-  color: #ffc0c0;
+  background: var(--st-cancelado-bg);
+  border-color: color-mix(in srgb, var(--st-cancelado-fg) 55%, transparent);
+  color: var(--st-cancelado-fg);
 }
 
 .calculator-materials {
@@ -124,7 +124,7 @@
 
 .calculator-material-option span {
   align-items: center;
-  background: #101411;
+  background: var(--bg);
   border: 1px solid var(--line);
   border-radius: 9px;
   display: grid;
@@ -141,9 +141,9 @@
 }
 
 .calculator-material-option input:checked + span {
-  background: rgba(36, 211, 102, .12);
+  background: var(--brand-soft);
   border-color: var(--green);
-  color: #c9fbd8;
+  color: var(--brand-text);
 }
 
 .calculator-material-option input:focus-visible + span {
@@ -164,8 +164,8 @@
 
 .calculator-result {
   align-items: center;
-  background: rgba(8, 12, 9, .64);
-  border-top: 1px solid rgba(36, 211, 102, .25);
+  background: var(--surface);
+  border-top: 1px solid color-mix(in srgb, var(--brand) 55%, transparent);
   display: grid;
   gap: 14px;
   grid-template-columns: minmax(145px, .75fr) 1.4fr auto;
@@ -296,8 +296,8 @@
 }
 
 .kanban-stage-button {
-  background: #202a23;
-  border: 1px solid #354139;
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
   color: var(--text);
   padding: 0;
 }
@@ -309,8 +309,8 @@
 }
 
 .kanban-stage-button-next {
-  background: rgba(36, 211, 102, .13);
-  color: #96f7b5;
+  background: var(--brand-soft);
+  color: var(--brand-text);
 }
 
 .kanban-page .order-card-meta {
@@ -357,7 +357,7 @@
   }
 
   .menu-overlay.open {
-    background: rgba(0, 0, 0, .64);
+    background: var(--surface);
     display: block;
     inset: 0;
     position: fixed;
@@ -491,7 +491,7 @@
   gap: 8px !important;
   margin-top: 10px !important;
   padding-top: 10px !important;
-  border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-top: 1px solid var(--line) !important;
 }
 
 .kanban-page .order-card-controls {
@@ -511,22 +511,22 @@
   border-radius: 6px !important;
   font-size: 12px !important;
   font-weight: 600 !important;
-  background: #1e2621 !important;
+  background: var(--surface) !important;
   color: var(--text) !important;
-  border: 1px solid #324036 !important;
+  border: 1px solid var(--line-strong) !important;
   cursor: pointer !important;
   white-space: nowrap !important;
 }
 
 .kanban-stage-button-next {
-  background: rgba(36, 211, 102, 0.18) !important;
-  color: #86f5ac !important;
-  border-color: rgba(36, 211, 102, 0.4) !important;
+  background: var(--brand-soft) !important;
+  color: var(--brand-text) !important;
+  border-color: color-mix(in srgb, var(--brand) 55%, transparent) !important;
 }
 
 .kanban-stage-button-next:hover {
   background: var(--green) !important;
-  color: #06210e !important;
+  color: var(--muted) !important;
 }
 
 /* Position PWA install banner at bottom right to avoid blocking artwork preview */
@@ -552,7 +552,7 @@
 
 /* Destaque visual para campos obrigatórios */
 .required-asterisk {
-  color: #ef4444 !important;
+  color: var(--st-cancelado-fg) !important;
   font-weight: 800 !important;
   margin-left: 3px !important;
   font-size: 1.1em !important;
@@ -569,30 +569,30 @@ label.required {
 .order-form label.required input,
 .order-form label.required textarea,
 .order-form label.required select {
-  border-left: 3px solid #f59e0b !important;
+  border-left: 3px solid var(--st-producao-fg) !important;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .order-form label.required input:focus,
 .order-form label.required textarea:focus,
 .order-form label.required select:focus {
-  border-left: 3px solid #10b981 !important;
+  border-left: 3px solid var(--brand) !important;
   box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.25) !important;
 }
 
 /* Badge exclusivo UV e Badge de Cliente Avisado */
 .badge-material-uv {
-  background: rgba(168, 85, 247, 0.22) !important;
-  color: #c084fc !important;
-  border: 1px solid rgba(168, 85, 247, 0.5) !important;
+  background: var(--st-pre-bg) !important;
+  color: var(--st-pre-fg) !important;
+  border: 1px solid color-mix(in srgb, var(--st-pre-fg) 55%, transparent) !important;
   font-weight: 800 !important;
   text-shadow: 0 0 8px rgba(168, 85, 247, 0.3);
 }
 
 .badge-avisado {
-  background: rgba(37, 211, 102, 0.16) !important;
-  color: #25D366 !important;
-  border: 1px solid rgba(37, 211, 102, 0.35) !important;
+  background: var(--brand-soft) !important;
+  color: var(--brand-text) !important;
+  border: 1px solid color-mix(in srgb, var(--brand) 55%, transparent) !important;
   font-weight: 700 !important;
 }
 
@@ -601,7 +601,7 @@ label.required {
    ========================================================================== */
 .order-card {
   position: relative;
-  border-left: 4px solid #475569;
+  border-left: 4px solid var(--line-strong);
   transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
 }
 
@@ -612,77 +612,77 @@ label.required {
 
 /* 1. Novo Pedido: Azul Céu */
 .order-card.stage-novo {
-  border-left-color: #38bdf8 !important;
-  background: linear-gradient(135deg, rgba(56, 189, 248, 0.04) 0%, rgba(15, 23, 42, 0.8) 100%);
+  border-left-color: var(--st-novo-fg) !important;
+  background: var(--st-novo-bg);
 }
 .order-card.stage-novo:hover {
-  border-color: rgba(56, 189, 248, 0.4);
-  border-left-color: #38bdf8 !important;
+  border-color: color-mix(in srgb, var(--st-novo-fg) 55%, transparent);
+  border-left-color: var(--st-novo-fg) !important;
 }
 
 /* 2. Aguardando Pagamento: Âmbar / Laranja */
 .order-card.stage-aguardando_pagamento {
-  border-left-color: #f59e0b !important;
-  background: linear-gradient(135deg, rgba(245, 158, 11, 0.04) 0%, rgba(15, 23, 42, 0.8) 100%);
+  border-left-color: var(--st-producao-fg) !important;
+  background: var(--st-producao-bg);
 }
 .order-card.stage-aguardando_pagamento:hover {
-  border-color: rgba(245, 158, 11, 0.4);
-  border-left-color: #f59e0b !important;
+  border-color: color-mix(in srgb, var(--st-producao-fg) 55%, transparent);
+  border-left-color: var(--st-producao-fg) !important;
 }
 
 /* 3. Pagamento Confirmado: Verde Esmeralda */
 .order-card.stage-pagamento_confirmado {
-  border-left-color: #10b981 !important;
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.04) 0%, rgba(15, 23, 42, 0.8) 100%);
+  border-left-color: var(--brand) !important;
+  background: var(--brand-soft);
 }
 .order-card.stage-pagamento_confirmado:hover {
-  border-color: rgba(16, 185, 129, 0.4);
-  border-left-color: #10b981 !important;
+  border-color: color-mix(in srgb, var(--brand) 55%, transparent);
+  border-left-color: var(--brand) !important;
 }
 
 /* 4. Pré-Impressão: Roxo / Violeta */
 .order-card.stage-pre_impressao {
-  border-left-color: #a855f7 !important;
-  background: linear-gradient(135deg, rgba(168, 85, 247, 0.04) 0%, rgba(15, 23, 42, 0.8) 100%);
+  border-left-color: var(--st-pre-fg) !important;
+  background: var(--st-pre-bg);
 }
 .order-card.stage-pre_impressao:hover {
-  border-color: rgba(168, 85, 247, 0.4);
-  border-left-color: #a855f7 !important;
+  border-color: color-mix(in srgb, var(--st-pre-fg) 55%, transparent);
+  border-left-color: var(--st-pre-fg) !important;
 }
 
 /* 5. Em Produção: Ciano / Azul Neon */
 .order-card.stage-em_producao,
 .order-card.stage-producao {
-  border-left-color: #06b6d4 !important;
-  background: linear-gradient(135deg, rgba(6, 182, 212, 0.04) 0%, rgba(15, 23, 42, 0.8) 100%);
+  border-left-color: var(--st-novo-fg) !important;
+  background: var(--st-novo-bg);
 }
 .order-card.stage-em_producao:hover,
 .order-card.stage-producao:hover {
-  border-color: rgba(6, 182, 212, 0.4);
-  border-left-color: #06b6d4 !important;
+  border-color: color-mix(in srgb, var(--st-novo-fg) 55%, transparent);
+  border-left-color: var(--st-novo-fg) !important;
 }
 
 /* 6. Pronto pra Retirada: Verde Claro Vibrante */
 .order-card.stage-pronto_retirada,
 .order-card.stage-pronto {
-  border-left-color: #22c55e !important;
-  background: linear-gradient(135deg, rgba(34, 197, 94, 0.06) 0%, rgba(15, 23, 42, 0.8) 100%);
+  border-left-color: var(--brand) !important;
+  background: var(--brand-soft);
 }
 .order-card.stage-pronto_retirada:hover,
 .order-card.stage-pronto:hover {
-  border-color: rgba(34, 197, 94, 0.4);
-  border-left-color: #22c55e !important;
+  border-color: color-mix(in srgb, var(--brand) 55%, transparent);
+  border-left-color: var(--brand) !important;
 }
 
 /* 7. Entregue: Cinza Ardósia Suave */
 .order-card.stage-entregue {
-  border-left-color: #64748b !important;
+  border-left-color: var(--line-strong) !important;
   opacity: 0.9;
 }
 
 /* 8. Cancelado: Vermelho */
 .order-card.stage-cancelado {
-  border-left-color: #ef4444 !important;
+  border-left-color: var(--st-cancelado-fg) !important;
   opacity: 0.75;
 }
 
@@ -693,9 +693,9 @@ label.required {
   gap: 5px;
   font-size: 0.72rem;
   font-weight: 700;
-  color: #38bdf8 !important;
-  background: rgba(56, 189, 248, 0.12) !important;
-  border: 1px solid rgba(56, 189, 248, 0.35) !important;
+  color: var(--st-novo-fg) !important;
+  background: var(--st-novo-bg) !important;
+  border: 1px solid color-mix(in srgb, var(--st-novo-fg) 55%, transparent) !important;
   padding: 3px 9px;
   border-radius: 5px;
   text-decoration: none;
@@ -704,9 +704,9 @@ label.required {
 }
 
 .kanban-print-receipt-btn:hover {
-  background: rgba(56, 189, 248, 0.25) !important;
-  border-color: #38bdf8 !important;
-  color: #ffffff !important;
+  background: var(--st-novo-bg) !important;
+  border-color: var(--st-novo-fg) !important;
+  color: var(--text) !important;
   transform: translateY(-1px);
   box-shadow: 0 2px 8px rgba(56, 189, 248, 0.3);
 }
@@ -722,127 +722,127 @@ label.required {
 /* 1. Novo Pedido: Azul Royal */
 .kanban-column[data-stage="novo"],
 .kanban-column.kanban-column-novo {
-  border-top: 4px solid #3b82f6 !important;
-  background: linear-gradient(180deg, rgba(59, 130, 246, 0.07) 0%, rgba(16, 20, 17, 0.96) 180px) !important;
+  border-top: 4px solid var(--st-pronto-fg) !important;
+  background: var(--st-pronto-bg);
 }
 .kanban-column[data-stage="novo"] .kanban-title span:first-child,
 .kanban-column.kanban-column-novo .kanban-title span:first-child {
-  color: #60a5fa !important;
+  color: var(--st-pronto-fg) !important;
   font-weight: 800;
 }
 .kanban-column[data-stage="novo"] .kanban-title span:last-child,
 .kanban-column.kanban-column-novo .kanban-title span:last-child {
-  background: rgba(59, 130, 246, 0.18) !important;
-  color: #93c5fd !important;
-  border: 1px solid rgba(59, 130, 246, 0.35) !important;
+  background: var(--st-pronto-bg) !important;
+  color: var(--st-pronto-fg) !important;
+  border: 1px solid color-mix(in srgb, var(--st-pronto-fg) 55%, transparent) !important;
 }
 
 /* 2. Aguardando Pagamento: Âmbar / Laranja */
 .kanban-column[data-stage="aguardando_pagamento"],
 .kanban-column.kanban-column-aguardando_pagamento {
-  border-top: 4px solid #f59e0b !important;
-  background: linear-gradient(180deg, rgba(245, 158, 11, 0.07) 0%, rgba(16, 20, 17, 0.96) 180px) !important;
+  border-top: 4px solid var(--st-producao-fg) !important;
+  background: var(--st-producao-bg);
 }
 .kanban-column[data-stage="aguardando_pagamento"] .kanban-title span:first-child,
 .kanban-column.kanban-column-aguardando_pagamento .kanban-title span:first-child {
-  color: #fbbf24 !important;
+  color: var(--st-aguardando-fg) !important;
   font-weight: 800;
 }
 .kanban-column[data-stage="aguardando_pagamento"] .kanban-title span:last-child,
 .kanban-column.kanban-column-aguardando_pagamento .kanban-title span:last-child {
-  background: rgba(245, 158, 11, 0.18) !important;
-  color: #fde68a !important;
-  border: 1px solid rgba(245, 158, 11, 0.35) !important;
+  background: var(--st-producao-bg) !important;
+  color: var(--st-aguardando-fg) !important;
+  border: 1px solid color-mix(in srgb, var(--st-producao-fg) 55%, transparent) !important;
 }
 
 /* 3. Pagamento Confirmado: Esmeralda */
 .kanban-column[data-stage="pagamento_confirmado"],
 .kanban-column.kanban-column-pagamento_confirmado {
-  border-top: 4px solid #10b981 !important;
-  background: linear-gradient(180deg, rgba(16, 185, 129, 0.07) 0%, rgba(16, 20, 17, 0.96) 180px) !important;
+  border-top: 4px solid var(--brand) !important;
+  background: var(--brand-soft);
 }
 .kanban-column[data-stage="pagamento_confirmado"] .kanban-title span:first-child,
 .kanban-column.kanban-column-pagamento_confirmado .kanban-title span:first-child {
-  color: #34d399 !important;
+  color: var(--brand-text) !important;
   font-weight: 800;
 }
 .kanban-column[data-stage="pagamento_confirmado"] .kanban-title span:last-child,
 .kanban-column.kanban-column-pagamento_confirmado .kanban-title span:last-child {
-  background: rgba(16, 185, 129, 0.18) !important;
-  color: #a7f3d0 !important;
-  border: 1px solid rgba(16, 185, 129, 0.35) !important;
+  background: var(--brand-soft) !important;
+  color: var(--brand-text) !important;
+  border: 1px solid color-mix(in srgb, var(--brand) 55%, transparent) !important;
 }
 
 /* 4. Pré-Impressão: Roxo / Violeta */
 .kanban-column[data-stage="pre_impressao"],
 .kanban-column.kanban-column-pre_impressao {
-  border-top: 4px solid #a855f7 !important;
-  background: linear-gradient(180deg, rgba(168, 85, 247, 0.07) 0%, rgba(16, 20, 17, 0.96) 180px) !important;
+  border-top: 4px solid var(--st-pre-fg) !important;
+  background: var(--st-pre-bg);
 }
 .kanban-column[data-stage="pre_impressao"] .kanban-title span:first-child,
 .kanban-column.kanban-column-pre_impressao .kanban-title span:first-child {
-  color: #c084fc !important;
+  color: var(--st-pre-fg) !important;
   font-weight: 800;
 }
 .kanban-column[data-stage="pre_impressao"] .kanban-title span:last-child,
 .kanban-column.kanban-column-pre_impressao .kanban-title span:last-child {
-  background: rgba(168, 85, 247, 0.18) !important;
-  color: #e9d5ff !important;
-  border: 1px solid rgba(168, 85, 247, 0.35) !important;
+  background: var(--st-pre-bg) !important;
+  color: var(--st-pre-fg) !important;
+  border: 1px solid color-mix(in srgb, var(--st-pre-fg) 55%, transparent) !important;
 }
 
 /* 5. Em Produção: Ciano / Azul Elétrico */
 .kanban-column[data-stage="em_producao"],
 .kanban-column.kanban-column-em_producao {
-  border-top: 4px solid #06b6d4 !important;
-  background: linear-gradient(180deg, rgba(6, 182, 212, 0.07) 0%, rgba(16, 20, 17, 0.96) 180px) !important;
+  border-top: 4px solid var(--st-novo-fg) !important;
+  background: var(--st-novo-bg);
 }
 .kanban-column[data-stage="em_producao"] .kanban-title span:first-child,
 .kanban-column.kanban-column-em_producao .kanban-title span:first-child {
-  color: #22d3ee !important;
+  color: var(--st-novo-fg) !important;
   font-weight: 800;
 }
 .kanban-column[data-stage="em_producao"] .kanban-title span:last-child,
 .kanban-column.kanban-column-em_producao .kanban-title span:last-child {
-  background: rgba(6, 182, 212, 0.18) !important;
-  color: #a5f3fc !important;
-  border: 1px solid rgba(6, 182, 212, 0.35) !important;
+  background: var(--st-novo-bg) !important;
+  color: var(--st-novo-fg) !important;
+  border: 1px solid color-mix(in srgb, var(--st-novo-fg) 55%, transparent) !important;
 }
 
 /* 6. Pronto pra Retirada: Verde Lima Vibrante */
 .kanban-column[data-stage="pronto_retirada"],
 .kanban-column.kanban-column-pronto_retirada {
-  border-top: 4px solid #22c55e !important;
-  background: linear-gradient(180deg, rgba(34, 197, 94, 0.07) 0%, rgba(16, 20, 17, 0.96) 180px) !important;
+  border-top: 4px solid var(--brand) !important;
+  background: var(--brand-soft);
 }
 .kanban-column[data-stage="pronto_retirada"] .kanban-title span:first-child,
 .kanban-column.kanban-column-pronto_retirada .kanban-title span:first-child {
-  color: #4ade80 !important;
+  color: var(--brand-text) !important;
   font-weight: 800;
 }
 .kanban-column[data-stage="pronto_retirada"] .kanban-title span:last-child,
 .kanban-column.kanban-column-pronto_retirada .kanban-title span:last-child {
-  background: rgba(34, 197, 94, 0.18) !important;
-  color: #bbf7d0 !important;
-  border: 1px solid rgba(34, 197, 94, 0.35) !important;
+  background: var(--brand-soft) !important;
+  color: var(--brand-text) !important;
+  border: 1px solid color-mix(in srgb, var(--brand) 55%, transparent) !important;
 }
 
 /* 7. Entregue: Cinza Ardósia / Aço */
 .kanban-column[data-stage="entregue"],
 .kanban-column.kanban-column-entregue {
-  border-top: 4px solid #64748b !important;
-  background: linear-gradient(180deg, rgba(100, 116, 139, 0.07) 0%, rgba(16, 20, 17, 0.96) 180px) !important;
+  border-top: 4px solid var(--line-strong) !important;
+  background: var(--surface-3);
 }
 .kanban-column[data-stage="entregue"] .kanban-title span:first-child,
 .kanban-column.kanban-column-entregue .kanban-title span:first-child {
-  color: #94a3b8 !important;
+  color: var(--muted) !important;
   font-weight: 800;
 }
 .kanban-column[data-stage="entregue"] .kanban-title span:last-child,
 .kanban-column.kanban-column-entregue .kanban-title span:last-child {
-  background: rgba(100, 116, 139, 0.18) !important;
-  color: #cbd5e1 !important;
-  border: 1px solid rgba(100, 116, 139, 0.35) !important;
+  background: var(--surface-3) !important;
+  color: var(--text) !important;
+  border: 1px solid var(--line) !important;
 }
 
 
@@ -850,98 +850,98 @@ label.required {
 
 
 /* ===== A1 — Desconto por camisa ===== */
-.shirt-discount-note { margin: 0 0 12px; padding: 8px 12px; border-radius: 6px; font-size: 0.86rem; background: rgba(250, 204, 21, 0.12); border: 1px solid rgba(250, 204, 21, 0.4); color: #fde68a; }
-.cart-discount-summary { margin-top: 12px; padding: 8px 12px; border-radius: 6px; font-size: 0.9rem; background: rgba(250, 204, 21, 0.12); border: 1px solid rgba(250, 204, 21, 0.4); color: #fde68a; }
+.shirt-discount-note { margin: 0 0 12px; padding: 8px 12px; border-radius: 6px; font-size: 0.86rem; background: var(--st-aguardando-bg); border: 1px solid color-mix(in srgb, var(--st-aguardando-fg) 55%, transparent); color: var(--st-aguardando-fg); }
+.cart-discount-summary { margin-top: 12px; padding: 8px 12px; border-radius: 6px; font-size: 0.9rem; background: var(--st-aguardando-bg); border: 1px solid color-mix(in srgb, var(--st-aguardando-fg) 55%, transparent); color: var(--st-aguardando-fg); }
 .cart-hints { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 6px; }
-.cart-hint { padding: 8px 12px; border-radius: 6px; font-size: 0.84rem; border: 1px solid rgba(148, 163, 184, 0.35); background: rgba(148, 163, 184, 0.1); color: #e2e8f0; }
-.cart-hint--aplicado { border-color: rgba(34, 197, 94, 0.45); background: rgba(34, 197, 94, 0.12); color: #bbf7d0; }
-.cart-hint--faltam { border-color: rgba(56, 189, 248, 0.45); background: rgba(56, 189, 248, 0.1); color: #bae6fd; }
-.cart-hint--tamanhos_misturados { border-color: rgba(251, 146, 60, 0.45); background: rgba(251, 146, 60, 0.1); color: #fed7aa; }
-.price-was { color: #94a3b8; }
-.price-breakdown, .shirt-price-breakdown { display: block; margin-top: 3px; font-size: 0.78rem; color: #cbd5e1; }
-.shirt-price-breakdown__discount { color: #fde68a; font-weight: 600; }
-.order-discount-total { display: flex; justify-content: space-between; gap: 8px; margin: 10px 0 8px; padding: 8px 4px; font-size: 0.92rem; color: #fde68a; }
-.badge-shirt-discount { display: inline-flex; align-items: center; gap: 4px; width: fit-content; font-size: 0.70rem; font-weight: 700; padding: 2px 6px; border-radius: 4px; background: rgba(250, 204, 21, 0.14); color: #fde68a; border: 1px solid rgba(250, 204, 21, 0.4); }
+.cart-hint { padding: 8px 12px; border-radius: 6px; font-size: 0.84rem; border: 1px solid var(--line-strong); background: var(--surface-3); color: var(--text); }
+.cart-hint--aplicado { border-color: color-mix(in srgb, var(--brand) 55%, transparent); background: var(--brand-soft); color: var(--brand-text); }
+.cart-hint--faltam { border-color: color-mix(in srgb, var(--st-novo-fg) 55%, transparent); background: var(--st-novo-bg); color: var(--st-pronto-fg); }
+.cart-hint--tamanhos_misturados { border-color: color-mix(in srgb, var(--st-producao-fg) 55%, transparent); background: var(--st-producao-bg); color: var(--st-producao-fg); }
+.price-was { color: var(--muted); }
+.price-breakdown, .shirt-price-breakdown { display: block; margin-top: 3px; font-size: 0.78rem; color: var(--text); }
+.shirt-price-breakdown__discount { color: var(--st-aguardando-fg); font-weight: 600; }
+.order-discount-total { display: flex; justify-content: space-between; gap: 8px; margin: 10px 0 8px; padding: 8px 4px; font-size: 0.92rem; color: var(--st-aguardando-fg); }
+.badge-shirt-discount { display: inline-flex; align-items: center; gap: 4px; width: fit-content; font-size: 0.70rem; font-weight: 700; padding: 2px 6px; border-radius: 4px; background: var(--st-aguardando-bg); color: var(--st-aguardando-fg); border: 1px solid color-mix(in srgb, var(--st-aguardando-fg) 55%, transparent); }
 
 /* ===== Configurações do negócio ===== */
-.settings-intro { margin: 0 0 12px; color: var(--muted, #94a3b8); }
+.settings-intro { margin: 0 0 12px; color: var(--muted, var(--muted)); }
 .settings-toc { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
-.settings-toc a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 14px; border-radius: 6px; border: 1px solid rgba(148, 163, 184, 0.35); color: inherit; text-decoration: none; }
+.settings-toc a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 14px; border-radius: 6px; border: 1px solid var(--line-strong); color: inherit; text-decoration: none; }
 .settings-section { margin-bottom: 20px; scroll-margin-top: 80px; }
 .settings-section ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
 .settings-section ul label { display: inline-flex; gap: 8px; align-items: center; min-height: 44px; }
 .status-pill { display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 999px; font-size: 0.78rem; font-weight: 700; white-space: nowrap; }
-.status-pill--on { background: rgba(34, 197, 94, 0.15); color: #86efac; border: 1px solid rgba(34, 197, 94, 0.45); }
-.status-pill--off { background: rgba(148, 163, 184, 0.15); color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.45); }
+.status-pill--on { background: var(--brand-soft); color: var(--brand-text); border: 1px solid color-mix(in srgb, var(--brand) 55%, transparent); }
+.status-pill--off { background: var(--surface-3); color: var(--text); border: 1px solid var(--line-strong); }
 
 /* ===== A2 — Filtro de período dos relatórios ===== */
-.report-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
-.report-tabs a { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 12px; border-radius: 6px; border: 1px solid rgba(148, 163, 184, 0.3); color: #cbd5e1; text-decoration: none; font-size: 0.86rem; font-weight: 600; }
-.report-tabs a.is-active { background: #16a34a; border-color: #16a34a; color: #fff; }
+.report-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+.report-tabs a { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 12px; border-radius: 6px; border: 1px solid var(--line-strong); color: var(--text); text-decoration: none; font-size: 0.86rem; font-weight: 600; }
+.report-tabs a.is-active { background: var(--brand); border-color: var(--brand); color: var(--brand-ink); }
 .period-filter { margin-bottom: 20px; padding: 16px; }
 .period-filter__title { margin: 0; font-size: 1rem; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
-.period-filter__preset { color: #94a3b8; font-weight: 400; }
-.period-filter__basis { margin: 4px 0 12px; font-size: 0.82rem; color: #94a3b8; }
-.period-filter__error { margin-bottom: 12px; padding: 10px 12px; border-radius: 6px; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.5); color: #fecaca; font-size: 0.88rem; }
+.period-filter__preset { color: var(--muted); font-weight: 400; }
+.period-filter__basis { margin: 4px 0 12px; font-size: 0.82rem; color: var(--muted); }
+.period-filter__error { margin-bottom: 12px; padding: 10px 12px; border-radius: 6px; background: var(--st-cancelado-bg); border: 1px solid color-mix(in srgb, var(--st-cancelado-fg) 55%, transparent); color: var(--st-cancelado-fg); font-size: 0.88rem; }
 .period-filter__presets { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
-.period-chip { min-height: 44px; padding: 0 14px; border-radius: 999px; border: 1px solid rgba(148, 163, 184, 0.35); background: transparent; color: #e2e8f0; font-size: 0.86rem; font-weight: 600; cursor: pointer; }
-.period-chip.is-active { background: #16a34a; border-color: #16a34a; color: #fff; }
-.period-chip:focus-visible, .report-tabs a:focus-visible { outline: 2px solid #facc15; outline-offset: 2px; }
+.period-chip { min-height: 44px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--line-strong); background: transparent; color: var(--text); font-size: 0.86rem; font-weight: 600; cursor: pointer; }
+.period-chip.is-active { background: var(--brand); border-color: var(--brand); color: var(--brand-ink); }
+.period-chip:focus-visible, .report-tabs a:focus-visible { outline: 2px solid var(--st-aguardando-fg); outline-offset: 2px; }
 .period-filter__custom { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
-.period-filter__custom label { display: flex; flex-direction: column; gap: 4px; font-size: 0.82rem; color: #cbd5e1; min-width: 150px; flex: 1 1 150px; }
+.period-filter__custom label { display: flex; flex-direction: column; gap: 4px; font-size: 0.82rem; color: var(--text); min-width: 150px; flex: 1 1 150px; }
 .period-filter__custom input[type="date"], .period-filter__custom select { min-height: 44px; }
 .period-filter__custom .period-filter__compare { flex-direction: row; align-items: center; gap: 8px; min-height: 44px; flex: 0 1 auto; }
-.period-filter__exports { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; font-size: 0.84rem; color: #94a3b8; }
+.period-filter__exports { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; font-size: 0.84rem; color: var(--muted); }
 .period-filter__exports .btn { min-height: 40px; }
 .period-compare { margin-bottom: 20px; padding: 16px; }
 .period-compare h2 { margin: 0 0 10px; font-size: 1rem; }
 .period-compare .num { text-align: right; white-space: nowrap; }
-.variation--up { color: #4ade80; font-weight: 700; }
-.variation--down { color: #f87171; font-weight: 700; }
-.variation--none { color: #94a3b8; }
-.segmented { display: inline-flex; gap: 4px; padding: 3px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.15); }
-.segmented a { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 12px; border-radius: 6px; color: #94a3b8; text-decoration: none; font-size: 0.85rem; }
-.segmented a.is-active { background: #16a34a; color: #fff; font-weight: 700; }
+.variation--up { color: var(--brand-text); font-weight: 700; }
+.variation--down { color: var(--st-cancelado-fg); font-weight: 700; }
+.variation--none { color: var(--muted); }
+.segmented { display: inline-flex; gap: 4px; padding: 3px; border-radius: 8px; border: 1px solid var(--line-strong); }
+.segmented a { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 12px; border-radius: 6px; color: var(--muted); text-decoration: none; font-size: 0.85rem; }
+.segmented a.is-active { background: var(--brand); color: var(--brand-ink); font-weight: 700; }
 @media print { .period-filter, .report-tabs { display: none !important; } }
 @media (max-width: 640px) {
   .report-tabs { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: thin; -webkit-overflow-scrolling: touch; }
   .report-tabs a { flex: 0 0 auto; }
 }
-.period-filter__compare input[type="checkbox"] { width: 20px; height: 20px; min-height: 0; padding: 0; flex: 0 0 auto; accent-color: #16a34a; }
+.period-filter__compare input[type="checkbox"] { width: 20px; height: 20px; min-height: 0; padding: 0; flex: 0 0 auto; accent-color: var(--brand-text); }
 
 /* ===== A3 — Horário de funcionamento ===== */
-.public-business-hours { margin: 24px 0 0; text-align: center; font-size: 0.86rem; color: #94a3b8; }
+.public-business-hours { margin: 24px 0 0; text-align: center; font-size: 0.86rem; color: var(--muted); }
 
 /* ===== A4 — Impressão da nota ===== */
 .receipt-print-frame { position: fixed; right: 0; bottom: 0; width: 1px; height: 1px; border: 0; opacity: 0; pointer-events: none; }
-.kanban-print-receipt-btn { display: inline-flex; align-items: center; gap: 4px; min-height: 32px; font-size: 0.72rem; font-weight: 700; color: #38bdf8; background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.35); padding: 3px 8px; border-radius: 5px; cursor: pointer; }
-.print-toast { position: fixed; left: 50%; bottom: calc(80px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 9999; max-width: calc(100vw - 32px); padding: 10px 16px; border-radius: 8px; background: #14532d; color: #f0fdf4; font-weight: 600; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35); }
-.print-toast.is-error { background: #7f1d1d; color: #fef2f2; }
-.print-station-box { margin-top: 18px; padding-top: 14px; border-top: 1px solid rgba(148, 163, 184, 0.25); display: grid; gap: 10px; }
+.kanban-print-receipt-btn { display: inline-flex; align-items: center; gap: 4px; min-height: 32px; font-size: 0.72rem; font-weight: 700; color: var(--st-novo-fg); background: var(--st-novo-bg); border: 1px solid color-mix(in srgb, var(--st-novo-fg) 55%, transparent); padding: 3px 8px; border-radius: 5px; cursor: pointer; }
+.print-toast { position: fixed; left: 50%; bottom: calc(80px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 9999; max-width: calc(100vw - 32px); padding: 10px 16px; border-radius: 8px; background: var(--brand); color: var(--brand-ink); font-weight: 600; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35); }
+.print-toast.is-error { background: var(--danger); color: var(--danger-ink); }
+.print-station-box { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line-strong); display: grid; gap: 10px; }
 .print-station-box h3 { margin: 0; font-size: 1rem; }
-.print-station-box .help { margin: 0; font-size: 0.84rem; color: #94a3b8; }
+.print-station-box .help { margin: 0; font-size: 0.84rem; color: var(--muted); }
 .print-station-toggle { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; font-weight: 700; }
-.print-station-toggle input { width: 22px; height: 22px; accent-color: #16a34a; }
+.print-station-toggle input { width: 22px; height: 22px; accent-color: var(--brand-text); }
 
 /* ===== A5 — Cancelamento com senha de gerente ===== */
-.pf-dialog { width: min(520px, calc(100vw - 32px)); border: 1px solid rgba(148, 163, 184, 0.35); border-radius: 12px; padding: 20px; background: #111827; color: #f1f5f9; }
-.pf-dialog::backdrop { background: rgba(0, 0, 0, 0.6); }
+.pf-dialog { width: min(520px, calc(100vw - 32px)); border: 1px solid var(--line-strong); border-radius: 12px; padding: 20px; background: var(--surface); color: var(--text); }
+.pf-dialog::backdrop { background: var(--surface); }
 .pf-dialog h2 { margin: 0 0 8px; font-size: 1.15rem; }
-.pf-dialog p { margin: 0 0 14px; color: #cbd5e1; font-size: 0.9rem; }
+.pf-dialog p { margin: 0 0 14px; color: var(--text); font-size: 0.9rem; }
 .pf-dialog label { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; font-weight: 600; }
 .pf-dialog textarea, .pf-dialog input { width: 100%; min-height: 44px; font-size: 16px; }
 .pin-field { display: flex; gap: 8px; margin-bottom: 16px; }
 .pin-field .btn { min-height: 44px; min-width: 88px; }
 .pf-dialog__actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
 .pf-dialog__actions .btn { min-height: 44px; }
-.cancel-blocked { margin: 0; font-size: 0.86rem; color: #fca5a5; }
+.cancel-blocked { margin: 0; font-size: 0.86rem; color: var(--st-cancelado-fg); }
 @media (max-width: 640px) {
   .pf-dialog { width: 100vw; max-width: 100vw; margin: auto 0 0; border-radius: 16px 16px 0 0; padding-bottom: calc(20px + env(safe-area-inset-bottom)); }
   .pf-dialog__actions .btn { flex: 1 1 auto; }
 }
 
 /* ===== A6 — Selo APROVADO e Kanban ao vivo ===== */
-.approved-seal { display: inline-flex; align-items: center; gap: 6px; margin: 0 0 8px; padding: 4px 10px; border-radius: 6px; background: #16a34a; color: #fff; font-size: 0.78rem; letter-spacing: 0.02em; }
+.approved-seal { display: inline-flex; align-items: center; gap: 6px; margin: 0 0 8px; padding: 4px 10px; border-radius: 6px; background: var(--brand); color: var(--brand-ink); font-size: 0.78rem; letter-spacing: 0.02em; }
 .approved-seal strong { font-weight: 800; }
 .approved-seal time { font-weight: 600; opacity: 0.95; }
 .approved-seal--inline { margin: 0 4px 0 0; padding: 2px 8px; }

@@ -35,13 +35,13 @@
           </div>
           <div>
             <dt>API Base URL</dt>
-            <dd><code style="color: #60a5fa;">{{ stone_api_base_url }}</code></dd>
+            <dd><code style="color: var(--st-pronto-fg);">{{ stone_api_base_url }}</code></dd>
           </div>
           <div>
             <dt>Chave Secreta de Servidor (STONE_SECRET_KEY)</dt>
             <dd>
               {% if stone_server_configured %}
-                <code style="color: #4ade80;">{{ stone_secret_key_masked }}</code>
+                <code style="color: var(--brand-text);">{{ stone_secret_key_masked }}</code>
                 <span class="badge-status badge-status--pass" style="margin-left: 0.4rem;">CONFIGURADA</span>
               {% else %}
                 <span class="badge-status badge-status--fail">NÃO CONFIGURADA</span>

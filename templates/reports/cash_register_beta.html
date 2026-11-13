@@ -8,15 +8,15 @@
 <section class="section" style="max-width: 1240px; margin: 0 auto;">
 
   <!-- Alerta de Ambiente de Testes / Demonstração (Oculto na Impressão) -->
-  <div class="no-print" style="margin-bottom: 20px; background: linear-gradient(135deg, rgba(37, 99, 235, 0.12), rgba(168, 85, 247, 0.12)); border: 1px solid rgba(168, 85, 247, 0.35); border-radius: 12px; padding: 14px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+  <div class="no-print" style="margin-bottom: 20px; background: var(--st-pronto-bg); border: 1px solid color-mix(in srgb, var(--st-pre-fg) 55%, transparent); border-radius: 12px; padding: 14px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
     <div>
       <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 3px;">
-        <span class="badge" style="background: #a855f7; color: #fff; font-weight: 700; text-transform: uppercase; font-size: 0.72rem; letter-spacing: 0.05em; padding: 3px 8px; border-radius: 4px;">
+        <span class="badge" style="background: var(--st-pre-bg); color: var(--st-pre-fg); font-weight: 700; text-transform: uppercase; font-size: 0.72rem; letter-spacing: 0.05em; padding: 3px 8px; border-radius: 4px;">
           🚀 Modo Demonstração (BETA)
         </span>
-        <strong style="color: #f8fafc; font-size: 0.95rem;">Painel Interativo de Frente de Caixa (PDV)</strong>
+        <strong style="color: var(--text); font-size: 0.95rem;">Painel Interativo de Frente de Caixa (PDV)</strong>
       </div>
-      <p style="margin: 0; color: #cbd5e1; font-size: 0.84rem;">
+      <p style="margin: 0; color: var(--text); font-size: 0.84rem;">
         Protótipo funcional com contagem física de cédulas/moedas, sangrias, suprimentos e conferência cega. <strong>Não altera dados oficiais do banco</strong>.
       </p>
     </div>
@@ -28,7 +28,7 @@
       <form method="post" style="margin: 0;" onsubmit="return confirm('Deseja reiniciar a demonstração do caixa do zero?');">
         {% csrf_token %}
         <input type="hidden" name="action" value="reset">
-        <button type="submit" class="btn btn-secondary btn-small" style="background: rgba(239, 68, 68, 0.15); color: #f87171; border-color: rgba(239, 68, 68, 0.3);">
+        <button type="submit" class="btn btn-secondary btn-small" style="background: var(--st-cancelado-bg); color: var(--st-cancelado-fg); border-color: color-mix(in srgb, var(--st-cancelado-fg) 55%, transparent);">
           <i class="fa-solid fa-rotate-left"></i> Resetar Demonstração
         </button>
       </form>
@@ -37,15 +37,15 @@
 
   <!-- ALERTA INTELIGENTE DE TETO DE SEGURANÇA DA GAVETA (Se dinheiro > R$ 500) -->
   {% if status_caixa == 'aberto' and alerta_limite_gaveta %}
-  <div class="card no-print" style="margin-bottom: 20px; padding: 12px 18px; background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.4); border-radius: 10px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+  <div class="card no-print" style="margin-bottom: 20px; padding: 12px 18px; background: var(--st-producao-bg); border: 1px solid color-mix(in srgb, var(--st-producao-fg) 55%, transparent); border-radius: 10px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
     <div style="display: flex; align-items: center; gap: 12px;">
-      <i class="fa-solid fa-triangle-exclamation" style="font-size: 1.4rem; color: #f59e0b;"></i>
+      <i class="fa-solid fa-triangle-exclamation" style="font-size: 1.4rem; color: var(--st-producao-fg);"></i>
       <div>
-        <strong style="color: #fbbf24; font-size: 0.92rem;">Aviso de Segurança: Saldo elevado em dinheiro na gaveta (R$ {{ saldo_gaveta_esperado|floatformat:2 }})</strong>
-        <p style="margin: 0; font-size: 0.82rem; color: #cbd5e1;">Por segurança contra assaltos e perdas, é recomendado efetuar uma sangria transferindo o excesso para o cofre da loja.</p>
+        <strong style="color: var(--st-aguardando-fg); font-size: 0.92rem;">Aviso de Segurança: Saldo elevado em dinheiro na gaveta (R$ {{ saldo_gaveta_esperado|floatformat:2 }})</strong>
+        <p style="margin: 0; font-size: 0.82rem; color: var(--text);">Por segurança contra assaltos e perdas, é recomendado efetuar uma sangria transferindo o excesso para o cofre da loja.</p>
       </div>
     </div>
-    <button type="button" onclick="abrirModalSangria('Coleta de Segurança para o Cofre')" class="btn btn-secondary btn-small" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; border-color: rgba(245, 158, 11, 0.5); font-weight: 700;">
+    <button type="button" onclick="abrirModalSangria('Coleta de Segurança para o Cofre')" class="btn btn-secondary btn-small" style="background: var(--st-producao-bg); color: var(--st-aguardando-fg); border-color: color-mix(in srgb, var(--st-producao-fg) 55%, transparent); font-weight: 700;">
       <i class="fa-solid fa-vault"></i> Realizar Sangria p/ Cofre
     </button>
   </div>
@@ -53,16 +53,16 @@
 
   <!-- ==================== ESTADO 1: CAIXA FECHADO ==================== -->
   {% if status_caixa == 'fechado' %}
-  <div class="card" style="max-width: 680px; margin: 30px auto; padding: 32px; background: var(--surface, #1e293b); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.3);">
+  <div class="card" style="max-width: 680px; margin: 30px auto; padding: 32px; background: var(--surface, var(--st-pronto-bg)); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.3);">
     
     <div style="text-align: center; margin-bottom: 24px;">
-      <div style="width: 72px; height: 72px; border-radius: 50%; background: rgba(56, 189, 248, 0.12); border: 2px solid #38bdf8; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px auto;">
-        <i class="fa-solid fa-cash-register" style="font-size: 2rem; color: #38bdf8;"></i>
+      <div style="width: 72px; height: 72px; border-radius: 50%; background: var(--st-novo-bg); border: 2px solid var(--st-novo-fg); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px auto;">
+        <i class="fa-solid fa-cash-register" style="font-size: 2rem; color: var(--st-novo-fg);"></i>
       </div>
-      <h2 style="font-size: 1.45rem; font-weight: 800; color: #fff; margin-bottom: 6px;">
+      <h2 style="font-size: 1.45rem; font-weight: 800; color: var(--text); margin-bottom: 6px;">
         Abertura de Caixa (Início de Turno)
       </h2>
-      <p style="color: #94a3b8; font-size: 0.9rem; margin: 0;">
+      <p style="color: var(--muted); font-size: 0.9rem; margin: 0;">
         Defina o fundo de troco inicial para liberar o PDV e iniciar as operações do dia.
       </p>
     </div>
@@ -72,16 +72,16 @@
       <input type="hidden" name="action" value="abrir">
 
       <div style="margin-bottom: 16px;">
-        <label style="display: block; font-size: 0.85rem; font-weight: 600; color: #cbd5e1; margin-bottom: 6px;">
+        <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--text); margin-bottom: 6px;">
           Operador Responsável:
         </label>
-        <input type="text" value="{{ request.user.name|default:request.user.email }}" readonly style="width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.12); background: rgba(0,0,0,0.3); color: #94a3b8; font-size: 0.92rem;">
+        <input type="text" value="{{ request.user.name|default:request.user.email }}" readonly style="width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface-2); color: var(--muted); font-size: 0.92rem;">
       </div>
 
       <!-- Abas de Entrada: Digitação Direta vs Calculadora de Cédulas -->
       <div style="margin-bottom: 18px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-          <label style="font-size: 0.85rem; font-weight: 600; color: #cbd5e1; margin: 0;">
+          <label style="font-size: 0.85rem; font-weight: 600; color: var(--text); margin: 0;">
             Fundo de Troco Inicial:
           </label>
           <button type="button" onclick="toggleCalc('calc-abertura', 'fundo_inicial_input')" class="btn btn-secondary btn-small" style="font-size: 0.78rem; padding: 3px 8px;">
@@ -90,75 +90,75 @@
         </div>
 
         <div style="position: relative;">
-          <span style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #38bdf8; font-weight: 800; font-size: 1.1rem;">R$</span>
-          <input type="text" id="fundo_inicial_input" name="fundo_inicial" value="150,00" required style="width: 100%; padding: 12px 14px 12px 46px; border-radius: 8px; border: 1px solid rgba(56, 189, 248, 0.4); background: rgba(0,0,0,0.4); color: #fff; font-size: 1.25rem; font-weight: 800;">
+          <span style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--st-novo-fg); font-weight: 800; font-size: 1.1rem;">R$</span>
+          <input type="text" id="fundo_inicial_input" name="fundo_inicial" value="150,00" required style="width: 100%; padding: 12px 14px 12px 46px; border-radius: 8px; border: 1px solid color-mix(in srgb, var(--st-novo-fg) 55%, transparent); background: var(--surface-2); color: var(--text); font-size: 1.25rem; font-weight: 800;">
         </div>
       </div>
 
       <!-- CALCULADORA DE CÉDULAS E MOEDAS (ABERTURA) -->
-      <div id="calc-abertura" style="display: none; background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 14px; margin-bottom: 22px;">
-        <span style="font-size: 0.82rem; font-weight: 700; color: #38bdf8; text-transform: uppercase; display: block; margin-bottom: 10px;">
+      <div id="calc-abertura" style="display: none; background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 14px; margin-bottom: 22px;">
+        <span style="font-size: 0.82rem; font-weight: 700; color: var(--st-novo-fg); text-transform: uppercase; display: block; margin-bottom: 10px;">
           <i class="fa-solid fa-coins"></i> Contagem Física de Cédulas e Moedas
         </span>
         
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 0.85rem;">
           <!-- Cédulas -->
           <div>
-            <strong style="color: #cbd5e1; font-size: 0.78rem; display: block; margin-bottom: 6px;">Cédulas (Notas):</strong>
+            <strong style="color: var(--text); font-size: 0.78rem; display: block; margin-bottom: 6px;">Cédulas (Notas):</strong>
             <div style="display: flex; flex-direction: column; gap: 6px;">
               <div style="display: flex; align-items: center; justify-content: space-between;">
-                <span style="color: #94a3b8;">R$ 100,00:</span>
-                <input type="number" min="0" value="1" onchange="recalcAbertura()" class="calc-ab-item" data-val="100" style="width: 60px; padding: 4px; border-radius: 4px; border: 1px solid #444; background: #111; color: #fff; text-align: center;">
+                <span style="color: var(--muted);">R$ 100,00:</span>
+                <input type="number" min="0" value="1" onchange="recalcAbertura()" class="calc-ab-item" data-val="100" style="width: 60px; padding: 4px; border-radius: 4px; border: 1px solid var(--line-strong); background: var(--bg); color: var(--text); text-align: center;">
               </div>
               <div style="display: flex; align-items: center; justify-content: space-between;">
-                <span style="color: #94a3b8;">R$ 50,00:</span>
-                <input type="number" min="0" value="0" onchange="recalcAbertura()" class="calc-ab-item" data-val="50" style="width: 60px; padding: 4px; border-radius: 4px; border: 1px solid #444; background: #111; color: #fff; text-align: center;">
+                <span style="color: var(--muted);">R$ 50,00:</span>
+                <input type="number" min="0" value="0" onchange="recalcAbertura()" class="calc-ab-item" data-val="50" style="width: 60px; padding: 4px; border-radius: 4px; border: 1px solid var(--line-strong); background: var(--bg); color: var(--text); text-align: center;">
               </div>
               <div style="display: flex; align-items: center; justify-content: space-between;">
-                <span style="color: #94a3b8;">R$ 20,00:</span>
-                <input type="number" min="0" value="2" onchange="recalcAbertura()" class="calc-ab-item" data-val="20" style="width: 60px; padding: 4px; border-radius: 4px; border: 1px solid #444; background: #111; color: #fff; text-align: center;">
+                <span style="color: var(--muted);">R$ 20,00:</span>
+                <input type="number" min="0" value="2" onchange="recalcAbertura()" class="calc-ab-item" data-val="20" style="width: 60px; padding: 4px; border-radius: 4px; border: 1px solid var(--line-strong); background: var(--bg); color: var(--text); text-align: center;">
               </div>
               <div style="display: flex; align-items: center; justify-content: space-between;">
-                <span style="color: #94a3b8;">R$ 10,00:</span>
-                <input type="number" min="0" value="0" onchange="recalcAbertura()" class="calc-ab-item" data-val="10" style="width: 60px; padding: 4px; border-radius: 4px; border: 1px solid #444; background: #111; color: #fff; text-align: center;">
+                <span style="color: var(--muted);">R$ 10,00:</span>
+                <input type="number" min="0" value="0" onchange="recalcAbertura()" class="calc-ab-item" data-val="10" style="width: 60px; padding: 4px; border-radius: 4px; border: 1px solid var(--line-strong); background: var(--bg); color: var(--text); text-align: center;">
               </div>
               <div style="display: flex; align-items: center; justify-content: space-between;">
-                <span style="color: #94a3b8;">R$ 5,00:</span>
-                <input type="number" min="0" value="1" onchange="recalcAbertura()" class="calc-ab-item" data-val="5" style="width: 60px; padding: 4px; border-radius: 4px; border: 1px solid #444; background: #111; color: #fff; text-align: center;">
+                <span style="color: var(--muted);">R$ 5,00:</span>
+                <input type="number" min="0" value="1" onchange="recalcAbertura()" class="calc-ab-item" data-val="5" style="width: 60px; padding: 4px; border-radius: 4px; border: 1px solid var(--line-strong); background: var(--bg); color: var(--text); text-align: center;">
               </div>
               <div style="display: flex; align-items: center; justify-content: space-between;">
-                <span style="color: #94a3b8;">R$ 2,00:</span>
-                <input type="number" min="0" value="2" onchange="recalcAbertura()" class="calc-ab-item" data-val="2" style="width: 60px; padding: 4px; border-radius: 4px; border: 1px solid #444; background: #111; color: #fff; text-align: center;">
+                <span style="color: var(--muted);">R$ 2,00:</span>
+                <input type="number" min="0" value="2" onchange="recalcAbertura()" class="calc-ab-item" data-val="2" style="width: 60px; padding: 4px; border-radius: 4px; border: 1px solid var(--line-strong); background: var(--bg); color: var(--text); text-align: center;">
               </div>
             </div>
           </div>
 
           <!-- Moedas -->
           <div>
-            <strong style="color: #cbd5e1; font-size: 0.78rem; display: block; margin-bottom: 6px;">Moedas (Troco):</strong>
+            <strong style="color: var(--text); font-size: 0.78rem; display: block; margin-bottom: 6px;">Moedas (Troco):</strong>
             <div style="display: flex; flex-direction: column; gap: 6px;">
               <div style="display: flex; align-items: center; justify-content: space-between;">
-                <span style="color: #94a3b8;">R$ 1,00:</span>
-                <input type="number" min="0" value="1" onchange="recalcAbertura()" class="calc-ab-item" data-val="1" style="width: 60px; padding: 4px; border-radius: 4px; border: 1px solid #444; background: #111; color: #fff; text-align: center;">
+                <span style="color: var(--muted);">R$ 1,00:</span>
+                <input type="number" min="0" value="1" onchange="recalcAbertura()" class="calc-ab-item" data-val="1" style="width: 60px; padding: 4px; border-radius: 4px; border: 1px solid var(--line-strong); background: var(--bg); color: var(--text); text-align: center;">
               </div>
               <div style="display: flex; align-items: center; justify-content: space-between;">
-                <span style="color: #94a3b8;">R$ 0,50:</span>
-                <input type="number" min="0" value="0" onchange="recalcAbertura()" class="calc-ab-item" data-val="0.5" style="width: 60px; padding: 4px; border-radius: 4px; border: 1px solid #444; background: #111; color: #fff; text-align: center;">
+                <span style="color: var(--muted);">R$ 0,50:</span>
+                <input type="number" min="0" value="0" onchange="recalcAbertura()" class="calc-ab-item" data-val="0.5" style="width: 60px; padding: 4px; border-radius: 4px; border: 1px solid var(--line-strong); background: var(--bg); color: var(--text); text-align: center;">
               </div>
               <div style="display: flex; align-items: center; justify-content: space-between;">
-                <span style="color: #94a3b8;">R$ 0,25:</span>
-                <input type="number" min="0" value="0" onchange="recalcAbertura()" class="calc-ab-item" data-val="0.25" style="width: 60px; padding: 4px; border-radius: 4px; border: 1px solid #444; background: #111; color: #fff; text-align: center;">
+                <span style="color: var(--muted);">R$ 0,25:</span>
+                <input type="number" min="0" value="0" onchange="recalcAbertura()" class="calc-ab-item" data-val="0.25" style="width: 60px; padding: 4px; border-radius: 4px; border: 1px solid var(--line-strong); background: var(--bg); color: var(--text); text-align: center;">
               </div>
             </div>
-            <div style="margin-top: 18px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.1); text-align: right;">
-              <small style="color: #94a3b8;">Total contado:</small>
-              <div id="calc-ab-total" style="font-size: 1.1rem; font-weight: 800; color: #38bdf8;">R$ 150,00</div>
+            <div style="margin-top: 18px; padding-top: 10px; border-top: 1px solid var(--line); text-align: right;">
+              <small style="color: var(--muted);">Total contado:</small>
+              <div id="calc-ab-total" style="font-size: 1.1rem; font-weight: 800; color: var(--st-novo-fg);">R$ 150,00</div>
             </div>
           </div>
         </div>
       </div>
 
-      <button type="submit" class="btn btn-primary" style="width: 100%; padding: 14px; font-size: 1.05rem; font-weight: 700; background: #22c55e; border-color: #16a34a; display: flex; align-items: center; justify-content: center; gap: 10px;">
+      <button type="submit" class="btn btn-primary" style="width: 100%; padding: 14px; font-size: 1.05rem; font-weight: 700; background: var(--brand); border-color: var(--brand); display: flex; align-items: center; justify-content: center; gap: 10px;">
         <i class="fa-solid fa-lock-open"></i> Abrir Caixa e Iniciar Atendimento
       </button>
     </form>
@@ -170,27 +170,27 @@
   {% if status_caixa == 'aberto' %}
   
   <!-- Barra de Informações do Caixa Aberto -->
-  <div class="card" style="margin-bottom: 24px; padding: 18px 24px; background: rgba(34, 197, 94, 0.07); border: 1px solid rgba(34, 197, 94, 0.35); border-radius: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+  <div class="card" style="margin-bottom: 24px; padding: 18px 24px; background: var(--brand-soft); border: 1px solid color-mix(in srgb, var(--brand) 55%, transparent); border-radius: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
     <div>
       <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
-        <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 10px #22c55e;"></span>
-        <strong style="color: #22c55e; font-size: 1.1rem; text-transform: uppercase; letter-spacing: 0.05em;">Caixa Aberto</strong>
-        <span style="color: #94a3b8; font-size: 0.85rem;">(Turno em andamento)</span>
+        <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--brand); box-shadow: 0 0 10px #22c55e;"></span>
+        <strong style="color: var(--brand-text); font-size: 1.1rem; text-transform: uppercase; letter-spacing: 0.05em;">Caixa Aberto</strong>
+        <span style="color: var(--muted); font-size: 0.85rem;">(Turno em andamento)</span>
       </div>
-      <p style="margin: 0; color: #cbd5e1; font-size: 0.88rem;">
+      <p style="margin: 0; color: var(--text); font-size: 0.88rem;">
         Aberto por: <strong>{{ abertura.operador }}</strong> | Início: <strong>{{ abertura.horario }}</strong>
       </p>
     </div>
 
     <!-- Botões de Ações Rápidas do Caixa -->
     <div class="no-print" style="display: flex; gap: 10px; flex-wrap: wrap;">
-      <button type="button" onclick="abrirModalSangria()" class="btn btn-secondary" style="background: rgba(239, 68, 68, 0.15); color: #f87171; border-color: rgba(239, 68, 68, 0.35); font-weight: 600;">
+      <button type="button" onclick="abrirModalSangria()" class="btn btn-secondary" style="background: var(--st-cancelado-bg); color: var(--st-cancelado-fg); border-color: color-mix(in srgb, var(--st-cancelado-fg) 55%, transparent); font-weight: 600;">
         <i class="fa-solid fa-arrow-up-from-bracket"></i> Nova Sangria
       </button>
-      <button type="button" onclick="abrirModalSuprimento()" class="btn btn-secondary" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border-color: rgba(56, 189, 248, 0.35); font-weight: 600;">
+      <button type="button" onclick="abrirModalSuprimento()" class="btn btn-secondary" style="background: var(--st-novo-bg); color: var(--st-novo-fg); border-color: color-mix(in srgb, var(--st-novo-fg) 55%, transparent); font-weight: 600;">
         <i class="fa-solid fa-arrow-down-to-bracket"></i> Novo Suprimento
       </button>
-      <button type="button" onclick="abrirModalFechar()" class="btn btn-primary" style="background: #e11d48; border-color: #be123c; font-weight: 700;">
+      <button type="button" onclick="abrirModalFechar()" class="btn btn-primary" style="background: var(--danger); border-color: var(--st-cancelado-fg); font-weight: 700;">
         <i class="fa-solid fa-lock"></i> Fechar Caixa
       </button>
     </div>
@@ -200,131 +200,131 @@
   <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px;">
     
     <!-- Fundo de Troco -->
-    <div class="card" style="padding: 16px 20px; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 10px;">
-      <span style="font-size: 0.8rem; text-transform: uppercase; font-weight: 700; color: #94a3b8; display: block; margin-bottom: 4px;">
+    <div class="card" style="padding: 16px 20px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px;">
+      <span style="font-size: 0.8rem; text-transform: uppercase; font-weight: 700; color: var(--muted); display: block; margin-bottom: 4px;">
         <i class="fa-solid fa-coins"></i> Fundo de Troco Inicial
       </span>
-      <div style="font-size: 1.4rem; font-weight: 800; color: #fff;">
+      <div style="font-size: 1.4rem; font-weight: 800; color: var(--text);">
         R$ {{ fundo_inicial|floatformat:2 }}
       </div>
-      <small style="color: #94a3b8; font-size: 0.78rem;">Informado na abertura</small>
+      <small style="color: var(--muted); font-size: 0.78rem;">Informado na abertura</small>
     </div>
 
     <!-- Saldo Esperado na Gaveta Física -->
-    <div class="card" style="padding: 16px 20px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 10px;">
-      <span style="font-size: 0.8rem; text-transform: uppercase; font-weight: 700; color: #38bdf8; display: block; margin-bottom: 4px;">
+    <div class="card" style="padding: 16px 20px; background: var(--st-novo-bg); border: 1px solid color-mix(in srgb, var(--st-novo-fg) 55%, transparent); border-radius: 10px;">
+      <span style="font-size: 0.8rem; text-transform: uppercase; font-weight: 700; color: var(--st-novo-fg); display: block; margin-bottom: 4px;">
         <i class="fa-solid fa-vault"></i> Saldo Esperado na Gaveta
       </span>
-      <div style="font-size: 1.4rem; font-weight: 800; color: #38bdf8;">
+      <div style="font-size: 1.4rem; font-weight: 800; color: var(--st-novo-fg);">
         R$ {{ saldo_gaveta_esperado|floatformat:2 }}
       </div>
-      <small style="color: #cbd5e1; font-size: 0.75rem;">
+      <small style="color: var(--text); font-size: 0.75rem;">
         Fundo (+{{ fundo_inicial|floatformat:0 }}) + Vendas (+{{ vendas.dinheiro|floatformat:0 }}) + Suprim. (+{{ total_suprimentos|floatformat:0 }}) - Sangrias (-{{ total_sangrias|floatformat:0 }})
       </small>
     </div>
 
     <!-- Total PIX -->
-    <div class="card" style="padding: 16px 20px; background: rgba(168, 85, 247, 0.08); border: 1px solid rgba(168, 85, 247, 0.3); border-radius: 10px;">
-      <span style="font-size: 0.8rem; text-transform: uppercase; font-weight: 700; color: #c084fc; display: block; margin-bottom: 4px;">
+    <div class="card" style="padding: 16px 20px; background: var(--st-pre-bg); border: 1px solid color-mix(in srgb, var(--st-pre-fg) 55%, transparent); border-radius: 10px;">
+      <span style="font-size: 0.8rem; text-transform: uppercase; font-weight: 700; color: var(--st-pre-fg); display: block; margin-bottom: 4px;">
         <i class="fa-brands fa-pix"></i> Total PIX (Banco)
       </span>
-      <div style="font-size: 1.4rem; font-weight: 800; color: #c084fc;">
+      <div style="font-size: 1.4rem; font-weight: 800; color: var(--st-pre-fg);">
         R$ {{ vendas.pix|floatformat:2 }}
       </div>
-      <small style="color: #94a3b8; font-size: 0.78rem;">Entradas diretas na conta</small>
+      <small style="color: var(--muted); font-size: 0.78rem;">Entradas diretas na conta</small>
     </div>
 
     <!-- Total Cartões -->
-    <div class="card" style="padding: 16px 20px; background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 10px;">
-      <span style="font-size: 0.8rem; text-transform: uppercase; font-weight: 700; color: #60a5fa; display: block; margin-bottom: 4px;">
+    <div class="card" style="padding: 16px 20px; background: var(--st-pronto-bg); border: 1px solid color-mix(in srgb, var(--st-pronto-fg) 55%, transparent); border-radius: 10px;">
+      <span style="font-size: 0.8rem; text-transform: uppercase; font-weight: 700; color: var(--st-pronto-fg); display: block; margin-bottom: 4px;">
         <i class="fa-solid fa-credit-card"></i> Cartões (Crédito / Débito)
       </span>
-      <div style="font-size: 1.4rem; font-weight: 800; color: #60a5fa;">
+      <div style="font-size: 1.4rem; font-weight: 800; color: var(--st-pronto-fg);">
         R$ {{ vendas.cartao_credito|add:vendas.cartao_debito|floatformat:2 }}
       </div>
-      <small style="color: #94a3b8; font-size: 0.78rem;">Crédito: R$ {{ vendas.cartao_credito|floatformat:2 }} | Débito: R$ {{ vendas.cartao_debito|floatformat:2 }}</small>
+      <small style="color: var(--muted); font-size: 0.78rem;">Crédito: R$ {{ vendas.cartao_credito|floatformat:2 }} | Débito: R$ {{ vendas.cartao_debito|floatformat:2 }}</small>
     </div>
 
     <!-- Total Geral Recebido -->
-    <div class="card" style="padding: 16px 20px; background: rgba(34, 197, 94, 0.08); border: 1px solid rgba(34, 197, 94, 0.3); border-radius: 10px;">
-      <span style="font-size: 0.8rem; text-transform: uppercase; font-weight: 700; color: #4ade80; display: block; margin-bottom: 4px;">
+    <div class="card" style="padding: 16px 20px; background: var(--brand-soft); border: 1px solid color-mix(in srgb, var(--brand) 55%, transparent); border-radius: 10px;">
+      <span style="font-size: 0.8rem; text-transform: uppercase; font-weight: 700; color: var(--brand-text); display: block; margin-bottom: 4px;">
         <i class="fa-solid fa-chart-line"></i> Total Recebido no Turno
       </span>
-      <div style="font-size: 1.4rem; font-weight: 800; color: #22c55e;">
+      <div style="font-size: 1.4rem; font-weight: 800; color: var(--brand-text);">
         R$ {{ vendas.total|floatformat:2 }}
       </div>
-      <small style="color: #94a3b8; font-size: 0.78rem;">{{ vendas.qtd_pedidos }} pedido(s) faturado(s)</small>
+      <small style="color: var(--muted); font-size: 0.78rem;">{{ vendas.qtd_pedidos }} pedido(s) faturado(s)</small>
     </div>
 
   </div>
 
   <!-- BARRA DE COMPOSIÇÃO DOS MEIOS DE PAGAMENTO -->
-  <div class="card" style="margin-bottom: 24px; padding: 18px 20px; background: var(--surface, #1e293b); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px;">
+  <div class="card" style="margin-bottom: 24px; padding: 18px 20px; background: var(--surface, var(--st-pronto-bg)); border: 1px solid var(--line); border-radius: 12px;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-      <strong style="color: #cbd5e1; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em;">
-        <i class="fa-solid fa-chart-pie" style="color: #38bdf8;"></i> Composição de Recebimentos do Turno
+      <strong style="color: var(--text); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em;">
+        <i class="fa-solid fa-chart-pie" style="color: var(--st-novo-fg);"></i> Composição de Recebimentos do Turno
       </strong>
-      <span style="color: #94a3b8; font-size: 0.82rem;">100% dos pagamentos apurados</span>
+      <span style="color: var(--muted); font-size: 0.82rem;">100% dos pagamentos apurados</span>
     </div>
 
     <!-- Barra Segmentada -->
-    <div style="height: 14px; border-radius: 999px; overflow: hidden; display: flex; background: rgba(255,255,255,0.06); margin-bottom: 12px;">
-      {% if pct_pix > 0 %}<div style="width: {{ pct_pix }}%; background: #c084fc;" title="PIX: {{ pct_pix }}%"></div>{% endif %}
-      {% if pct_credito > 0 %}<div style="width: {{ pct_credito }}%; background: #38bdf8;" title="Crédito: {{ pct_credito }}%"></div>{% endif %}
-      {% if pct_debito > 0 %}<div style="width: {{ pct_debito }}%; background: #818cf8;" title="Débito: {{ pct_debito }}%"></div>{% endif %}
-      {% if pct_dinheiro > 0 %}<div style="width: {{ pct_dinheiro }}%; background: #34d399;" title="Dinheiro: {{ pct_dinheiro }}%"></div>{% endif %}
+    <div style="height: 14px; border-radius: 999px; overflow: hidden; display: flex; background: var(--surface-2); margin-bottom: 12px;">
+      {% if pct_pix > 0 %}<div style="width: {{ pct_pix }}%; background: var(--st-pre-bg);" title="PIX: {{ pct_pix }}%"></div>{% endif %}
+      {% if pct_credito > 0 %}<div style="width: {{ pct_credito }}%; background: var(--st-novo-bg);" title="Crédito: {{ pct_credito }}%"></div>{% endif %}
+      {% if pct_debito > 0 %}<div style="width: {{ pct_debito }}%; background: var(--st-pronto-bg);" title="Débito: {{ pct_debito }}%"></div>{% endif %}
+      {% if pct_dinheiro > 0 %}<div style="width: {{ pct_dinheiro }}%; background: var(--brand);" title="Dinheiro: {{ pct_dinheiro }}%"></div>{% endif %}
     </div>
 
     <!-- Legenda com Valores e Percentuais -->
-    <div style="display: flex; flex-wrap: wrap; gap: 16px; font-size: 0.82rem; color: #cbd5e1;">
+    <div style="display: flex; flex-wrap: wrap; gap: 16px; font-size: 0.82rem; color: var(--text);">
       <div style="display: flex; align-items: center; gap: 6px;">
-        <span style="width: 10px; height: 10px; border-radius: 50%; background: #c084fc;"></span>
+        <span style="width: 10px; height: 10px; border-radius: 50%; background: var(--st-pre-bg);"></span>
         <span>PIX: <strong>{{ pct_pix }}%</strong> (R$ {{ vendas.pix|floatformat:2 }})</span>
       </div>
       <div style="display: flex; align-items: center; gap: 6px;">
-        <span style="width: 10px; height: 10px; border-radius: 50%; background: #38bdf8;"></span>
+        <span style="width: 10px; height: 10px; border-radius: 50%; background: var(--st-novo-bg);"></span>
         <span>Crédito: <strong>{{ pct_credito }}%</strong> (R$ {{ vendas.cartao_credito|floatformat:2 }})</span>
       </div>
       <div style="display: flex; align-items: center; gap: 6px;">
-        <span style="width: 10px; height: 10px; border-radius: 50%; background: #818cf8;"></span>
+        <span style="width: 10px; height: 10px; border-radius: 50%; background: var(--st-pronto-bg);"></span>
         <span>Débito: <strong>{{ pct_debito }}%</strong> (R$ {{ vendas.cartao_debito|floatformat:2 }})</span>
       </div>
       <div style="display: flex; align-items: center; gap: 6px;">
-        <span style="width: 10px; height: 10px; border-radius: 50%; background: #34d399;"></span>
+        <span style="width: 10px; height: 10px; border-radius: 50%; background: var(--brand);"></span>
         <span>Dinheiro: <strong>{{ pct_dinheiro }}%</strong> (R$ {{ vendas.dinheiro|floatformat:2 }})</span>
       </div>
     </div>
   </div>
 
   <!-- LINHA DO TEMPO VISUAL DO TURNO (FITA DE AUDITORIA) -->
-  <div class="card" style="margin-bottom: 28px; padding: 20px; background: var(--surface, #1e293b); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px;">
+  <div class="card" style="margin-bottom: 28px; padding: 20px; background: var(--surface, var(--st-pronto-bg)); border: 1px solid var(--line); border-radius: 12px;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px;">
-      <h3 style="font-size: 1.05rem; font-weight: 700; color: #fff; margin: 0; display: flex; align-items: center; gap: 8px;">
-        <i class="fa-solid fa-timeline" style="color: #38bdf8;"></i> Fita de Auditoria do Caixa (Linha do Tempo)
+      <h3 style="font-size: 1.05rem; font-weight: 700; color: var(--text); margin: 0; display: flex; align-items: center; gap: 8px;">
+        <i class="fa-solid fa-timeline" style="color: var(--st-novo-fg);"></i> Fita de Auditoria do Caixa (Linha do Tempo)
       </h3>
-      <span style="color: #94a3b8; font-size: 0.82rem;">Cronologia de eventos que impactaram a gaveta</span>
+      <span style="color: var(--muted); font-size: 0.82rem;">Cronologia de eventos que impactaram a gaveta</span>
     </div>
 
     {% if timeline %}
-    <div style="position: relative; padding-left: 20px; border-left: 2px solid rgba(255,255,255,0.1); margin-left: 10px; display: flex; flex-direction: column; gap: 16px;">
+    <div style="position: relative; padding-left: 20px; border-left: 2px solid var(--line); margin-left: 10px; display: flex; flex-direction: column; gap: 16px;">
       {% for event in timeline %}
       <div style="position: relative;">
         <!-- Ponto / Ícone no eixo vertical -->
-        <span style="position: absolute; left: -29px; top: 2px; width: 18px; height: 18px; border-radius: 50%; background: {{ event.cor }}; border: 3px solid #1e293b;"></span>
+        <span style="position: absolute; left: -29px; top: 2px; width: 18px; height: 18px; border-radius: 50%; background: {{ event.cor }}; border: 3px solid var(--st-pronto-fg);"></span>
         
-        <div style="background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.06); border-radius: 8px; padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+        <div style="background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
           <div>
             <div style="display: flex; align-items: center; gap: 8px;">
-              <span style="color: #94a3b8; font-size: 0.78rem; font-weight: 700;">{{ event.horario }}</span>
-              <strong style="color: #f8fafc; font-size: 0.9rem;">
+              <span style="color: var(--muted); font-size: 0.78rem; font-weight: 700;">{{ event.horario }}</span>
+              <strong style="color: var(--text); font-size: 0.9rem;">
                 <i class="{{ event.icone }}" style="color: {{ event.cor }}; margin-right: 4px;"></i> {{ event.titulo }}
               </strong>
             </div>
-            <small style="color: #94a3b8; font-size: 0.78rem; display: block; margin-top: 2px;">{{ event.detalhe }}</small>
+            <small style="color: var(--muted); font-size: 0.78rem; display: block; margin-top: 2px;">{{ event.detalhe }}</small>
           </div>
 
           <div>
-            <strong style="font-size: 0.95rem; color: {% if event.impacto == 'positivo' %}#22c55e{% elif event.impacto == 'negativo' %}#f87171{% else %}#38bdf8{% endif %};">
+            <strong style="font-size: 0.95rem; color: {% if event.impacto == 'positivo' %}var(--brand-text){% elif event.impacto == 'negativo' %}var(--st-cancelado-fg){% else %}var(--st-novo-fg){% endif %};">
               {{ event.valor_str }}
             </strong>
           </div>
@@ -333,25 +333,25 @@
       {% endfor %}
     </div>
     {% else %}
-    <div style="padding: 20px; text-align: center; color: #94a3b8; background: rgba(0,0,0,0.2); border-radius: 8px;">
+    <div style="padding: 20px; text-align: center; color: var(--muted); background: var(--surface-2); border-radius: 8px;">
       Nenhum evento registrado ainda neste turno.
     </div>
     {% endif %}
   </div>
 
   <!-- Tabela de Pedidos Recebidos no Turno -->
-  <div class="card" style="margin-bottom: 28px; padding: 20px; background: var(--surface, #1e293b); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px;">
+  <div class="card" style="margin-bottom: 28px; padding: 20px; background: var(--surface, var(--st-pronto-bg)); border: 1px solid var(--line); border-radius: 12px;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-      <h3 style="font-size: 1.05rem; font-weight: 700; color: #fff; margin: 0; display: flex; align-items: center; gap: 8px;">
-        <i class="fa-solid fa-cart-shopping" style="color: #22c55e;"></i> Vendas Integradas do Dia ({{ orders|length }})
+      <h3 style="font-size: 1.05rem; font-weight: 700; color: var(--text); margin: 0; display: flex; align-items: center; gap: 8px;">
+        <i class="fa-solid fa-cart-shopping" style="color: var(--brand-text);"></i> Vendas Integradas do Dia ({{ orders|length }})
       </h3>
-      <strong style="color: #22c55e; font-size: 1.05rem;">Total Vendas: R$ {{ vendas.total|floatformat:2 }}</strong>
+      <strong style="color: var(--brand-text); font-size: 1.05rem;">Total Vendas: R$ {{ vendas.total|floatformat:2 }}</strong>
     </div>
 
     <div class="table-responsive" style="overflow-x: auto;">
       <table class="table" style="width: 100%; border-collapse: collapse;">
         <thead>
-          <tr style="border-bottom: 1px solid rgba(255,255,255,0.15); text-align: left; font-size: 0.82rem; color: #94a3b8; text-transform: uppercase;">
+          <tr style="border-bottom: 1px solid var(--line-strong); text-align: left; font-size: 0.82rem; color: var(--muted); text-transform: uppercase;">
             <th style="padding: 8px;">Horário</th>
             <th style="padding: 8px;">Pedido</th>
             <th style="padding: 8px;">Cliente</th>
@@ -362,41 +362,41 @@
         </thead>
         <tbody style="font-size: 0.88rem;">
           {% for o in orders %}
-          <tr style="border-bottom: 1px solid rgba(255,255,255,0.06);">
-            <td style="padding: 8px; color: #94a3b8;">
+          <tr style="border-bottom: 1px solid var(--line);">
+            <td style="padding: 8px; color: var(--muted);">
               {% if o.payment_confirmed_at %}{{ o.payment_confirmed_at|date:"H:i" }}{% else %}{{ o.created_at|date:"H:i" }}{% endif %}
             </td>
             <td style="padding: 8px; font-weight: 700;">
-              <a href="{% url 'production:detail' pk=o.pk %}" target="_blank" style="color: #38bdf8; text-decoration: none;">#{{ o.number }}</a>
+              <a href="{% url 'production:detail' pk=o.pk %}" target="_blank" style="color: var(--st-novo-fg); text-decoration: none;">#{{ o.number }}</a>
             </td>
-            <td style="padding: 8px; color: #f8fafc; font-weight: 600;">{{ o.client_name }}</td>
+            <td style="padding: 8px; color: var(--text); font-weight: 600;">{{ o.client_name }}</td>
             <td style="padding: 8px;">
               {% if o.payment_method == "pix" %}
-                <span class="badge" style="background: rgba(34,197,94,0.2); color: #22c55e;">PIX</span>
+                <span class="badge" style="background: var(--brand-soft); color: var(--brand-text);">PIX</span>
               {% elif o.payment_method == "cartao_credito" %}
-                <span class="badge" style="background: rgba(56,189,248,0.2); color: #38bdf8;">Crédito</span>
+                <span class="badge" style="background: var(--st-novo-bg); color: var(--st-novo-fg);">Crédito</span>
               {% elif o.payment_method == "cartao_debito" %}
-                <span class="badge" style="background: rgba(129,140,248,0.2); color: #818cf8;">Débito</span>
+                <span class="badge" style="background: var(--st-pronto-bg); color: var(--st-pronto-fg);">Débito</span>
               {% elif o.payment_method == "dinheiro" %}
-                <span class="badge" style="background: rgba(52,211,153,0.2); color: #34d399;">Dinheiro</span>
+                <span class="badge" style="background: var(--brand-soft); color: var(--brand-text);">Dinheiro</span>
               {% else %}
-                <span class="badge" style="background: rgba(255,255,255,0.1); color: #cbd5e1;">{{ o.get_payment_method_display }}</span>
+                <span class="badge" style="background: var(--surface-3); color: var(--text);">{{ o.get_payment_method_display }}</span>
               {% endif %}
             </td>
-            <td style="padding: 8px; text-align: right; font-weight: 700; color: #22c55e;">
+            <td style="padding: 8px; text-align: right; font-weight: 700; color: var(--brand-text);">
               R$ {{ o.paid_amount|floatformat:2 }}
             </td>
             <td style="padding: 8px;">
               {% if o.payment_status == "pago" %}
-                <span class="badge" style="background: rgba(34,197,94,0.2); color: #22c55e; font-size: 0.72rem;">Pago</span>
+                <span class="badge" style="background: var(--brand-soft); color: var(--brand-text); font-size: 0.72rem;">Pago</span>
               {% else %}
-                <span class="badge" style="background: rgba(234,179,8,0.2); color: #eab308; font-size: 0.72rem;">Parcial</span>
+                <span class="badge" style="background: var(--st-aguardando-bg); color: var(--st-aguardando-fg); font-size: 0.72rem;">Parcial</span>
               {% endif %}
             </td>
           </tr>
           {% empty %}
           <tr>
-            <td colspan="6" style="padding: 20px; text-align: center; color: #94a3b8;">
+            <td colspan="6" style="padding: 20px; text-align: center; color: var(--muted);">
               Nenhuma venda registrada na data de hoje.
             </td>
           </tr>
@@ -410,22 +410,22 @@
 
   <!-- ==================== ESTADO 3: CAIXA ENCERRADO ==================== -->
   {% if status_caixa == 'encerrado' %}
-  <div class="card" style="margin-bottom: 24px; padding: 24px; background: var(--surface, #1e293b); border: 2px solid {% if fechamento.status_diferenca == 'exato' %}#22c55e{% elif fechamento.status_diferenca == 'sobra' %}#38bdf8{% else %}#ef4444{% endif %}; border-radius: 14px;">
+  <div class="card" style="margin-bottom: 24px; padding: 24px; background: var(--surface, var(--st-pronto-bg)); border: 2px solid {% if fechamento.status_diferenca == 'exato' %}var(--brand){% elif fechamento.status_diferenca == 'sobra' %}var(--st-novo-fg){% else %}var(--st-cancelado-fg){% endif %}; border-radius: 14px;">
     
-    <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 14px; margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 14px;">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 14px; margin-bottom: 20px; border-bottom: 1px solid var(--line); padding-bottom: 14px;">
       <div>
-        <span style="font-size: 0.8rem; text-transform: uppercase; font-weight: 700; color: #94a3b8; letter-spacing: 0.05em;">Demonstrativo Final</span>
-        <h2 style="font-size: 1.5rem; font-weight: 800; color: #fff; margin: 4px 0 2px 0;">
+        <span style="font-size: 0.8rem; text-transform: uppercase; font-weight: 700; color: var(--muted); letter-spacing: 0.05em;">Demonstrativo Final</span>
+        <h2 style="font-size: 1.5rem; font-weight: 800; color: var(--text); margin: 4px 0 2px 0;">
           Comprovante de Fechamento de Caixa
         </h2>
-        <p style="margin: 0; color: #cbd5e1; font-size: 0.88rem;">
+        <p style="margin: 0; color: var(--text); font-size: 0.88rem;">
           Turno encerrado em: <strong>{{ fechamento.horario }}</strong> | Operador: <strong>{{ fechamento.operador }}</strong>
         </p>
       </div>
 
       <div class="no-print" style="display: flex; gap: 10px; flex-wrap: wrap;">
         <!-- Alternador Térmico / A4 -->
-        <button type="button" onclick="toggleCupomTermico()" class="btn btn-secondary" style="font-weight: 600; background: rgba(56, 189, 248, 0.15); color: #38bdf8; border-color: rgba(56, 189, 248, 0.35);">
+        <button type="button" onclick="toggleCupomTermico()" class="btn btn-secondary" style="font-weight: 600; background: var(--st-novo-bg); color: var(--st-novo-fg); border-color: color-mix(in srgb, var(--st-novo-fg) 55%, transparent);">
           <i class="fa-solid fa-receipt"></i> <span id="btn-termico-label">Ver Cupom Térmico (80mm)</span>
         </button>
 
@@ -436,7 +436,7 @@
         <form method="post" style="margin: 0;">
           {% csrf_token %}
           <input type="hidden" name="action" value="reabrir">
-          <button type="submit" class="btn btn-primary" style="background: #2563eb; border-color: #1d4ed8; font-weight: 700;">
+          <button type="submit" class="btn btn-primary" style="background: var(--st-pronto-bg); border-color: var(--st-pronto-fg); font-weight: 700;">
             <i class="fa-solid fa-rotate"></i> Iniciar Novo Turno
           </button>
         </form>
@@ -446,27 +446,27 @@
     <!-- Comparativo de Conferência da Gaveta -->
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-bottom: 24px;">
       
-      <div style="background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 16px;">
-        <span style="font-size: 0.8rem; text-transform: uppercase; color: #94a3b8; font-weight: 700; display: block; margin-bottom: 4px;">Saldo Esperado (Sistema)</span>
-        <div style="font-size: 1.6rem; font-weight: 800; color: #fff;">
+      <div style="background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 16px;">
+        <span style="font-size: 0.8rem; text-transform: uppercase; color: var(--muted); font-weight: 700; display: block; margin-bottom: 4px;">Saldo Esperado (Sistema)</span>
+        <div style="font-size: 1.6rem; font-weight: 800; color: var(--text);">
           R$ {{ fechamento.dinheiro_esperado|floatformat:2 }}
         </div>
-        <small style="color: #94a3b8; font-size: 0.78rem;">Fundo + Vendas Espécie + Suprimentos - Sangrias</small>
+        <small style="color: var(--muted); font-size: 0.78rem;">Fundo + Vendas Espécie + Suprimentos - Sangrias</small>
       </div>
 
-      <div style="background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 16px;">
-        <span style="font-size: 0.8rem; text-transform: uppercase; color: #38bdf8; font-weight: 700; display: block; margin-bottom: 4px;">Dinheiro Contado (Operador)</span>
-        <div style="font-size: 1.6rem; font-weight: 800; color: #38bdf8;">
+      <div style="background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 16px;">
+        <span style="font-size: 0.8rem; text-transform: uppercase; color: var(--st-novo-fg); font-weight: 700; display: block; margin-bottom: 4px;">Dinheiro Contado (Operador)</span>
+        <div style="font-size: 1.6rem; font-weight: 800; color: var(--st-novo-fg);">
           R$ {{ fechamento.dinheiro_informado|floatformat:2 }}
         </div>
-        <small style="color: #94a3b8; font-size: 0.78rem;">Valor apurado fisicamente na gaveta</small>
+        <small style="color: var(--muted); font-size: 0.78rem;">Valor apurado fisicamente na gaveta</small>
       </div>
 
-      <div style="background: rgba(0,0,0,0.25); border: 1px solid {% if fechamento.status_diferenca == 'exato' %}rgba(34,197,94,0.4){% elif fechamento.status_diferenca == 'sobra' %}rgba(56,189,248,0.4){% else %}rgba(239,68,68,0.4){% endif %}; border-radius: 10px; padding: 16px;">
-        <span style="font-size: 0.8rem; text-transform: uppercase; color: {% if fechamento.status_diferenca == 'exato' %}#4ade80{% elif fechamento.status_diferenca == 'sobra' %}#38bdf8{% else %}#f87171{% endif %}; font-weight: 700; display: block; margin-bottom: 4px;">
+      <div style="background: var(--surface-2); border: 1px solid {% if fechamento.status_diferenca == 'exato' %}color-mix(in srgb, var(--brand) 55%, transparent){% elif fechamento.status_diferenca == 'sobra' %}color-mix(in srgb, var(--st-novo-fg) 55%, transparent){% else %}color-mix(in srgb, var(--st-cancelado-fg) 55%, transparent){% endif %}; border-radius: 10px; padding: 16px;">
+        <span style="font-size: 0.8rem; text-transform: uppercase; color: {% if fechamento.status_diferenca == 'exato' %}var(--brand-text){% elif fechamento.status_diferenca == 'sobra' %}var(--st-novo-fg){% else %}var(--st-cancelado-fg){% endif %}; font-weight: 700; display: block; margin-bottom: 4px;">
           Resultado da Conferência
         </span>
-        <div style="font-size: 1.6rem; font-weight: 800; color: {% if fechamento.status_diferenca == 'exato' %}#22c55e{% elif fechamento.status_diferenca == 'sobra' %}#38bdf8{% else %}#ef4444{% endif %};">
+        <div style="font-size: 1.6rem; font-weight: 800; color: {% if fechamento.status_diferenca == 'exato' %}var(--brand-text){% elif fechamento.status_diferenca == 'sobra' %}var(--st-novo-fg){% else %}var(--st-cancelado-fg){% endif %};">
           {% if fechamento.status_diferenca == 'exato' %}
             R$ 0,00 (Exato)
           {% elif fechamento.status_diferenca == 'sobra' %}
@@ -475,7 +475,7 @@
             R$ {{ fechamento.diferenca|floatformat:2 }} (Falta)
           {% endif %}
         </div>
-        <small style="color: #cbd5e1; font-size: 0.78rem;">
+        <small style="color: var(--text); font-size: 0.78rem;">
           {% if fechamento.status_diferenca == 'exato' %}
             Caixa bateu centavo por centavo sem divergências.
           {% elif fechamento.status_diferenca == 'sobra' %}
@@ -489,26 +489,26 @@
     </div>
 
     <!-- Resumo dos Valores Totais do Turno -->
-    <div style="background: rgba(0,0,0,0.2); border-radius: 10px; padding: 18px; margin-bottom: 24px;">
-      <h4 style="font-size: 0.95rem; font-weight: 700; color: #fff; margin-bottom: 12px; text-transform: uppercase;">
+    <div style="background: var(--surface-2); border-radius: 10px; padding: 18px; margin-bottom: 24px;">
+      <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--text); margin-bottom: 12px; text-transform: uppercase;">
         Resumo Consolidado do Turno
       </h4>
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; font-size: 0.9rem;">
         <div>Fundo de Troco Inicial: <strong>R$ {{ fundo_inicial|floatformat:2 }}</strong></div>
-        <div>Vendas em Dinheiro: <strong style="color: #22c55e;">+R$ {{ vendas.dinheiro|floatformat:2 }}</strong></div>
-        <div>Suprimentos (Reforços): <strong style="color: #38bdf8;">+R$ {{ total_suprimentos|floatformat:2 }}</strong></div>
-        <div>Sangrias (Retiradas): <strong style="color: #ef4444;">-R$ {{ total_sangrias|floatformat:2 }}</strong></div>
-        <div>Vendas via PIX: <strong style="color: #c084fc;">R$ {{ vendas.pix|floatformat:2 }}</strong></div>
-        <div>Vendas em Cartões: <strong style="color: #60a5fa;">R$ {{ vendas.cartao_credito|add:vendas.cartao_debito|floatformat:2 }}</strong></div>
-        <div style="grid-column: 1 / -1; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 8px; font-size: 1rem; color: #fff;">
+        <div>Vendas em Dinheiro: <strong style="color: var(--brand-text);">+R$ {{ vendas.dinheiro|floatformat:2 }}</strong></div>
+        <div>Suprimentos (Reforços): <strong style="color: var(--st-novo-fg);">+R$ {{ total_suprimentos|floatformat:2 }}</strong></div>
+        <div>Sangrias (Retiradas): <strong style="color: var(--st-cancelado-fg);">-R$ {{ total_sangrias|floatformat:2 }}</strong></div>
+        <div>Vendas via PIX: <strong style="color: var(--st-pre-fg);">R$ {{ vendas.pix|floatformat:2 }}</strong></div>
+        <div>Vendas em Cartões: <strong style="color: var(--st-pronto-fg);">R$ {{ vendas.cartao_credito|add:vendas.cartao_debito|floatformat:2 }}</strong></div>
+        <div style="grid-column: 1 / -1; border-top: 1px solid var(--line); padding-top: 8px; font-size: 1rem; color: var(--text);">
           <strong>Total Geral Faturado no Turno: R$ {{ vendas.total|floatformat:2 }}</strong> ({{ vendas.qtd_pedidos }} pedidos)
         </div>
       </div>
     </div>
 
     <!-- VISUALIZAÇÃO DO CUPOM TÉRMICO (BOBINA 80MM) -->
-    <div id="cupom-termico-wrap" style="display: none; max-width: 380px; margin: 20px auto; background: #fff; color: #000; padding: 20px; font-family: 'Courier New', Courier, monospace; font-size: 12px; border: 1px dashed #999; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
-      <div style="text-align: center; border-bottom: 1px dashed #000; padding-bottom: 8px; margin-bottom: 8px;">
+    <div id="cupom-termico-wrap" style="display: none; max-width: 380px; margin: 20px auto; background: var(--surface); color: var(--muted); padding: 20px; font-family: 'Courier New', Courier, monospace; font-size: 12px; border: 1px dashed var(--line-strong); box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+      <div style="text-align: center; border-bottom: 1px dashed var(--line); padding-bottom: 8px; margin-bottom: 8px;">
         <strong style="font-size: 14px;">PRINT FORNECE</strong><br>
         COMPROVANTE DE FECHAMENTO DE CAIXA<br>
         Data: {{ today_display }}
@@ -541,15 +541,15 @@
     <!-- Quadro de Assinaturas para Impressão A4 -->
     <div id="quadro-assinaturas-a4" style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 24px; padding-top: 12px; page-break-inside: avoid;">
       <div style="text-align: center;">
-        <div style="border-top: 1px solid rgba(255,255,255,0.4); margin-bottom: 6px; padding-top: 6px;"></div>
-        <strong style="color: #f8fafc; font-size: 0.88rem; display: block;">{{ fechamento.operador }}</strong>
-        <small style="color: #94a3b8; font-size: 0.75rem;">Operador de Caixa (Assinatura)</small>
+        <div style="border-top: 1px solid var(--line-strong); margin-bottom: 6px; padding-top: 6px;"></div>
+        <strong style="color: var(--text); font-size: 0.88rem; display: block;">{{ fechamento.operador }}</strong>
+        <small style="color: var(--muted); font-size: 0.75rem;">Operador de Caixa (Assinatura)</small>
       </div>
 
       <div style="text-align: center;">
-        <div style="border-top: 1px solid rgba(255,255,255,0.4); margin-bottom: 6px; padding-top: 6px;"></div>
-        <strong style="color: #f8fafc; font-size: 0.88rem; display: block;">Gerência / Administração</strong>
-        <small style="color: #94a3b8; font-size: 0.75rem;">Conferência e Visto</small>
+        <div style="border-top: 1px solid var(--line-strong); margin-bottom: 6px; padding-top: 6px;"></div>
+        <strong style="color: var(--text); font-size: 0.88rem; display: block;">Gerência / Administração</strong>
+        <small style="color: var(--muted); font-size: 0.75rem;">Conferência e Visto</small>
       </div>
     </div>
 
@@ -557,15 +557,15 @@
   {% endif %}
 
   <!-- ==================== MODAL: NOVA SANGRIA COM CATEGORIAS ==================== -->
-  <div id="modal-sangria" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 9999; align-items: center; justify-content: center; padding: 20px;">
-    <div class="card" style="max-width: 500px; width: 100%; background: #1e293b; border: 1px solid rgba(239,68,68,0.3); border-radius: 14px; padding: 24px;">
+  <div id="modal-sangria" style="display: none; position: fixed; inset: 0; background: var(--surface); z-index: 9999; align-items: center; justify-content: center; padding: 20px;">
+    <div class="card" style="max-width: 500px; width: 100%; background: var(--st-pronto-bg); border: 1px solid color-mix(in srgb, var(--st-cancelado-fg) 55%, transparent); border-radius: 14px; padding: 24px;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-        <h3 style="margin: 0; color: #f87171; font-size: 1.2rem; font-weight: 700;">
+        <h3 style="margin: 0; color: var(--st-cancelado-fg); font-size: 1.2rem; font-weight: 700;">
           <i class="fa-solid fa-arrow-up-from-bracket"></i> Registrar Sangria de Caixa
         </h3>
-        <button type="button" onclick="document.getElementById('modal-sangria').style.display='none'" style="background: none; border: none; color: #94a3b8; font-size: 1.2rem; cursor: pointer;">&times;</button>
+        <button type="button" onclick="document.getElementById('modal-sangria').style.display='none'" style="background: none; border: none; color: var(--muted); font-size: 1.2rem; cursor: pointer;">&times;</button>
       </div>
-      <p style="color: #cbd5e1; font-size: 0.85rem; margin-bottom: 14px;">
+      <p style="color: var(--text); font-size: 0.85rem; margin-bottom: 14px;">
         Retirada de dinheiro da gaveta física. Selecione um motivo rápido ou digite:
       </p>
 
@@ -583,33 +583,33 @@
         <input type="hidden" name="action" value="sangria">
 
         <div style="margin-bottom: 14px;">
-          <label style="display: block; font-size: 0.85rem; font-weight: 600; color: #cbd5e1; margin-bottom: 4px;">Valor a Retirar (R$):</label>
-          <input type="text" name="valor" id="sangria-valor" placeholder="Ex: 50,00" required autofocus style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15); background: rgba(0,0,0,0.3); color: #fff; font-size: 1.05rem; font-weight: 700;">
+          <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--text); margin-bottom: 4px;">Valor a Retirar (R$):</label>
+          <input type="text" name="valor" id="sangria-valor" placeholder="Ex: 50,00" required autofocus style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--line-strong); background: var(--surface-2); color: var(--text); font-size: 1.05rem; font-weight: 700;">
         </div>
 
         <div style="margin-bottom: 20px;">
-          <label style="display: block; font-size: 0.85rem; font-weight: 600; color: #cbd5e1; margin-bottom: 4px;">Motivo / Justificativa:</label>
-          <input type="text" name="motivo" id="sangria-motivo" placeholder="Ex: Pagamento de motoboy" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15); background: rgba(0,0,0,0.3); color: #fff; font-size: 0.9rem;">
+          <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--text); margin-bottom: 4px;">Motivo / Justificativa:</label>
+          <input type="text" name="motivo" id="sangria-motivo" placeholder="Ex: Pagamento de motoboy" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--line-strong); background: var(--surface-2); color: var(--text); font-size: 0.9rem;">
         </div>
 
         <div style="display: flex; justify-content: flex-end; gap: 10px;">
           <button type="button" onclick="document.getElementById('modal-sangria').style.display='none'" class="btn btn-secondary">Cancelar</button>
-          <button type="submit" class="btn btn-primary" style="background: #ef4444; border-color: #dc2626; font-weight: 700;">Confirmar Sangria</button>
+          <button type="submit" class="btn btn-primary" style="background: var(--danger); border-color: var(--st-cancelado-fg); font-weight: 700;">Confirmar Sangria</button>
         </div>
       </form>
     </div>
   </div>
 
   <!-- ==================== MODAL: NOVO SUPRIMENTO COM CATEGORIAS ==================== -->
-  <div id="modal-suprimento" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 9999; align-items: center; justify-content: center; padding: 20px;">
-    <div class="card" style="max-width: 500px; width: 100%; background: #1e293b; border: 1px solid rgba(56,189,248,0.3); border-radius: 14px; padding: 24px;">
+  <div id="modal-suprimento" style="display: none; position: fixed; inset: 0; background: var(--surface); z-index: 9999; align-items: center; justify-content: center; padding: 20px;">
+    <div class="card" style="max-width: 500px; width: 100%; background: var(--st-pronto-bg); border: 1px solid color-mix(in srgb, var(--st-novo-fg) 55%, transparent); border-radius: 14px; padding: 24px;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-        <h3 style="margin: 0; color: #38bdf8; font-size: 1.2rem; font-weight: 700;">
+        <h3 style="margin: 0; color: var(--st-novo-fg); font-size: 1.2rem; font-weight: 700;">
           <i class="fa-solid fa-arrow-down-to-bracket"></i> Registrar Suprimento de Caixa
         </h3>
-        <button type="button" onclick="document.getElementById('modal-suprimento').style.display='none'" style="background: none; border: none; color: #94a3b8; font-size: 1.2rem; cursor: pointer;">&times;</button>
+        <button type="button" onclick="document.getElementById('modal-suprimento').style.display='none'" style="background: none; border: none; color: var(--muted); font-size: 1.2rem; cursor: pointer;">&times;</button>
       </div>
-      <p style="color: #cbd5e1; font-size: 0.85rem; margin-bottom: 14px;">
+      <p style="color: var(--text); font-size: 0.85rem; margin-bottom: 14px;">
         Entrada avulsa de dinheiro para reforço de troco na gaveta. Selecione ou digite:
       </p>
 
@@ -624,36 +624,36 @@
         <input type="hidden" name="action" value="suprimento">
 
         <div style="margin-bottom: 14px;">
-          <label style="display: block; font-size: 0.85rem; font-weight: 600; color: #cbd5e1; margin-bottom: 4px;">Valor a Inserir (R$):</label>
-          <input type="text" name="valor" id="suprimento-valor" placeholder="Ex: 100,00" required autofocus style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15); background: rgba(0,0,0,0.3); color: #fff; font-size: 1.05rem; font-weight: 700;">
+          <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--text); margin-bottom: 4px;">Valor a Inserir (R$):</label>
+          <input type="text" name="valor" id="suprimento-valor" placeholder="Ex: 100,00" required autofocus style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--line-strong); background: var(--surface-2); color: var(--text); font-size: 1.05rem; font-weight: 700;">
         </div>
 
         <div style="margin-bottom: 20px;">
-          <label style="display: block; font-size: 0.85rem; font-weight: 600; color: #cbd5e1; margin-bottom: 4px;">Motivo / Justificativa:</label>
-          <input type="text" name="motivo" id="suprimento-motivo" placeholder="Ex: Reforço de moedas para troco" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15); background: rgba(0,0,0,0.3); color: #fff; font-size: 0.9rem;">
+          <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--text); margin-bottom: 4px;">Motivo / Justificativa:</label>
+          <input type="text" name="motivo" id="suprimento-motivo" placeholder="Ex: Reforço de moedas para troco" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--line-strong); background: var(--surface-2); color: var(--text); font-size: 0.9rem;">
         </div>
 
         <div style="display: flex; justify-content: flex-end; gap: 10px;">
           <button type="button" onclick="document.getElementById('modal-suprimento').style.display='none'" class="btn btn-secondary">Cancelar</button>
-          <button type="submit" class="btn btn-primary" style="background: #0284c7; border-color: #0369a1; font-weight: 700;">Confirmar Suprimento</button>
+          <button type="submit" class="btn btn-primary" style="background: var(--st-pronto-bg); border-color: var(--st-pronto-fg); font-weight: 700;">Confirmar Suprimento</button>
         </div>
       </form>
     </div>
   </div>
 
   <!-- ==================== MODAL: FECHAR CAIXA COM CALCULADORA ==================== -->
-  <div id="modal-fechar" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 9999; align-items: center; justify-content: center; padding: 20px;">
-    <div class="card" style="max-width: 580px; width: 100%; background: #1e293b; border: 1px solid rgba(225,29,72,0.4); border-radius: 14px; padding: 24px; max-height: 90vh; overflow-y: auto;">
+  <div id="modal-fechar" style="display: none; position: fixed; inset: 0; background: var(--surface); z-index: 9999; align-items: center; justify-content: center; padding: 20px;">
+    <div class="card" style="max-width: 580px; width: 100%; background: var(--st-pronto-bg); border: 1px solid color-mix(in srgb, var(--st-cancelado-fg) 55%, transparent); border-radius: 14px; padding: 24px; max-height: 90vh; overflow-y: auto;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
-        <h3 style="margin: 0; color: #fb7185; font-size: 1.25rem; font-weight: 700;">
+        <h3 style="margin: 0; color: var(--st-cancelado-fg); font-size: 1.25rem; font-weight: 700;">
           <i class="fa-solid fa-lock"></i> Conferência & Fechamento de Caixa
         </h3>
-        <button type="button" onclick="document.getElementById('modal-fechar').style.display='none'" style="background: none; border: none; color: #94a3b8; font-size: 1.2rem; cursor: pointer;">&times;</button>
+        <button type="button" onclick="document.getElementById('modal-fechar').style.display='none'" style="background: none; border: none; color: var(--muted); font-size: 1.2rem; cursor: pointer;">&times;</button>
       </div>
 
-      <div style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 12px; margin-bottom: 16px;">
-        <div style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 2px;">Referência interna do sistema (Conferência Cega):</div>
-        <div style="font-size: 0.95rem; color: #cbd5e1;">Saldo esperado na gaveta: <strong style="color: #38bdf8;">R$ {{ saldo_gaveta_esperado|floatformat:2 }}</strong></div>
+      <div style="background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; padding: 12px; margin-bottom: 16px;">
+        <div style="font-size: 0.8rem; color: var(--muted); margin-bottom: 2px;">Referência interna do sistema (Conferência Cega):</div>
+        <div style="font-size: 0.95rem; color: var(--text);">Saldo esperado na gaveta: <strong style="color: var(--st-novo-fg);">R$ {{ saldo_gaveta_esperado|floatformat:2 }}</strong></div>
       </div>
 
       <form method="post">
@@ -661,7 +661,7 @@
         <input type="hidden" name="action" value="fechar">
 
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-          <label style="font-size: 0.9rem; font-weight: 700; color: #fff; margin: 0;">
+          <label style="font-size: 0.9rem; font-weight: 700; color: var(--text); margin: 0;">
             Total Contado na Gaveta:
           </label>
           <button type="button" onclick="toggleCalc('calc-fechamento', 'fechar_input')" class="btn btn-secondary btn-small" style="font-size: 0.78rem; padding: 3px 8px;">
@@ -670,68 +670,68 @@
         </div>
 
         <div style="position: relative; margin-bottom: 14px;">
-          <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #fb7185; font-weight: 700; font-size: 1.1rem;">R$</span>
-          <input type="text" id="fechar_input" name="dinheiro_informado" value="{{ saldo_gaveta_esperado|floatformat:2 }}" required autofocus style="width: 100%; padding: 10px 12px 10px 42px; border-radius: 8px; border: 1px solid rgba(225,29,72,0.4); background: rgba(0,0,0,0.4); color: #fff; font-size: 1.15rem; font-weight: 700;">
+          <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--st-cancelado-fg); font-weight: 700; font-size: 1.1rem;">R$</span>
+          <input type="text" id="fechar_input" name="dinheiro_informado" value="{{ saldo_gaveta_esperado|floatformat:2 }}" required autofocus style="width: 100%; padding: 10px 12px 10px 42px; border-radius: 8px; border: 1px solid color-mix(in srgb, var(--st-cancelado-fg) 55%, transparent); background: var(--surface-2); color: var(--text); font-size: 1.15rem; font-weight: 700;">
         </div>
 
         <!-- CALCULADORA DE CÉDULAS E MOEDAS (FECHAMENTO) -->
-        <div id="calc-fechamento" style="display: none; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 14px; margin-bottom: 18px;">
-          <span style="font-size: 0.8rem; font-weight: 700; color: #fb7185; text-transform: uppercase; display: block; margin-bottom: 10px;">
+        <div id="calc-fechamento" style="display: none; background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 14px; margin-bottom: 18px;">
+          <span style="font-size: 0.8rem; font-weight: 700; color: var(--st-cancelado-fg); text-transform: uppercase; display: block; margin-bottom: 10px;">
             <i class="fa-solid fa-calculator"></i> Somador de Cédulas e Moedas
           </span>
 
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.82rem;">
             <!-- Notas -->
             <div>
-              <strong style="color: #cbd5e1; font-size: 0.76rem; display: block; margin-bottom: 4px;">Notas:</strong>
+              <strong style="color: var(--text); font-size: 0.76rem; display: block; margin-bottom: 4px;">Notas:</strong>
               <div style="display: flex; flex-direction: column; gap: 4px;">
                 <div style="display: flex; align-items: center; justify-content: space-between;">
-                  <span style="color: #94a3b8;">R$ 100:</span>
-                  <input type="number" min="0" value="0" onchange="recalcFechamento()" class="calc-fc-item" data-val="100" style="width: 55px; padding: 3px; border-radius: 4px; border: 1px solid #444; background: #111; color: #fff; text-align: center;">
+                  <span style="color: var(--muted);">R$ 100:</span>
+                  <input type="number" min="0" value="0" onchange="recalcFechamento()" class="calc-fc-item" data-val="100" style="width: 55px; padding: 3px; border-radius: 4px; border: 1px solid var(--line-strong); background: var(--bg); color: var(--text); text-align: center;">
                 </div>
                 <div style="display: flex; align-items: center; justify-content: space-between;">
-                  <span style="color: #94a3b8;">R$ 50:</span>
-                  <input type="number" min="0" value="0" onchange="recalcFechamento()" class="calc-fc-item" data-val="50" style="width: 55px; padding: 3px; border-radius: 4px; border: 1px solid #444; background: #111; color: #fff; text-align: center;">
+                  <span style="color: var(--muted);">R$ 50:</span>
+                  <input type="number" min="0" value="0" onchange="recalcFechamento()" class="calc-fc-item" data-val="50" style="width: 55px; padding: 3px; border-radius: 4px; border: 1px solid var(--line-strong); background: var(--bg); color: var(--text); text-align: center;">
                 </div>
                 <div style="display: flex; align-items: center; justify-content: space-between;">
-                  <span style="color: #94a3b8;">R$ 20:</span>
-                  <input type="number" min="0" value="0" onchange="recalcFechamento()" class="calc-fc-item" data-val="20" style="width: 55px; padding: 3px; border-radius: 4px; border: 1px solid #444; background: #111; color: #fff; text-align: center;">
+                  <span style="color: var(--muted);">R$ 20:</span>
+                  <input type="number" min="0" value="0" onchange="recalcFechamento()" class="calc-fc-item" data-val="20" style="width: 55px; padding: 3px; border-radius: 4px; border: 1px solid var(--line-strong); background: var(--bg); color: var(--text); text-align: center;">
                 </div>
                 <div style="display: flex; align-items: center; justify-content: space-between;">
-                  <span style="color: #94a3b8;">R$ 10:</span>
-                  <input type="number" min="0" value="0" onchange="recalcFechamento()" class="calc-fc-item" data-val="10" style="width: 55px; padding: 3px; border-radius: 4px; border: 1px solid #444; background: #111; color: #fff; text-align: center;">
+                  <span style="color: var(--muted);">R$ 10:</span>
+                  <input type="number" min="0" value="0" onchange="recalcFechamento()" class="calc-fc-item" data-val="10" style="width: 55px; padding: 3px; border-radius: 4px; border: 1px solid var(--line-strong); background: var(--bg); color: var(--text); text-align: center;">
                 </div>
                 <div style="display: flex; align-items: center; justify-content: space-between;">
-                  <span style="color: #94a3b8;">R$ 5:</span>
-                  <input type="number" min="0" value="0" onchange="recalcFechamento()" class="calc-fc-item" data-val="5" style="width: 55px; padding: 3px; border-radius: 4px; border: 1px solid #444; background: #111; color: #fff; text-align: center;">
+                  <span style="color: var(--muted);">R$ 5:</span>
+                  <input type="number" min="0" value="0" onchange="recalcFechamento()" class="calc-fc-item" data-val="5" style="width: 55px; padding: 3px; border-radius: 4px; border: 1px solid var(--line-strong); background: var(--bg); color: var(--text); text-align: center;">
                 </div>
                 <div style="display: flex; align-items: center; justify-content: space-between;">
-                  <span style="color: #94a3b8;">R$ 2:</span>
-                  <input type="number" min="0" value="0" onchange="recalcFechamento()" class="calc-fc-item" data-val="2" style="width: 55px; padding: 3px; border-radius: 4px; border: 1px solid #444; background: #111; color: #fff; text-align: center;">
+                  <span style="color: var(--muted);">R$ 2:</span>
+                  <input type="number" min="0" value="0" onchange="recalcFechamento()" class="calc-fc-item" data-val="2" style="width: 55px; padding: 3px; border-radius: 4px; border: 1px solid var(--line-strong); background: var(--bg); color: var(--text); text-align: center;">
                 </div>
               </div>
             </div>
 
             <!-- Moedas -->
             <div>
-              <strong style="color: #cbd5e1; font-size: 0.76rem; display: block; margin-bottom: 4px;">Moedas:</strong>
+              <strong style="color: var(--text); font-size: 0.76rem; display: block; margin-bottom: 4px;">Moedas:</strong>
               <div style="display: flex; flex-direction: column; gap: 4px;">
                 <div style="display: flex; align-items: center; justify-content: space-between;">
-                  <span style="color: #94a3b8;">R$ 1,00:</span>
-                  <input type="number" min="0" value="0" onchange="recalcFechamento()" class="calc-fc-item" data-val="1" style="width: 55px; padding: 3px; border-radius: 4px; border: 1px solid #444; background: #111; color: #fff; text-align: center;">
+                  <span style="color: var(--muted);">R$ 1,00:</span>
+                  <input type="number" min="0" value="0" onchange="recalcFechamento()" class="calc-fc-item" data-val="1" style="width: 55px; padding: 3px; border-radius: 4px; border: 1px solid var(--line-strong); background: var(--bg); color: var(--text); text-align: center;">
                 </div>
                 <div style="display: flex; align-items: center; justify-content: space-between;">
-                  <span style="color: #94a3b8;">R$ 0,50:</span>
-                  <input type="number" min="0" value="0" onchange="recalcFechamento()" class="calc-fc-item" data-val="0.5" style="width: 55px; padding: 3px; border-radius: 4px; border: 1px solid #444; background: #111; color: #fff; text-align: center;">
+                  <span style="color: var(--muted);">R$ 0,50:</span>
+                  <input type="number" min="0" value="0" onchange="recalcFechamento()" class="calc-fc-item" data-val="0.5" style="width: 55px; padding: 3px; border-radius: 4px; border: 1px solid var(--line-strong); background: var(--bg); color: var(--text); text-align: center;">
                 </div>
                 <div style="display: flex; align-items: center; justify-content: space-between;">
-                  <span style="color: #94a3b8;">R$ 0,25:</span>
-                  <input type="number" min="0" value="0" onchange="recalcFechamento()" class="calc-fc-item" data-val="0.25" style="width: 55px; padding: 3px; border-radius: 4px; border: 1px solid #444; background: #111; color: #fff; text-align: center;">
+                  <span style="color: var(--muted);">R$ 0,25:</span>
+                  <input type="number" min="0" value="0" onchange="recalcFechamento()" class="calc-fc-item" data-val="0.25" style="width: 55px; padding: 3px; border-radius: 4px; border: 1px solid var(--line-strong); background: var(--bg); color: var(--text); text-align: center;">
                 </div>
               </div>
-              <div style="margin-top: 14px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1); text-align: right;">
-                <small style="color: #94a3b8;">Soma:</small>
-                <div id="calc-fc-total" style="font-size: 1.05rem; font-weight: 800; color: #fb7185;">R$ 0,00</div>
+              <div style="margin-top: 14px; padding-top: 8px; border-top: 1px solid var(--line); text-align: right;">
+                <small style="color: var(--muted);">Soma:</small>
+                <div id="calc-fc-total" style="font-size: 1.05rem; font-weight: 800; color: var(--st-cancelado-fg);">R$ 0,00</div>
               </div>
             </div>
           </div>
@@ -739,7 +739,7 @@
 
         <div style="display: flex; justify-content: flex-end; gap: 10px;">
           <button type="button" onclick="document.getElementById('modal-fechar').style.display='none'" class="btn btn-secondary">Cancelar</button>
-          <button type="submit" class="btn btn-primary" style="background: #e11d48; border-color: #be123c; font-weight: 700;">Finalizar Fechamento</button>
+          <button type="submit" class="btn btn-primary" style="background: var(--danger); border-color: var(--st-cancelado-fg); font-weight: 700;">Finalizar Fechamento</button>
         </div>
       </form>
     </div>
@@ -825,8 +825,8 @@ function toggleCupomTermico() {
 <style>
   @media print {
     body {
-      background: #fff !important;
-      color: #000 !important;
+      background: var(--surface) !important;
+      color: var(--muted) !important;
       font-size: 10pt;
     }
     .sidebar, .topbar, .no-print, header, nav, .icon-button {
@@ -838,25 +838,25 @@ function toggleCupomTermico() {
       max-width: 100% !important;
     }
     .card {
-      background: #fff !important;
-      border: 1px solid #ccc !important;
+      background: var(--surface) !important;
+      border: 1px solid var(--line-strong) !important;
       box-shadow: none !important;
-      color: #000 !important;
+      color: var(--muted) !important;
       padding: 10px !important;
       margin-bottom: 16px !important;
     }
     h1, h2, h3, h4, strong, span, td, th {
-      color: #000 !important;
+      color: var(--muted) !important;
     }
     .table th, .table td {
-      border-color: #ddd !important;
-      color: #000 !important;
+      border-color: var(--line-strong) !important;
+      color: var(--muted) !important;
       padding: 5px 6px !important;
     }
     .badge {
-      border: 1px solid #999 !important;
-      color: #000 !important;
-      background: #f0f0f0 !important;
+      border: 1px solid var(--line-strong) !important;
+      color: var(--muted) !important;
+      background: var(--surface) !important;
     }
   }
 </style>

@@ -11,12 +11,12 @@
     </a>
   </div>
 
-  <div class="card" style="background: rgba(30, 41, 59, 0.85); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 24px;">
-    <h2 style="margin: 0 0 16px 0; font-size: 1.25rem; color: #f8fafc;">
+  <div class="card" style="background: var(--st-pronto-bg); border: 1px solid var(--line); border-radius: 12px; padding: 24px;">
+    <h2 style="margin: 0 0 16px 0; font-size: 1.25rem; color: var(--text);">
       {% if object %}Editar Informações do Insumo{% else %}Cadastrar Novo Insumo de Estoque{% endif %}
     </h2>
-    <p style="margin: 0 0 20px 0; color: var(--muted, #94a3b8); font-size: 0.88rem;">
-      Campos com asterisco (<span style="color: #ef4444;">*</span>) são obrigatórios.
+    <p style="margin: 0 0 20px 0; color: var(--muted, var(--muted)); font-size: 0.88rem;">
+      Campos com asterisco (<span style="color: var(--st-cancelado-fg);">*</span>) são obrigatórios.
     </p>
 
     <form method="post">

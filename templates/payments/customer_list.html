@@ -42,12 +42,12 @@
           {% for c in clientes %}
             <tr>
               <td>
-                <a href="{% url 'payments:customer_detail' pk=c.pk %}" style="font-weight: 700; color: #38bdf8;">{{ c.nome }}</a>
+                <a href="{% url 'payments:customer_detail' pk=c.pk %}" style="font-weight: 700; color: var(--st-novo-fg);">{{ c.nome }}</a>
                 {% if c.cpf_cnpj %}<br><small class="text-muted">{{ c.cpf_cnpj }}</small>{% endif %}
               </td>
               <td>
                 {% if c.telefone %}
-                  <a href="https://wa.me/55{{ c.telefone|cut:' '|cut:'-'|cut:'('|cut:')' }}" target="_blank" style="color: #22c55e;">
+                  <a href="https://wa.me/55{{ c.telefone|cut:' '|cut:'-'|cut:'('|cut:')' }}" target="_blank" style="color: var(--brand-text);">
                     <i class="fa-brands fa-whatsapp"></i> {{ c.telefone }}
                   </a>
                 {% else %}
@@ -60,7 +60,7 @@
                     <span class="badge badge-pago" title="Preço Especial DTF Têxtil">Têxtil: R$ {{ c.preco_especial_metro|floatformat:2 }}/m</span>
                   {% endif %}
                   {% if c.preco_especial_dtf_uv %}
-                    <span class="badge" style="background: rgba(168, 85, 247, 0.2); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.4);" title="Preço Especial DTF UV">UV: R$ {{ c.preco_especial_dtf_uv|floatformat:2 }}/m</span>
+                    <span class="badge" style="background: var(--st-pre-bg); color: var(--st-pre-fg); border: 1px solid color-mix(in srgb, var(--st-pre-fg) 55%, transparent);" title="Preço Especial DTF UV">UV: R$ {{ c.preco_especial_dtf_uv|floatformat:2 }}/m</span>
                   {% endif %}
                   {% if not c.preco_especial_metro and not c.preco_especial_dtf_uv %}
                     <span class="text-muted">Tabela Padrão</span>

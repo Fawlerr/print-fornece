@@ -12,65 +12,65 @@
   {% include "reports/_period_filter.html" %}
 
   <!-- Cabeçalho do Relatório -->
-  <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px; border-bottom: 2px solid rgba(255,255,255,0.1); padding-bottom: 12px;">
+  <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px; border-bottom: 2px solid var(--line); padding-bottom: 12px;">
     <div>
-      <span style="font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.05em; color: #38bdf8; font-weight: 700;">Controle de Insumos Líquidos</span>
-      <h1 style="font-size: 1.6rem; font-weight: 800; color: #fff; margin: 4px 0 2px 0;">
+      <span style="font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--st-novo-fg); font-weight: 700;">Controle de Insumos Líquidos</span>
+      <h1 style="font-size: 1.6rem; font-weight: 800; color: var(--text); margin: 4px 0 2px 0;">
         Consumo de Tintas e Verniz: {{ period.label }}
       </h1>
-      <p style="font-size: 0.92rem; color: #94a3b8; margin: 0;">
+      <p style="font-size: 0.92rem; color: var(--muted); margin: 0;">
         Apuração de saídas no estoque e relação de consumo por metros DTF produzidos
       </p>
     </div>
-    <div style="text-align: right; font-size: 0.82rem; color: #94a3b8;">
+    <div style="text-align: right; font-size: 0.82rem; color: var(--muted);">
       Emitido em: <strong>{% now "d/m/Y H:i" %}</strong>
     </div>
   </div>
 
   <!-- KPIs de Produção vs Tintas -->
   <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px;">
-    <div class="card" style="padding: 16px; background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 10px;">
-      <span style="font-size: 0.78rem; text-transform: uppercase; font-weight: 700; color: #38bdf8; display: block; margin-bottom: 4px;">
+    <div class="card" style="padding: 16px; background: var(--st-novo-bg); border: 1px solid color-mix(in srgb, var(--st-novo-fg) 55%, transparent); border-radius: 10px;">
+      <span style="font-size: 0.78rem; text-transform: uppercase; font-weight: 700; color: var(--st-novo-fg); display: block; margin-bottom: 4px;">
         <i class="fa-solid fa-print"></i> DTF Têxtil Impresso
       </span>
-      <div style="font-size: 1.4rem; font-weight: 800; color: #38bdf8;">
+      <div style="font-size: 1.4rem; font-weight: 800; color: var(--st-novo-fg);">
         {{ textil_meters|floatformat:2 }} m
       </div>
-      <small style="color: #94a3b8; font-size: 0.75rem;">Produção total no mês</small>
+      <small style="color: var(--muted); font-size: 0.75rem;">Produção total no mês</small>
     </div>
 
-    <div class="card" style="padding: 16px; background: rgba(192, 132, 252, 0.08); border: 1px solid rgba(192, 132, 252, 0.3); border-radius: 10px;">
-      <span style="font-size: 0.78rem; text-transform: uppercase; font-weight: 700; color: #c084fc; display: block; margin-bottom: 4px;">
+    <div class="card" style="padding: 16px; background: var(--st-pre-bg); border: 1px solid color-mix(in srgb, var(--st-pre-fg) 55%, transparent); border-radius: 10px;">
+      <span style="font-size: 0.78rem; text-transform: uppercase; font-weight: 700; color: var(--st-pre-fg); display: block; margin-bottom: 4px;">
         <i class="fa-solid fa-sun"></i> DTF UV Impresso
       </span>
-      <div style="font-size: 1.4rem; font-weight: 800; color: #c084fc;">
+      <div style="font-size: 1.4rem; font-weight: 800; color: var(--st-pre-fg);">
         {{ uv_meters|floatformat:2 }} m
       </div>
-      <small style="color: #94a3b8; font-size: 0.75rem;">Produção total no mês</small>
+      <small style="color: var(--muted); font-size: 0.75rem;">Produção total no mês</small>
     </div>
 
-    <div class="card" style="padding: 16px; background: rgba(34, 197, 94, 0.08); border: 1px solid rgba(34, 197, 94, 0.3); border-radius: 10px;">
-      <span style="font-size: 0.78rem; text-transform: uppercase; font-weight: 700; color: #4ade80; display: block; margin-bottom: 4px;">
+    <div class="card" style="padding: 16px; background: var(--brand-soft); border: 1px solid color-mix(in srgb, var(--brand) 55%, transparent); border-radius: 10px;">
+      <span style="font-size: 0.78rem; text-transform: uppercase; font-weight: 700; color: var(--brand-text); display: block; margin-bottom: 4px;">
         <i class="fa-solid fa-fill-drip"></i> Total de Tintas Baixadas
       </span>
-      <div style="font-size: 1.4rem; font-weight: 800; color: #22c55e;">
+      <div style="font-size: 1.4rem; font-weight: 800; color: var(--brand-text);">
         {{ total_consumed|floatformat:1 }} un
       </div>
-      <small style="color: #94a3b8; font-size: 0.75rem;">Frascos / unidades consumidas</small>
+      <small style="color: var(--muted); font-size: 0.75rem;">Frascos / unidades consumidas</small>
     </div>
   </div>
 
   <!-- Tabela de Tintas e Estoque Atual -->
-  <div class="card card-pad" style="background: var(--surface, #1e293b); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; margin-bottom: 24px;">
+  <div class="card card-pad" style="background: var(--surface, var(--st-pronto-bg)); border: 1px solid var(--line); border-radius: 12px; margin-bottom: 24px;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-      <h3 style="margin: 0; font-size: 1rem; color: #fff;">
-        <i class="fa-solid fa-boxes-stacked" style="color: #38bdf8;"></i> Tintas em Estoque & Consumo Apurado
+      <h3 style="margin: 0; font-size: 1rem; color: var(--text);">
+        <i class="fa-solid fa-boxes-stacked" style="color: var(--st-novo-fg);"></i> Tintas em Estoque & Consumo Apurado
       </h3>
     </div>
     <div class="table-wrap">
       <table class="data-table" style="width: 100%; font-size: 0.88rem;">
         <thead>
-          <tr style="background: rgba(255,255,255,0.04);">
+          <tr style="background: var(--surface-2);">
             <th style="padding: 10px 12px;">Insumo / Cor</th>
             <th style="padding: 10px 12px;">Linha / Processo</th>
             <th style="padding: 10px 12px; text-align: right;">Consumo no Mês</th>
@@ -80,23 +80,23 @@
         </thead>
         <tbody>
           {% for row in ink_summary %}
-            <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
-              <td style="padding: 10px 12px; font-weight: 700; color: #fff;">
+            <tr style="border-bottom: 1px solid var(--line);">
+              <td style="padding: 10px 12px; font-weight: 700; color: var(--text);">
                 {{ row.item.name }}
               </td>
               <td style="padding: 10px 12px;">
-                <span class="badge" style="background: {% if row.item.category == 'dtf_textil' %}rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3);{% else %}rgba(192, 132, 252, 0.15); color: #c084fc; border: 1px solid rgba(192, 132, 252, 0.3);{% endif %} font-size: 0.78rem;">
+                <span class="badge" style="background: {% if row.item.category == 'dtf_textil' %}var(--st-novo-bg); color: var(--st-novo-fg); border: 1px solid color-mix(in srgb, var(--st-novo-fg) 55%, transparent);{% else %}rgba(192, 132, 252, 0.15); color: var(--st-pre-fg); border: 1px solid color-mix(in srgb, var(--st-pre-fg) 55%, transparent);{% endif %} font-size: 0.78rem;">
                   {{ row.item.get_category_display }}
                 </span>
               </td>
-              <td style="padding: 10px 12px; text-align: right; font-weight: 700; color: #f87171;">
+              <td style="padding: 10px 12px; text-align: right; font-weight: 700; color: var(--st-cancelado-fg);">
                 {% if row.consumed > 0 %}
                   - {{ row.consumed|floatformat:1 }} {{ row.unit }}
                 {% else %}
-                  <span style="color: #94a3b8;">0 {{ row.unit }}</span>
+                  <span style="color: var(--muted);">0 {{ row.unit }}</span>
                 {% endif %}
               </td>
-              <td style="padding: 10px 12px; text-align: right; font-weight: 800; color: {% if row.item.is_low_stock %}#ef4444{% else %}#22c55e{% endif %};">
+              <td style="padding: 10px 12px; text-align: right; font-weight: 800; color: {% if row.item.is_low_stock %}var(--st-cancelado-fg){% else %}var(--brand-text){% endif %};">
                 {{ row.current_stock|floatformat:1 }} {{ row.unit }}
               </td>
               <td style="padding: 10px 12px; text-align: center;" class="no-print">
@@ -118,14 +118,14 @@
   </div>
 
   <!-- Histórico das Movimentações de Saída de Tinta -->
-  <div class="card card-pad" style="background: var(--surface, #1e293b); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px;">
-    <h3 style="margin: 0 0 12px; font-size: 1rem; color: #fff;">
-      <i class="fa-solid fa-clock-rotate-left" style="color: #f59e0b;"></i> Histórico de Saídas e Baixas de Tinta no Período
+  <div class="card card-pad" style="background: var(--surface, var(--st-pronto-bg)); border: 1px solid var(--line); border-radius: 12px;">
+    <h3 style="margin: 0 0 12px; font-size: 1rem; color: var(--text);">
+      <i class="fa-solid fa-clock-rotate-left" style="color: var(--st-producao-fg);"></i> Histórico de Saídas e Baixas de Tinta no Período
     </h3>
     <div class="table-wrap">
       <table class="data-table" style="width: 100%; font-size: 0.85rem;">
         <thead>
-          <tr style="background: rgba(255,255,255,0.04);">
+          <tr style="background: var(--surface-2);">
             <th style="padding: 8px 10px;">Data/Hora</th>
             <th style="padding: 8px 10px;">Insumo</th>
             <th style="padding: 8px 10px; text-align: right;">Quantidade</th>
@@ -135,12 +135,12 @@
         </thead>
         <tbody>
           {% for m in movements %}
-            <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
-              <td style="padding: 8px 10px; color: #cbd5e1;">{{ m.created_at|date:"d/m/Y H:i" }}</td>
-              <td style="padding: 8px 10px; font-weight: 600; color: #fff;">{{ m.item.name }}</td>
-              <td style="padding: 8px 10px; text-align: right; color: #f87171; font-weight: 700;">- {{ m.quantity|floatformat:1 }} {{ m.item.get_unit_display }}</td>
-              <td style="padding: 8px 10px; color: #94a3b8;">{{ m.description|default:"Consumo operacional" }}</td>
-              <td style="padding: 8px 10px; color: #cbd5e1;">{{ m.user.name|default:"Sistema" }}</td>
+            <tr style="border-bottom: 1px solid var(--line);">
+              <td style="padding: 8px 10px; color: var(--text);">{{ m.created_at|date:"d/m/Y H:i" }}</td>
+              <td style="padding: 8px 10px; font-weight: 600; color: var(--text);">{{ m.item.name }}</td>
+              <td style="padding: 8px 10px; text-align: right; color: var(--st-cancelado-fg); font-weight: 700;">- {{ m.quantity|floatformat:1 }} {{ m.item.get_unit_display }}</td>
+              <td style="padding: 8px 10px; color: var(--muted);">{{ m.description|default:"Consumo operacional" }}</td>
+              <td style="padding: 8px 10px; color: var(--text);">{{ m.user.name|default:"Sistema" }}</td>
             </tr>
           {% empty %}
             <tr>
@@ -157,40 +157,40 @@
 </section>
 
 <!-- Modal: Registro de Baixa Manual de Tinta -->
-<div id="modal-baixa-tinta" class="no-print" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 9999; align-items: center; justify-content: center; padding: 20px;">
-  <div class="card" style="max-width: 480px; width: 100%; background: #1e293b; border: 1px solid rgba(56,189,248,0.3); border-radius: 12px; padding: 24px;">
+<div id="modal-baixa-tinta" class="no-print" style="display: none; position: fixed; inset: 0; background: var(--surface); z-index: 9999; align-items: center; justify-content: center; padding: 20px;">
+  <div class="card" style="max-width: 480px; width: 100%; background: var(--st-pronto-bg); border: 1px solid color-mix(in srgb, var(--st-novo-fg) 55%, transparent); border-radius: 12px; padding: 24px;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-      <h3 style="margin: 0; font-size: 1.15rem; color: #38bdf8;">
+      <h3 style="margin: 0; font-size: 1.15rem; color: var(--st-novo-fg);">
         <i class="fa-solid fa-minus-circle"></i> Registrar Baixa de Tinta
       </h3>
-      <button type="button" onclick="document.getElementById('modal-baixa-tinta').style.display='none'" style="background: none; border: none; color: #94a3b8; font-size: 1.2rem; cursor: pointer;">&times;</button>
+      <button type="button" onclick="document.getElementById('modal-baixa-tinta').style.display='none'" style="background: none; border: none; color: var(--muted); font-size: 1.2rem; cursor: pointer;">&times;</button>
     </div>
     
     <form method="post">
       {% csrf_token %}
       <div style="display: grid; gap: 14px;">
-        <label style="font-size: 0.88rem; color: #cbd5e1;">
+        <label style="font-size: 0.88rem; color: var(--text);">
           <span>Selecione a Tinta / Verniz:</span>
-          <select id="modal_ink_item" name="item_id" required style="width: 100%; padding: 8px 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: #fff; margin-top: 4px;">
+          <select id="modal_ink_item" name="item_id" required style="width: 100%; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--line-strong); background: var(--surface-2); color: var(--text); margin-top: 4px;">
             {% for row in ink_summary %}
               <option value="{{ row.item.id }}">{{ row.item.name }} (Saldo atual: {{ row.current_stock|floatformat:1 }} un)</option>
             {% endfor %}
           </select>
         </label>
 
-        <label style="font-size: 0.88rem; color: #cbd5e1;">
+        <label style="font-size: 0.88rem; color: var(--text);">
           <span>Quantidade Baixada:</span>
-          <input type="number" id="modal_ink_qty" name="quantity" value="1.0" step="0.1" min="0.1" required style="width: 100%; padding: 8px 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: #fff; margin-top: 4px;">
+          <input type="number" id="modal_ink_qty" name="quantity" value="1.0" step="0.1" min="0.1" required style="width: 100%; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--line-strong); background: var(--surface-2); color: var(--text); margin-top: 4px;">
         </label>
 
-        <label style="font-size: 0.88rem; color: #cbd5e1;">
+        <label style="font-size: 0.88rem; color: var(--text);">
           <span>Motivo / Observação:</span>
-          <input type="text" id="modal_ink_motivo" name="motivo" value="Reposição de tanque na impressora" placeholder="Ex: Reposição, limpeza de cabeçote..." style="width: 100%; padding: 8px 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: #fff; margin-top: 4px;">
+          <input type="text" id="modal_ink_motivo" name="motivo" value="Reposição de tanque na impressora" placeholder="Ex: Reposição, limpeza de cabeçote..." style="width: 100%; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--line-strong); background: var(--surface-2); color: var(--text); margin-top: 4px;">
         </label>
 
         <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px;">
           <button type="button" onclick="document.getElementById('modal-baixa-tinta').style.display='none'" class="btn btn-secondary">Cancelar</button>
-          <button type="submit" class="btn btn-primary" style="background: #ef4444; border-color: #dc2626;">Confirmar Baixa no Estoque</button>
+          <button type="submit" class="btn btn-primary" style="background: var(--danger); border-color: var(--st-cancelado-fg);">Confirmar Baixa no Estoque</button>
         </div>
       </div>
     </form>

@@ -125,11 +125,11 @@
         if (data.passou) {
           suiteBadge.className = 'badge-status badge-status--pass';
           suiteBadge.textContent = '✓ TODOS OS TESTES PASSARAM';
-          suiteSummary.innerHTML = '<strong style="color: #4ade80;">Integração 100% operacional com o ambiente de testes Stone/Pagar.me V5.</strong>';
+          suiteSummary.innerHTML = '<strong style="color: var(--brand-text);">Integração 100% operacional com o ambiente de testes Stone/Pagar.me V5.</strong>';
         } else {
           suiteBadge.className = 'badge-status badge-status--fail';
           suiteBadge.textContent = '✕ FALHAS ENCONTRADAS';
-          suiteSummary.innerHTML = '<strong style="color: #f87171;">Um ou mais testes falharam. Verifique os detalhes e o painel lateral de logs.</strong>';
+          suiteSummary.innerHTML = '<strong style="color: var(--st-cancelado-fg);">Um ou mais testes falharam. Verifique os detalhes e o painel lateral de logs.</strong>';
         }
 
         var html = '';

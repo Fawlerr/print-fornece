@@ -17,66 +17,66 @@
 
   <!-- Cards de Resumo / KPIs -->
   <div class="grid stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px;">
-    <div class="stat-card" style="border-left: 4px solid #38bdf8;">
-      <small style="color: #94a3b8; font-size: 0.8rem; text-transform: uppercase;">Total de Metros Impressos</small>
-      <strong style="font-size: 1.6rem; color: #38bdf8;">{{ grand_total_meters|floatformat:2 }} m</strong>
+    <div class="stat-card" style="border-left: 4px solid var(--st-novo-fg);">
+      <small style="color: var(--muted); font-size: 0.8rem; text-transform: uppercase;">Total de Metros Impressos</small>
+      <strong style="font-size: 1.6rem; color: var(--st-novo-fg);">{{ grand_total_meters|floatformat:2 }} m</strong>
     </div>
-    <div class="stat-card" style="border-left: 4px solid #10b981;">
-      <small style="color: #94a3b8; font-size: 0.8rem; text-transform: uppercase;">Faturamento Total dos Itens</small>
-      <strong style="font-size: 1.6rem; color: #34d399;">R$ {{ grand_total_revenue|floatformat:2 }}</strong>
+    <div class="stat-card" style="border-left: 4px solid var(--brand);">
+      <small style="color: var(--muted); font-size: 0.8rem; text-transform: uppercase;">Faturamento Total dos Itens</small>
+      <strong style="font-size: 1.6rem; color: var(--brand-text);">R$ {{ grand_total_revenue|floatformat:2 }}</strong>
     </div>
-    <div class="stat-card" style="border-left: 4px solid #c084fc;">
-      <small style="color: #94a3b8; font-size: 0.8rem; text-transform: uppercase;">Pedidos Prontos / Concluídos</small>
-      <strong style="font-size: 1.6rem; color: #c084fc;">{{ total_orders_count }}</strong>
+    <div class="stat-card" style="border-left: 4px solid var(--st-pre-fg);">
+      <small style="color: var(--muted); font-size: 0.8rem; text-transform: uppercase;">Pedidos Prontos / Concluídos</small>
+      <strong style="font-size: 1.6rem; color: var(--st-pre-fg);">{{ total_orders_count }}</strong>
     </div>
   </div>
 
   <!-- Tabela Detalhada por Material -->
-  <section class="card card-pad" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 20px; box-shadow: 0 4px 16px rgba(0,0,0,0.25);">
+  <section class="card card-pad" style="background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 20px; box-shadow: 0 4px 16px rgba(0,0,0,0.25);">
     <div class="table-wrap">
       <table class="data-table" style="width: 100%; border-collapse: collapse;">
         <thead>
-          <tr style="border-bottom: 2px solid rgba(255, 255, 255, 0.1); text-align: left;">
-            <th style="padding: 12px 14px; font-weight: 700; color: #cbd5e1;">Material / Grupo</th>
-            <th style="padding: 12px 14px; font-weight: 700; color: #cbd5e1; text-align: right;">Total de Metros (m)</th>
-            <th style="padding: 12px 14px; font-weight: 700; color: #cbd5e1; text-align: right;">Qtd. Peças/Itens</th>
-            <th style="padding: 12px 14px; font-weight: 700; color: #cbd5e1; text-align: right;">Qtd. Pedidos</th>
-            <th style="padding: 12px 14px; font-weight: 700; color: #cbd5e1; text-align: right;">Faturamento (R$)</th>
-            <th style="padding: 12px 14px; font-weight: 700; color: #cbd5e1; text-align: right;">Participação em Metros</th>
+          <tr style="border-bottom: 2px solid var(--line); text-align: left;">
+            <th style="padding: 12px 14px; font-weight: 700; color: var(--text);">Material / Grupo</th>
+            <th style="padding: 12px 14px; font-weight: 700; color: var(--text); text-align: right;">Total de Metros (m)</th>
+            <th style="padding: 12px 14px; font-weight: 700; color: var(--text); text-align: right;">Qtd. Peças/Itens</th>
+            <th style="padding: 12px 14px; font-weight: 700; color: var(--text); text-align: right;">Qtd. Pedidos</th>
+            <th style="padding: 12px 14px; font-weight: 700; color: var(--text); text-align: right;">Faturamento (R$)</th>
+            <th style="padding: 12px 14px; font-weight: 700; color: var(--text); text-align: right;">Participação em Metros</th>
           </tr>
         </thead>
         <tbody>
           {% for r in material_rows %}
-            <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.05); transition: background 0.15s ease;">
+            <tr style="border-bottom: 1px solid var(--line); transition: background 0.15s ease;">
               <td style="padding: 12px 14px;">
                 <div style="display: flex; align-items: center; gap: 10px;">
-                  <span style="display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 8px; background: rgba(255,255,255,0.06); color: {{ r.color }};">
+                  <span style="display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 8px; background: var(--surface-2); color: {{ r.color }};">
                     <i class="{{ r.icon }}"></i>
                   </span>
                   <div>
-                    <strong style="color: #f8fafc; font-size: 0.95rem; display: block;">{{ r.name }}</strong>
-                    <small style="color: #94a3b8;">{{ r.category }}</small>
+                    <strong style="color: var(--text); font-size: 0.95rem; display: block;">{{ r.name }}</strong>
+                    <small style="color: var(--muted);">{{ r.category }}</small>
                   </div>
                 </div>
               </td>
-              <td style="padding: 12px 14px; text-align: right; font-weight: 700; color: #38bdf8; font-size: 1.05rem;">
+              <td style="padding: 12px 14px; text-align: right; font-weight: 700; color: var(--st-novo-fg); font-size: 1.05rem;">
                 {{ r.meters|floatformat:2 }} m
               </td>
-              <td style="padding: 12px 14px; text-align: right; color: #e2e8f0; font-weight: 600;">
+              <td style="padding: 12px 14px; text-align: right; color: var(--text); font-weight: 600;">
                 {{ r.items_count }} un
               </td>
-              <td style="padding: 12px 14px; text-align: right; color: #cbd5e1;">
+              <td style="padding: 12px 14px; text-align: right; color: var(--text);">
                 {{ r.orders_count }}
               </td>
-              <td style="padding: 12px 14px; text-align: right; font-weight: 700; color: #34d399; font-size: 1rem;">
+              <td style="padding: 12px 14px; text-align: right; font-weight: 700; color: var(--brand-text); font-size: 1rem;">
                 R$ {{ r.total_revenue|floatformat:2 }}
               </td>
               <td style="padding: 12px 14px; text-align: right;">
                 <div style="display: flex; align-items: center; justify-content: flex-end; gap: 8px;">
-                  <div style="width: 80px; height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden;">
+                  <div style="width: 80px; height: 8px; background: var(--surface-3); border-radius: 4px; overflow: hidden;">
                     <div style="height: 100%; width: {{ r.percentage|floatformat:0 }}%; background: {{ r.color }}; border-radius: 4px;"></div>
                   </div>
-                  <span style="color: #cbd5e1; font-size: 0.85rem; font-weight: 600; min-width: 45px; text-align: right;">
+                  <span style="color: var(--text); font-size: 0.85rem; font-weight: 600; min-width: 45px; text-align: right;">
                     {{ r.percentage|floatformat:1 }}%
                   </span>
                 </div>
@@ -84,19 +84,19 @@
             </tr>
           {% empty %}
             <tr>
-              <td colspan="6" style="padding: 30px; text-align: center; color: #94a3b8;">
+              <td colspan="6" style="padding: 30px; text-align: center; color: var(--muted);">
                 Nenhum consumo de material registrado no mês selecionado.
               </td>
             </tr>
           {% endfor %}
         </tbody>
         <tfoot>
-          <tr style="border-top: 2px solid rgba(255, 255, 255, 0.15); background: rgba(0,0,0,0.2); font-weight: 700;">
-            <td style="padding: 14px; color: #f8fafc;">TOTAL GERAL</td>
-            <td style="padding: 14px; text-align: right; color: #38bdf8; font-size: 1.1rem;">{{ grand_total_meters|floatformat:2 }} m</td>
+          <tr style="border-top: 2px solid var(--line-strong); background: var(--surface-2); font-weight: 700;">
+            <td style="padding: 14px; color: var(--text);">TOTAL GERAL</td>
+            <td style="padding: 14px; text-align: right; color: var(--st-novo-fg); font-size: 1.1rem;">{{ grand_total_meters|floatformat:2 }} m</td>
             <td style="padding: 14px; text-align: right;" colspan="2"></td>
-            <td style="padding: 14px; text-align: right; color: #34d399; font-size: 1.1rem;">R$ {{ grand_total_revenue|floatformat:2 }}</td>
-            <td style="padding: 14px; text-align: right; color: #cbd5e1;">100%</td>
+            <td style="padding: 14px; text-align: right; color: var(--brand-text); font-size: 1.1rem;">R$ {{ grand_total_revenue|floatformat:2 }}</td>
+            <td style="padding: 14px; text-align: right; color: var(--text);">100%</td>
           </tr>
         </tfoot>
       </table>

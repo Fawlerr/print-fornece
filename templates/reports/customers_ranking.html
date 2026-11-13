@@ -22,101 +22,101 @@
 
   <!-- Cards de Resumo / KPIs -->
   <div class="grid stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px;">
-    <div class="stat-card" style="border-left: 4px solid #10b981;">
-      <small style="color: #94a3b8; font-size: 0.8rem; text-transform: uppercase;">Faturamento Total dos Clientes</small>
-      <strong style="font-size: 1.6rem; color: #34d399;">R$ {{ grand_revenue|floatformat:2 }}</strong>
+    <div class="stat-card" style="border-left: 4px solid var(--brand);">
+      <small style="color: var(--muted); font-size: 0.8rem; text-transform: uppercase;">Faturamento Total dos Clientes</small>
+      <strong style="font-size: 1.6rem; color: var(--brand-text);">R$ {{ grand_revenue|floatformat:2 }}</strong>
     </div>
-    <div class="stat-card" style="border-left: 4px solid #38bdf8;">
-      <small style="color: #94a3b8; font-size: 0.8rem; text-transform: uppercase;">Total de Pedidos Realizados</small>
-      <strong style="font-size: 1.6rem; color: #38bdf8;">{{ grand_orders }}</strong>
+    <div class="stat-card" style="border-left: 4px solid var(--st-novo-fg);">
+      <small style="color: var(--muted); font-size: 0.8rem; text-transform: uppercase;">Total de Pedidos Realizados</small>
+      <strong style="font-size: 1.6rem; color: var(--st-novo-fg);">{{ grand_orders }}</strong>
     </div>
-    <div class="stat-card" style="border-left: 4px solid #c084fc;">
-      <small style="color: #94a3b8; font-size: 0.8rem; text-transform: uppercase;">Base de Clientes Atendidos</small>
-      <strong style="font-size: 1.6rem; color: #c084fc;">{{ total_customers_count }}</strong>
+    <div class="stat-card" style="border-left: 4px solid var(--st-pre-fg);">
+      <small style="color: var(--muted); font-size: 0.8rem; text-transform: uppercase;">Base de Clientes Atendidos</small>
+      <strong style="font-size: 1.6rem; color: var(--st-pre-fg);">{{ total_customers_count }}</strong>
     </div>
   </div>
 
   <!-- Tabela de Ranking de Clientes -->
-  <section class="card card-pad" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 20px; box-shadow: 0 4px 16px rgba(0,0,0,0.25);">
+  <section class="card card-pad" style="background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 20px; box-shadow: 0 4px 16px rgba(0,0,0,0.25);">
     <div class="table-wrap">
       <table class="data-table" style="width: 100%; border-collapse: collapse;">
         <thead>
-          <tr style="border-bottom: 2px solid rgba(255, 255, 255, 0.1); text-align: left;">
-            <th style="padding: 12px 14px; font-weight: 700; color: #cbd5e1; width: 60px; text-align: center;">Posição</th>
-            <th style="padding: 12px 14px; font-weight: 700; color: #cbd5e1;">Cliente</th>
-            <th style="padding: 12px 14px; font-weight: 700; color: #cbd5e1; text-align: right;">
-              <a href="?order_by=volume" style="color: {% if order_by == 'volume' %}#38bdf8{% else %}#cbd5e1{% endif %}; text-decoration: none;">
+          <tr style="border-bottom: 2px solid var(--line); text-align: left;">
+            <th style="padding: 12px 14px; font-weight: 700; color: var(--text); width: 60px; text-align: center;">Posição</th>
+            <th style="padding: 12px 14px; font-weight: 700; color: var(--text);">Cliente</th>
+            <th style="padding: 12px 14px; font-weight: 700; color: var(--text); text-align: right;">
+              <a href="?order_by=volume" style="color: {% if order_by == 'volume' %}var(--st-novo-fg){% else %}var(--text){% endif %}; text-decoration: none;">
                 Volume Total (R$) {% if order_by == 'volume' %}<i class="fa-solid fa-arrow-down-wide-short"></i>{% endif %}
               </a>
             </th>
-            <th style="padding: 12px 14px; font-weight: 700; color: #cbd5e1; text-align: right;">
-              <a href="?order_by=quantidade" style="color: {% if order_by == 'quantidade' %}#38bdf8{% else %}#cbd5e1{% endif %}; text-decoration: none;">
+            <th style="padding: 12px 14px; font-weight: 700; color: var(--text); text-align: right;">
+              <a href="?order_by=quantidade" style="color: {% if order_by == 'quantidade' %}var(--st-novo-fg){% else %}var(--text){% endif %}; text-decoration: none;">
                 Qtd. Itens/Peças {% if order_by == 'quantidade' %}<i class="fa-solid fa-arrow-down-wide-short"></i>{% endif %}
               </a>
             </th>
-            <th style="padding: 12px 14px; font-weight: 700; color: #cbd5e1; text-align: right;">Metros DTF (m)</th>
-            <th style="padding: 12px 14px; font-weight: 700; color: #cbd5e1; text-align: right;">Total Pedidos</th>
-            <th style="padding: 12px 14px; font-weight: 700; color: #cbd5e1; text-align: right;">Ticket Médio (R$)</th>
-            <th style="padding: 12px 14px; font-weight: 700; color: #cbd5e1; text-align: right;">Último Pedido</th>
+            <th style="padding: 12px 14px; font-weight: 700; color: var(--text); text-align: right;">Metros DTF (m)</th>
+            <th style="padding: 12px 14px; font-weight: 700; color: var(--text); text-align: right;">Total Pedidos</th>
+            <th style="padding: 12px 14px; font-weight: 700; color: var(--text); text-align: right;">Ticket Médio (R$)</th>
+            <th style="padding: 12px 14px; font-weight: 700; color: var(--text); text-align: right;">Último Pedido</th>
           </tr>
         </thead>
         <tbody>
           {% for r in customer_rows %}
-            <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.05); transition: background 0.15s ease;">
+            <tr style="border-bottom: 1px solid var(--line); transition: background 0.15s ease;">
               <td style="padding: 12px 14px; text-align: center;">
                 {% if r.rank == 1 %}
-                  <span style="display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; background: rgba(250, 204, 21, 0.2); color: #facc15; font-weight: 800; border: 1px solid #facc15;">
+                  <span style="display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; background: var(--st-aguardando-bg); color: var(--st-aguardando-fg); font-weight: 800; border: 1px solid var(--st-aguardando-fg);">
                     <i class="fa-solid fa-crown"></i>
                   </span>
                 {% elif r.rank == 2 %}
-                  <span style="display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; background: rgba(148, 163, 184, 0.2); color: #e2e8f0; font-weight: 800; border: 1px solid #cbd5e1;">
+                  <span style="display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; background: var(--surface-3); color: var(--text); font-weight: 800; border: 1px solid var(--line-strong);">
                     2º
                   </span>
                 {% elif r.rank == 3 %}
-                  <span style="display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; background: rgba(217, 119, 6, 0.2); color: #fb923c; font-weight: 800; border: 1px solid #fb923c;">
+                  <span style="display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; background: var(--st-producao-bg); color: var(--st-producao-fg); font-weight: 800; border: 1px solid var(--st-producao-fg);">
                     3º
                   </span>
                 {% else %}
-                  <span style="color: #94a3b8; font-weight: 700; font-size: 0.9rem;">{{ r.rank }}º</span>
+                  <span style="color: var(--muted); font-weight: 700; font-size: 0.9rem;">{{ r.rank }}º</span>
                 {% endif %}
               </td>
               <td style="padding: 12px 14px;">
                 <div style="display: flex; align-items: center; gap: 10px;">
-                  <span style="width: 32px; height: 32px; border-radius: 50%; background: rgba(56, 189, 248, 0.15); color: #38bdf8; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem;">
+                  <span style="width: 32px; height: 32px; border-radius: 50%; background: var(--st-novo-bg); color: var(--st-novo-fg); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem;">
                     {{ r.name|slice:":1"|upper }}
                   </span>
                   <div>
-                    <strong style="color: #f8fafc; font-size: 0.95rem; display: block;">{{ r.name }}</strong>
+                    <strong style="color: var(--text); font-size: 0.95rem; display: block;">{{ r.name }}</strong>
                     {% if r.phone %}
-                      <small style="color: #22c55e;"><i class="fa-brands fa-whatsapp"></i> {{ r.phone }}</small>
+                      <small style="color: var(--brand-text);"><i class="fa-brands fa-whatsapp"></i> {{ r.phone }}</small>
                     {% else %}
-                      <small style="color: #64748b;">Sem telefone</small>
+                      <small style="color: var(--muted);">Sem telefone</small>
                     {% endif %}
                   </div>
                 </div>
               </td>
-              <td style="padding: 12px 14px; text-align: right; font-weight: 700; color: #34d399; font-size: 1.05rem;">
+              <td style="padding: 12px 14px; text-align: right; font-weight: 700; color: var(--brand-text); font-size: 1.05rem;">
                 R$ {{ r.total_sales|floatformat:2 }}
               </td>
-              <td style="padding: 12px 14px; text-align: right; color: #38bdf8; font-weight: 700; font-size: 1rem;">
+              <td style="padding: 12px 14px; text-align: right; color: var(--st-novo-fg); font-weight: 700; font-size: 1rem;">
                 {{ r.total_items_qty }} un
               </td>
-              <td style="padding: 12px 14px; text-align: right; color: #c084fc; font-weight: 600;">
+              <td style="padding: 12px 14px; text-align: right; color: var(--st-pre-fg); font-weight: 600;">
                 {{ r.total_meters|floatformat:2 }} m
               </td>
-              <td style="padding: 12px 14px; text-align: right; color: #e2e8f0; font-weight: 600;">
+              <td style="padding: 12px 14px; text-align: right; color: var(--text); font-weight: 600;">
                 {{ r.orders_count }}
               </td>
-              <td style="padding: 12px 14px; text-align: right; color: #cbd5e1;">
+              <td style="padding: 12px 14px; text-align: right; color: var(--text);">
                 R$ {{ r.avg_ticket|floatformat:2 }}
               </td>
-              <td style="padding: 12px 14px; text-align: right; color: #94a3b8; font-size: 0.85rem;">
+              <td style="padding: 12px 14px; text-align: right; color: var(--muted); font-size: 0.85rem;">
                 {{ r.last_order_date|date:"d/m/Y H:i" }}
               </td>
             </tr>
           {% empty %}
             <tr>
-              <td colspan="8" style="padding: 30px; text-align: center; color: #94a3b8;">
+              <td colspan="8" style="padding: 30px; text-align: center; color: var(--muted);">
                 Nenhum cliente cadastrado ou com pedidos registrados.
               </td>
             </tr>

@@ -21,28 +21,28 @@
   <form class="card form-card order-form" method="post" enctype="multipart/form-data" novalidate style="margin: 0 auto 32px auto;">
     {% csrf_token %}
     {% if is_post_payment_locked %}
-      <div style="background: rgba(239, 68, 68, 0.12); border: 2px solid #ef4444; border-radius: 10px; padding: 16px 20px; margin-bottom: 20px;">
+      <div style="background: var(--st-cancelado-bg); border: 2px solid var(--st-cancelado-fg); border-radius: 10px; padding: 16px 20px; margin-bottom: 20px;">
         <div style="display: flex; gap: 14px; align-items: flex-start;">
-          <i class="fa-solid fa-lock" style="color: #ef4444; font-size: 1.8rem; margin-top: 2px;"></i>
+          <i class="fa-solid fa-lock" style="color: var(--st-cancelado-fg); font-size: 1.8rem; margin-top: 2px;"></i>
           <div style="flex: 1;">
-            <strong style="color: #fca5a5; font-size: 1.05rem; display: block; margin-bottom: 4px;">
+            <strong style="color: var(--st-cancelado-fg); font-size: 1.05rem; display: block; margin-bottom: 4px;">
               Edição Bloqueada: Pedido Finalizado ou Cancelado
             </strong>
-            <p style="margin: 0 0 12px; color: #f87171; font-size: 0.88rem; line-height: 1.4;">
+            <p style="margin: 0 0 12px; color: var(--st-cancelado-fg); font-size: 0.88rem; line-height: 1.4;">
               Este pedido já foi finalizado/entregue ou cancelado. Por segurança, alterações requerem autorização com senha de Administrador.
             </p>
             <div style="display: flex; gap: 10px; align-items: center; max-width: 480px;">
-              <input type="password" name="admin_unlock_password" placeholder="Digite a senha de admin/gerente para liberar alterações..." style="background: rgba(0,0,0,0.4); border: 1px solid #ef4444; color: #fff; padding: 8px 12px; border-radius: 6px; font-size: 0.9rem;">
+              <input type="password" name="admin_unlock_password" placeholder="Digite a senha de admin/gerente para liberar alterações..." style="background: var(--surface-2); border: 1px solid var(--st-cancelado-fg); color: var(--text); padding: 8px 12px; border-radius: 6px; font-size: 0.9rem;">
             </div>
           </div>
         </div>
       </div>
     {% elif form.instance.pk and form.instance.paid_amount > 0 %}
-      <div style="background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;">
-        <span style="color: #bae6fd; font-size: 0.88rem;">
-          <i class="fa-solid fa-circle-info" style="color: #38bdf8;"></i> Editando Pedido <strong>#{{ form.instance.number }}</strong> (Etapa: {{ form.instance.get_stage_display }}). Você pode acrescentar metragem e novos itens livremente.
+      <div style="background: var(--st-novo-bg); border: 1px solid color-mix(in srgb, var(--st-novo-fg) 55%, transparent); border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;">
+        <span style="color: var(--st-pronto-fg); font-size: 0.88rem;">
+          <i class="fa-solid fa-circle-info" style="color: var(--st-novo-fg);"></i> Editando Pedido <strong>#{{ form.instance.number }}</strong> (Etapa: {{ form.instance.get_stage_display }}). Você pode acrescentar metragem e novos itens livremente.
         </span>
-        <span style="font-size: 0.82rem; color: #86efac; background: rgba(34,197,94,0.15); border: 1px solid rgba(34,197,94,0.3); padding: 3px 8px; border-radius: 4px;">
+        <span style="font-size: 0.82rem; color: var(--brand-text); background: var(--brand-soft); border: 1px solid color-mix(in srgb, var(--brand) 55%, transparent); padding: 3px 8px; border-radius: 4px;">
           Entrada/Pago: R$ {{ form.instance.paid_amount|floatformat:2 }}
         </span>
       </div>
@@ -56,9 +56,9 @@
     {% endfor %}
 
     <!-- Seção de Seleção de Cliente / Autocomplete -->
-    <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 16px; margin-bottom: 16px;">
+    <div style="background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 16px; margin-bottom: 16px;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
-        <label for="customer_search_input" style="margin: 0; font-size: 0.92rem; font-weight: 700; color: #38bdf8; display: flex; align-items: center; gap: 6px;">
+        <label for="customer_search_input" style="margin: 0; font-size: 0.92rem; font-weight: 700; color: var(--st-novo-fg); display: flex; align-items: center; gap: 6px;">
           <i class="fa-solid fa-address-book"></i> Vincular Cliente Cadastrado (Opcional)
         </label>
         <a href="{% url 'payments:customer_create' %}" target="_blank" class="text-muted" style="font-size: 0.8rem; text-decoration: underline;">
@@ -66,21 +66,21 @@
         </a>
       </div>
       <div style="position: relative;">
-        <input type="text" id="customer_search_input" placeholder="Buscar cliente por nome ou WhatsApp para preenchimento rápido..." autocomplete="off" style="width: 100%; border-radius: 8px; padding: 10px 14px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color, rgba(255,255,255,0.15)); color: #fff;">
-        <div id="customer_search_results" style="display: none; position: absolute; top: 100%; left: 0; right: 0; z-index: 50; background: #182230; border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; max-height: 200px; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.5); margin-top: 4px;"></div>
+        <input type="text" id="customer_search_input" placeholder="Buscar cliente por nome ou WhatsApp para preenchimento rápido..." autocomplete="off" style="width: 100%; border-radius: 8px; padding: 10px 14px; background: var(--surface-2); border: 1px solid var(--border-color, var(--line-strong)); color: var(--text);">
+        <div id="customer_search_results" style="display: none; position: absolute; top: 100%; left: 0; right: 0; z-index: 50; background: var(--surface); border: 1px solid var(--line-strong); border-radius: 8px; max-height: 200px; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.5); margin-top: 4px;"></div>
       </div>
-      <div id="customer_selected_info" style="display: none; margin-top: 10px; padding: 10px 12px; background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3); border-radius: 6px; font-size: 0.84rem; color: #86efac;"></div>
+      <div id="customer_selected_info" style="display: none; margin-top: 10px; padding: 10px 12px; background: var(--brand-soft); border: 1px solid color-mix(in srgb, var(--brand) 55%, transparent); border-radius: 6px; font-size: 0.84rem; color: var(--brand-text);"></div>
       <input type="hidden" name="cliente" id="id_cliente_hidden" value="{{ form.cliente.value|default:'' }}">
     </div>
 
     <!-- Toggle de Pedido de Correção / Defeito (Sem Valor) -->
-    <div style="background: rgba(239, 68, 68, 0.06); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 10px; padding: 14px 16px; margin-bottom: 16px;">
-      <label style="display: flex; align-items: center; gap: 10px; font-weight: 700; color: #f87171; cursor: pointer; margin: 0;">
-        <input type="checkbox" name="is_correction" id="id_is_correction" {% if form.is_correction.value %}checked{% endif %} style="width: 18px; height: 18px; accent-color: #ef4444;">
+    <div style="background: var(--st-cancelado-bg); border: 1px solid color-mix(in srgb, var(--st-cancelado-fg) 55%, transparent); border-radius: 10px; padding: 14px 16px; margin-bottom: 16px;">
+      <label style="display: flex; align-items: center; gap: 10px; font-weight: 700; color: var(--st-cancelado-fg); cursor: pointer; margin: 0;">
+        <input type="checkbox" name="is_correction" id="id_is_correction" {% if form.is_correction.value %}checked{% endif %} style="width: 18px; height: 18px; accent-color: var(--st-cancelado-fg);">
         <span><i class="fa-solid fa-triangle-exclamation"></i> Pedido de Correção / Reposição por Defeito (R$ 0,00 sem cobrança)</span>
       </label>
       <div id="correction_reason_box" style="{% if not form.is_correction.value %}display: none;{% endif %} margin-top: 10px;">
-        <label for="{{ form.correction_reason.id_for_label }}" style="font-size: 0.85rem; color: #fca5a5;">
+        <label for="{{ form.correction_reason.id_for_label }}" style="font-size: 0.85rem; color: var(--st-cancelado-fg);">
           <span>Motivo / Justificativa da Correção:</span>
           {{ form.correction_reason }}
         </label>
@@ -235,8 +235,8 @@
 
       <!-- 4. Aba Item / Serviço Avulso -->
       <div class="catalog-tab-content" id="tab-custom" style="display: none;">
-        <div style="background: rgba(56, 189, 248, 0.05); border: 1px dashed rgba(56, 189, 248, 0.3); border-radius: 8px; padding: 12px; margin-bottom: 12px;">
-          <small style="color: #38bdf8; font-weight: 600; display: block; margin-bottom: 4px;">
+        <div style="background: var(--st-novo-bg); border: 1px dashed color-mix(in srgb, var(--st-novo-fg) 55%, transparent); border-radius: 8px; padding: 12px; margin-bottom: 12px;">
+          <small style="color: var(--st-novo-fg); font-weight: 600; display: block; margin-bottom: 4px;">
             <i class="fa-solid fa-circle-info"></i> Inserir Valores Extras ou Itens Especiais na Proposta:
           </small>
           <p style="margin: 0; font-size: 0.84rem; color: var(--muted);">
@@ -260,12 +260,12 @@
       </div>
 
       <!-- Carrinho Multi-Itens -->
-      <div class="cart-items-container" style="margin-top: 20px; background: rgba(0,0,0,0.25); border-radius: 10px; padding: 20px; border: 1px solid var(--border-color, rgba(255,255,255,0.08));">
+      <div class="cart-items-container" style="margin-top: 20px; background: var(--surface-2); border-radius: 10px; padding: 20px; border: 1px solid var(--border-color, var(--line));">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
           <h4 style="margin: 0; font-size: 0.95rem; display: flex; align-items: center; gap: 8px;">
-            <i class="fa-solid fa-cart-shopping" style="color: #10b981;"></i> Itens do Pedido (<span data-cart-count>0</span>)
+            <i class="fa-solid fa-cart-shopping" style="color: var(--brand-text);"></i> Itens do Pedido (<span data-cart-count>0</span>)
           </h4>
-          <span style="font-weight: 700; color: #10b981; font-size: 1.1rem;" data-cart-total-badge>R$ 0,00</span>
+          <span style="font-weight: 700; color: var(--brand-text); font-size: 1.1rem;" data-cart-total-badge>R$ 0,00</span>
         </div>
 
         <div class="table-wrap">
@@ -281,7 +281,7 @@
             </thead>
             <tbody data-cart-tbody>
               <tr class="empty-cart-row">
-                <td colspan="5" style="text-align: center; color: var(--muted, #9ca3af); padding: 16px;">
+                <td colspan="5" style="text-align: center; color: var(--muted, var(--muted)); padding: 16px;">
                   Nenhum item adicionado ainda. Escolha no catálogo acima e clique para inserir.
                 </td>
               </tr>
@@ -322,12 +322,12 @@
     </label>
 
     <!-- Card de Pré-visualização de Arquivos Selecionados -->
-    <div id="fileSelectionPreview" style="display: none; margin-top: 10px; background: rgba(56, 189, 248, 0.05); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 8px; padding: 12px 14px;">
+    <div id="fileSelectionPreview" style="display: none; margin-top: 10px; background: var(--st-novo-bg); border: 1px solid color-mix(in srgb, var(--st-novo-fg) 55%, transparent); border-radius: 8px; padding: 12px 14px;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-        <strong style="color: #38bdf8; font-size: 0.88rem; display: flex; align-items: center; gap: 6px;">
+        <strong style="color: var(--st-novo-fg); font-size: 0.88rem; display: flex; align-items: center; gap: 6px;">
           <i class="fa-solid fa-paperclip"></i> <span id="fileSelectionSummary">Arquivos Selecionados</span>
         </strong>
-        <button type="button" id="clearFileSelectionBtn" class="btn btn-secondary btn-small" style="font-size: 0.75rem; padding: 2px 8px; color: #f87171; border-color: rgba(248, 113, 113, 0.3);">
+        <button type="button" id="clearFileSelectionBtn" class="btn btn-secondary btn-small" style="font-size: 0.75rem; padding: 2px 8px; color: var(--st-cancelado-fg); border-color: color-mix(in srgb, var(--st-cancelado-fg) 55%, transparent);">
           <i class="fa-solid fa-xmark"></i> Limpar seleção
         </button>
       </div>
@@ -346,38 +346,38 @@
 </div>
 
 <!-- Modal de Progresso de Upload em Tempo Real -->
-<div id="uploadProgressModal" style="display: none; position: fixed; inset: 0; z-index: 9999; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(8px); align-items: center; justify-content: center; padding: 20px;">
-  <div style="background: #111827; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 16px; width: 100%; max-width: 500px; padding: 26px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7); text-align: center;">
+<div id="uploadProgressModal" style="display: none; position: fixed; inset: 0; z-index: 9999; background: var(--surface); backdrop-filter: blur(8px); align-items: center; justify-content: center; padding: 20px;">
+  <div style="background: var(--surface); border: 1px solid var(--line-strong); border-radius: 16px; width: 100%; max-width: 500px; padding: 26px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7); text-align: center;">
     
     <div id="uploadProgressIconBox" style="margin-bottom: 14px;">
-      <div style="width: 52px; height: 52px; margin: 0 auto; border: 4px solid rgba(56, 189, 248, 0.2); border-top-color: #38bdf8; border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+      <div style="width: 52px; height: 52px; margin: 0 auto; border: 4px solid color-mix(in srgb, var(--st-novo-fg) 55%, transparent); border-top-color: var(--st-novo-fg); border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
     </div>
 
-    <h3 id="uploadProgressTitle" style="font-size: 1.25rem; font-weight: 700; color: #fff; margin-bottom: 6px;">
+    <h3 id="uploadProgressTitle" style="font-size: 1.25rem; font-weight: 700; color: var(--text); margin-bottom: 6px;">
       Enviando arquivo(s)...
     </h3>
     
-    <p id="uploadProgressSubtitle" style="font-size: 0.88rem; color: #94a3b8; margin-bottom: 18px;">
+    <p id="uploadProgressSubtitle" style="font-size: 0.88rem; color: var(--muted); margin-bottom: 18px;">
       Por favor, aguarde enquanto seus arquivos de arte são transferidos com segurança.
     </p>
 
     <!-- Barra de Progresso Animada -->
-    <div style="background: rgba(255, 255, 255, 0.08); border-radius: 999px; height: 16px; overflow: hidden; margin-bottom: 12px; position: relative; border: 1px solid rgba(255, 255, 255, 0.1);">
-      <div id="uploadProgressBar" style="background: linear-gradient(90deg, #0284c7, #38bdf8, #34d399); height: 100%; width: 0%; border-radius: 999px; transition: width 0.15s ease;"></div>
+    <div style="background: var(--surface-3); border-radius: 999px; height: 16px; overflow: hidden; margin-bottom: 12px; position: relative; border: 1px solid var(--line);">
+      <div id="uploadProgressBar" style="background: var(--st-pronto-bg); height: 100%; width: 0%; border-radius: 999px; transition: width 0.15s ease;"></div>
     </div>
 
-    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; color: #cbd5e1; margin-bottom: 14px;">
-      <span id="uploadProgressPercent" style="font-weight: 700; color: #38bdf8; font-size: 1.05rem;">0%</span>
+    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; color: var(--text); margin-bottom: 14px;">
+      <span id="uploadProgressPercent" style="font-weight: 700; color: var(--st-novo-fg); font-size: 1.05rem;">0%</span>
       <span id="uploadProgressBytes" style="font-weight: 600;">0 MB de 0 MB</span>
-      <span id="uploadProgressSpeed" style="color: #94a3b8;">Calculando...</span>
+      <span id="uploadProgressSpeed" style="color: var(--muted);">Calculando...</span>
     </div>
 
-    <div id="uploadProgressDetail" style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 8px; padding: 10px 14px; font-size: 0.82rem; color: #94a3b8; display: flex; align-items: center; justify-content: space-between;">
+    <div id="uploadProgressDetail" style="background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; font-size: 0.82rem; color: var(--muted); display: flex; align-items: center; justify-content: space-between;">
       <span id="uploadProgressEta"><i class="fa-solid fa-clock"></i> Tempo restante: calculando...</span>
       <span id="uploadProgressCount"><i class="fa-solid fa-file"></i> 1 arquivo</span>
     </div>
 
-    <div id="uploadProgressError" style="display: none; margin-top: 14px; padding: 12px; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 8px; color: #fca5a5; font-size: 0.88rem; text-align: left;">
+    <div id="uploadProgressError" style="display: none; margin-top: 14px; padding: 12px; background: var(--st-cancelado-bg); border: 1px solid color-mix(in srgb, var(--st-cancelado-fg) 55%, transparent); border-radius: 8px; color: var(--st-cancelado-fg); font-size: 0.88rem; text-align: left;">
     </div>
     <button id="uploadProgressCancelBtn" type="button" class="btn btn-secondary" style="display: none; margin-top: 14px; width: 100%;">Fechar e corrigir</button>
   </div>
@@ -423,12 +423,12 @@
           totalSize += f.size;
           const ext = f.name.split('.').pop().toUpperCase();
           html += `
-            <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.25); padding: 6px 10px; border-radius: 6px; font-size: 0.82rem;">
-              <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 80%; color: #f8fafc;">
-                <span class="badge" style="background: rgba(56, 189, 248, 0.2); color: #38bdf8; font-size: 0.72rem; padding: 2px 5px; margin-right: 6px;">${ext}</span>
+            <div style="display: flex; justify-content: space-between; align-items: center; background: var(--surface-2); padding: 6px 10px; border-radius: 6px; font-size: 0.82rem;">
+              <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 80%; color: var(--text);">
+                <span class="badge" style="background: var(--st-novo-bg); color: var(--st-novo-fg); font-size: 0.72rem; padding: 2px 5px; margin-right: 6px;">${ext}</span>
                 ${f.name}
               </span>
-              <strong style="color: #94a3b8; font-size: 0.8rem;">${formatBytes(f.size)}</strong>
+              <strong style="color: var(--muted); font-size: 0.8rem;">${formatBytes(f.size)}</strong>
             </div>
           `;
         }
@@ -485,7 +485,7 @@
           speedLabel.textContent = hasFiles ? "Iniciando upload..." : "Processando pedido...";
           titleLabel.textContent = hasFiles ? "Enviando arquivo(s)..." : "Gravando pedido...";
           subtitleLabel.textContent = "Por favor, aguarde enquanto os dados e o orçamento são registrados no sistema.";
-          iconBox.innerHTML = '<div style="width: 52px; height: 52px; margin: 0 auto; border: 4px solid rgba(56, 189, 248, 0.2); border-top-color: #38bdf8; border-radius: 50%; animation: spin 0.8s linear infinite;"></div>';
+          iconBox.innerHTML = '<div style="width: 52px; height: 52px; margin: 0 auto; border: 4px solid color-mix(in srgb, var(--st-novo-fg) 55%, transparent); border-top-color: var(--st-novo-fg); border-radius: 50%; animation: spin 0.8s linear infinite;"></div>';
 
           let totalBytes = 0;
           if (hasFiles) {
@@ -541,7 +541,7 @@
               percentLabel.textContent = "100%";
               titleLabel.textContent = "Pedido salvo com sucesso!";
               subtitleLabel.textContent = "Abrindo WhatsApp e redirecionando...";
-              iconBox.innerHTML = '<div style="width: 52px; height: 52px; margin: 0 auto; background: rgba(34, 197, 94, 0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #22c55e; font-size: 1.6rem;"><i class="fa-solid fa-check"></i></div>';
+              iconBox.innerHTML = '<div style="width: 52px; height: 52px; margin: 0 auto; background: var(--brand-soft); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--brand-text); font-size: 1.6rem;"><i class="fa-solid fa-check"></i></div>';
               
               let redirectUrl = "{% if object %}{% url 'production:detail' pk=object.pk %}{% else %}{% url 'production:kanban' %}{% endif %}";
               try {
@@ -571,7 +571,7 @@
               }
               titleLabel.textContent = "Erro ao enviar pedido";
               subtitleLabel.textContent = "Corrija os dados e tente novamente.";
-              iconBox.innerHTML = '<div style="width: 52px; height: 52px; margin: 0 auto; background: rgba(239, 68, 68, 0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #ef4444; font-size: 1.6rem;"><i class="fa-solid fa-circle-exclamation"></i></div>';
+              iconBox.innerHTML = '<div style="width: 52px; height: 52px; margin: 0 auto; background: var(--st-cancelado-bg); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--st-cancelado-fg); font-size: 1.6rem;"><i class="fa-solid fa-circle-exclamation"></i></div>';
               errorBox.innerHTML = errText;
               errorBox.style.display = "block";
               cancelBtn.style.display = "block";
@@ -585,7 +585,7 @@
             }
             titleLabel.textContent = "Falha de Conexão";
             subtitleLabel.textContent = "A conexão com o servidor foi interrompida.";
-            iconBox.innerHTML = '<div style="width: 52px; height: 52px; margin: 0 auto; background: rgba(239, 68, 68, 0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #ef4444; font-size: 1.6rem;"><i class="fa-solid fa-wifi"></i></div>';
+            iconBox.innerHTML = '<div style="width: 52px; height: 52px; margin: 0 auto; background: var(--st-cancelado-bg); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--st-cancelado-fg); font-size: 1.6rem;"><i class="fa-solid fa-wifi"></i></div>';
             errorBox.innerHTML = "Não foi possível transferir as informações. Verifique sua conexão de internet e tente novamente.";
             errorBox.style.display = "block";
             cancelBtn.style.display = "block";
@@ -721,13 +721,13 @@
               const data = await res.json();
               if (data.results && data.results.length > 0) {
                 resultsBox.innerHTML = data.results.map(c => `
-                  <div class="customer-search-item" data-id="${c.id}" data-name="${encodeURIComponent(c.nome)}" data-phone="${encodeURIComponent(c.telefone)}" data-special="${c.preco_especial_metro || ''}" data-special-uv="${c.preco_especial_dtf_uv || ''}" data-saldo="${c.saldo_credito}" data-metros="${c.metros_saldo}" style="padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,0.06); cursor: pointer; transition: background 0.15s ease;">
-                    <strong style="color: #38bdf8; display: block;">${c.nome}</strong>
-                    <small style="color: #9ca3af;">
+                  <div class="customer-search-item" data-id="${c.id}" data-name="${encodeURIComponent(c.nome)}" data-phone="${encodeURIComponent(c.telefone)}" data-special="${c.preco_especial_metro || ''}" data-special-uv="${c.preco_especial_dtf_uv || ''}" data-saldo="${c.saldo_credito}" data-metros="${c.metros_saldo}" style="padding: 10px 14px; border-bottom: 1px solid var(--line); cursor: pointer; transition: background 0.15s ease;">
+                    <strong style="color: var(--st-novo-fg); display: block;">${c.nome}</strong>
+                    <small style="color: var(--muted);">
                       ${c.telefone || 'Sem WhatsApp'} 
-                      ${c.preco_especial_metro ? `· <span style="color: #22c55e;">DTF Têxtil: R$ ${c.preco_especial_metro}/m</span>` : ''} 
-                      ${c.preco_especial_dtf_uv ? `· <span style="color: #c084fc;">DTF UV: R$ ${c.preco_especial_dtf_uv}/m</span>` : ''} 
-                      ${parseFloat(c.saldo_credito) > 0 ? `· <span style="color: #f59e0b;">Saldo: R$ ${c.saldo_credito}</span>` : ''}
+                      ${c.preco_especial_metro ? `· <span style="color: var(--brand-text);">DTF Têxtil: R$ ${c.preco_especial_metro}/m</span>` : ''} 
+                      ${c.preco_especial_dtf_uv ? `· <span style="color: var(--st-pre-fg);">DTF UV: R$ ${c.preco_especial_dtf_uv}/m</span>` : ''} 
+                      ${parseFloat(c.saldo_credito) > 0 ? `· <span style="color: var(--st-producao-fg);">Saldo: R$ ${c.saldo_credito}</span>` : ''}
                     </small>
                   </div>
                 `).join("");
@@ -752,9 +752,9 @@
                     if (clientWhatsappInput && phone) clientWhatsappInput.value = phone;
 
                     let infoHtml = `<strong><i class="fa-solid fa-circle-check"></i> Cliente Selecionado:</strong> ${name}`;
-                    if (special) infoHtml += ` · <b style="color: #22c55e;">Especial Têxtil: R$ ${special}/m</b>`;
-                    if (specialUv) infoHtml += ` · <b style="color: #c084fc;">Especial UV: R$ ${specialUv}/m</b>`;
-                    if (parseFloat(saldo) > 0) infoHtml += ` · <b style="color: #fef08a;">Saldo em Conta: R$ ${saldo} (${metros}m)</b>`;
+                    if (special) infoHtml += ` · <b style="color: var(--brand-text);">Especial Têxtil: R$ ${special}/m</b>`;
+                    if (specialUv) infoHtml += ` · <b style="color: var(--st-pre-fg);">Especial UV: R$ ${specialUv}/m</b>`;
+                    if (parseFloat(saldo) > 0) infoHtml += ` · <b style="color: var(--st-aguardando-fg);">Saldo em Conta: R$ ${saldo} (${metros}m)</b>`;
 
                     if (selectedInfoBox) {
                       selectedInfoBox.innerHTML = infoHtml;

@@ -28,12 +28,12 @@
       <div style="display: flex; flex-direction: column; gap: 16px; margin-bottom: 20px; text-align: left;">
         {% for field in form.visible_fields %}
           <div class="form-group" style="display: flex; flex-direction: column; gap: 6px;">
-            <label for="{{ field.id_for_label }}" style="font-weight: 500; font-size: 0.95rem; color: var(--text-color, #e2e8f0);">
+            <label for="{{ field.id_for_label }}" style="font-weight: 500; font-size: 0.95rem; color: var(--text-color, var(--text));">
               {{ field.label }}
             </label>
             {{ field }}
             {% if field.errors %}
-              <span class="field-errors" role="alert" style="color: #ef4444; font-size: 0.85rem; margin-top: 2px;">{{ field.errors }}</span>
+              <span class="field-errors" role="alert" style="color: var(--st-cancelado-fg); font-size: 0.85rem; margin-top: 2px;">{{ field.errors }}</span>
             {% endif %}
           </div>
         {% endfor %}

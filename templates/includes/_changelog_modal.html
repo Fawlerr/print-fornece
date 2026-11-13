@@ -1,32 +1,32 @@
 <!-- Modal de Changelog / Histórico de Atualizações -->
-<div class="modal-backdrop" id="changelogModal" style="display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.75); z-index: 9999; backdrop-filter: blur(4px); align-items: center; justify-content: center; padding: 16px;">
-  <div class="modal-card" style="background: var(--surface, #1e293b); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 12px; width: 100%; max-width: 650px; max-height: 88vh; display: flex; flex-direction: column; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6); animation: modalIn 0.2s ease forwards;">
+<div class="modal-backdrop" id="changelogModal" style="display: none; position: fixed; inset: 0; background: var(--surface); z-index: 9999; backdrop-filter: blur(4px); align-items: center; justify-content: center; padding: 16px;">
+  <div class="modal-card" style="background: var(--surface, var(--st-pronto-bg)); border: 1px solid var(--line); border-radius: 12px; width: 100%; max-width: 650px; max-height: 88vh; display: flex; flex-direction: column; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6); animation: modalIn 0.2s ease forwards;">
     
     <!-- Cabeçalho -->
-    <div style="padding: 16px 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); display: flex; align-items: center; justify-content: space-between;">
+    <div style="padding: 16px 20px; border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between;">
       <div style="display: flex; align-items: center; gap: 10px;">
-        <span style="display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 8px; background: rgba(59, 130, 246, 0.15); color: #60a5fa; font-size: 1.05rem;">
+        <span style="display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 8px; background: var(--st-pronto-bg); color: var(--st-pronto-fg); font-size: 1.05rem;">
           <i class="fa-solid fa-clock-rotate-left"></i>
         </span>
         <div>
-          <h3 style="margin: 0; font-size: 1.1rem; color: #f8fafc; font-weight: 600;">Novidades & Atualizações</h3>
-          <p style="margin: 2px 0 0 0; font-size: 0.8rem; color: #94a3b8;">Histórico de melhorias do sistema Print Fornece</p>
+          <h3 style="margin: 0; font-size: 1.1rem; color: var(--text); font-weight: 600;">Novidades & Atualizações</h3>
+          <p style="margin: 2px 0 0 0; font-size: 0.8rem; color: var(--muted);">Histórico de melhorias do sistema Print Fornece</p>
         </div>
       </div>
-      <button type="button" id="closeChangelogModalBtn" style="background: transparent; border: none; color: #94a3b8; font-size: 1.2rem; cursor: pointer; padding: 4px;" aria-label="Fechar">
+      <button type="button" id="closeChangelogModalBtn" style="background: transparent; border: none; color: var(--muted); font-size: 1.2rem; cursor: pointer; padding: 4px;" aria-label="Fechar">
         <i class="fa-solid fa-xmark"></i>
       </button>
     </div>
 
     <!-- Bloco de Saudação Diária -->
     {% if user.is_authenticated %}
-    <div style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.18), rgba(59, 130, 246, 0.06)); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 10px; padding: 14px 18px; margin: 16px 20px 0 20px; display: flex; align-items: center; gap: 12px;">
+    <div style="background: var(--st-pronto-bg); border: 1px solid color-mix(in srgb, var(--st-pronto-fg) 55%, transparent); border-radius: 10px; padding: 14px 18px; margin: 16px 20px 0 20px; display: flex; align-items: center; gap: 12px;">
       <span style="font-size: 1.7rem; line-height: 1;">👋</span>
       <div>
-        <h4 style="margin: 0; font-size: 1.02rem; color: #f8fafc; font-weight: 700;">
+        <h4 style="margin: 0; font-size: 1.02rem; color: var(--text); font-weight: 700;">
           Olá, {{ user.name|default:user.email }}!
         </h4>
-        <p style="margin: 3px 0 0 0; font-size: 0.84rem; color: #cbd5e1;">
+        <p style="margin: 3px 0 0 0; font-size: 0.84rem; color: var(--text);">
           Seja bem-vindo(a). Confira abaixo as novidades e melhorias aplicadas hoje no sistema:
         </p>
       </div>
@@ -37,179 +37,179 @@
     <div style="padding: 16px 20px 20px 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px;">
       
       <!-- Entrada 20/09/2026 -->
-      <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(34, 197, 94, 0.4); border-radius: 10px; padding: 16px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);">
+      <div style="background: var(--surface); border: 1px solid color-mix(in srgb, var(--brand) 55%, transparent); border-radius: 10px; padding: 16px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);">
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
           <div style="display: flex; align-items: center; gap: 8px;">
-            <span style="background: #22c55e; color: #06210e; font-size: 0.75rem; font-weight: 800; padding: 3px 8px; border-radius: 6px; letter-spacing: 0.5px;">NOVO</span>
-            <strong style="color: #f8fafc; font-size: 0.95rem;">Financeiro Avançado, Novos Relatórios, Fatura Agrupada & Planos de Volume</strong>
+            <span style="background: var(--brand); color: var(--brand-ink); font-size: 0.75rem; font-weight: 800; padding: 3px 8px; border-radius: 6px; letter-spacing: 0.5px;">NOVO</span>
+            <strong style="color: var(--text); font-size: 0.95rem;">Financeiro Avançado, Novos Relatórios, Fatura Agrupada & Planos de Volume</strong>
           </div>
-          <span style="font-size: 0.82rem; color: #94a3b8; font-weight: 500;"><i class="fa-regular fa-calendar" style="margin-right: 4px;"></i>20/09/2026</span>
+          <span style="font-size: 0.82rem; color: var(--muted); font-weight: 500;"><i class="fa-regular fa-calendar" style="margin-right: 4px;"></i>20/09/2026</span>
         </div>
         
-        <ul style="margin: 0; padding-left: 20px; color: #cbd5e1; font-size: 0.88rem; line-height: 1.6; display: flex; flex-direction: column; gap: 8px;">
+        <ul style="margin: 0; padding-left: 20px; color: var(--text); font-size: 0.88rem; line-height: 1.6; display: flex; flex-direction: column; gap: 8px;">
           <li>
-            <strong style="color: #60a5fa;">Novos Relatórios Gerenciais:</strong> Telas dedicadas para <em>Vendas por Produto</em> (`/reports/produtos/`), <em>Consumo Diário</em> de metros e serviços (`/reports/consumo-diario/`) e <em>Consumo de Tintas</em> com baixa rápida manual (`/reports/tintas/`).
+            <strong style="color: var(--st-pronto-fg);">Novos Relatórios Gerenciais:</strong> Telas dedicadas para <em>Vendas por Produto</em> (`/reports/produtos/`), <em>Consumo Diário</em> de metros e serviços (`/reports/consumo-diario/`) e <em>Consumo de Tintas</em> com baixa rápida manual (`/reports/tintas/`).
           </li>
           <li>
-            <strong style="color: #34d399;">Pagamento Múltiplo no Pedido:</strong> Suporte para combinar diferentes meios de pagamento (ex.: PIX + Dinheiro) no mesmo pedido com rateio exato no fechamento de caixa.
+            <strong style="color: var(--brand-text);">Pagamento Múltiplo no Pedido:</strong> Suporte para combinar diferentes meios de pagamento (ex.: PIX + Dinheiro) no mesmo pedido com rateio exato no fechamento de caixa.
           </li>
           <li>
-            <strong style="color: #f59e0b;">Cupom Térmico de Caixa (80mm/58mm):</strong> Layout de fechamento para impressão não fiscal em impressoras de bobina térmica.
+            <strong style="color: var(--st-producao-fg);">Cupom Térmico de Caixa (80mm/58mm):</strong> Layout de fechamento para impressão não fiscal em impressoras de bobina térmica.
           </li>
           <li>
-            <strong style="color: #a78bfa;">Itens Avulsos & Abatimento Justificado:</strong> Inserção de serviços ou cobranças extras diretamente na proposta e campo obrigatório para justificativa de descontos.
+            <strong style="color: var(--st-pre-fg);">Itens Avulsos & Abatimento Justificado:</strong> Inserção de serviços ou cobranças extras diretamente na proposta e campo obrigatório para justificativa de descontos.
           </li>
           <li>
-            <strong style="color: #38bdf8;">Fatura Agrupada & Planos de Volume:</strong> Agrupamento de pedidos em fatura consolidada e nova aba no cliente para gerenciar assinaturas e saldo em metros.
+            <strong style="color: var(--st-novo-fg);">Fatura Agrupada & Planos de Volume:</strong> Agrupamento de pedidos em fatura consolidada e nova aba no cliente para gerenciar assinaturas e saldo em metros.
           </li>
           <li>
-            <strong style="color: #f87171;">Segurança Operacional & Capacidade:</strong> Bloqueio pós-pagamento com autorização por senha de admin e liberação automática de capacidade na impressora ao concluir ordens.
+            <strong style="color: var(--st-cancelado-fg);">Segurança Operacional & Capacidade:</strong> Bloqueio pós-pagamento com autorização por senha de admin e liberação automática de capacidade na impressora ao concluir ordens.
           </li>
         </ul>
       </div>
 
       <!-- Entrada 07/09/2026 -->
-      <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 10px; padding: 16px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);">
+      <div style="background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);">
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
           <div style="display: flex; align-items: center; gap: 8px;">
-            <strong style="color: #f8fafc; font-size: 0.95rem;">Cards Kanban, Disparo WhatsApp, Prazo 15m/m & Novos Relatórios</strong>
+            <strong style="color: var(--text); font-size: 0.95rem;">Cards Kanban, Disparo WhatsApp, Prazo 15m/m & Novos Relatórios</strong>
           </div>
-          <span style="font-size: 0.82rem; color: #94a3b8; font-weight: 500;"><i class="fa-regular fa-calendar" style="margin-right: 4px;"></i>07/09/2026</span>
+          <span style="font-size: 0.82rem; color: var(--muted); font-weight: 500;"><i class="fa-regular fa-calendar" style="margin-right: 4px;"></i>07/09/2026</span>
         </div>
         
-        <ul style="margin: 0; padding-left: 20px; color: #cbd5e1; font-size: 0.88rem; line-height: 1.6; display: flex; flex-direction: column; gap: 8px;">
+        <ul style="margin: 0; padding-left: 20px; color: var(--text); font-size: 0.88rem; line-height: 1.6; display: flex; flex-direction: column; gap: 8px;">
           <li>
-            <strong style="color: #60a5fa;">Cards de Pedidos & Impressão Rápida:</strong> Valores financeiros (R$) ocultados do visual dos cards para foco na operação; estilização visual de cores por etapa de produção e botão direto "Imprimir Nota" renderizado no card exclusivamente para pedidos com status "Pago".
+            <strong style="color: var(--st-pronto-fg);">Cards de Pedidos & Impressão Rápida:</strong> Valores financeiros (R$) ocultados do visual dos cards para foco na operação; estilização visual de cores por etapa de produção e botão direto "Imprimir Nota" renderizado no card exclusivamente para pedidos com status "Pago".
           </li>
           <li>
-            <strong style="color: #34d399;">Disparo Automático de Orçamento no WhatsApp:</strong> Ao salvar ou atualizar um orçamento/pedido, o sistema gera o link oficial (wa.me) e abre automaticamente a janela do WhatsApp para envio instantâneo da mensagem ao cliente.
+            <strong style="color: var(--brand-text);">Disparo Automático de Orçamento no WhatsApp:</strong> Ao salvar ou atualizar um orçamento/pedido, o sistema gera o link oficial (wa.me) e abre automaticamente a janela do WhatsApp para envio instantâneo da mensagem ao cliente.
           </li>
           <li>
-            <strong style="color: #fbbf24;">Cálculo Inteligente de Prazo (15 min/metro):</strong> Prazo de produção calculado automaticamente com base na regra de 15 minutos por metro impresso de DTF.
+            <strong style="color: var(--st-aguardando-fg);">Cálculo Inteligente de Prazo (15 min/metro):</strong> Prazo de produção calculado automaticamente com base na regra de 15 minutos por metro impresso de DTF.
           </li>
           <li>
-            <strong style="color: #a78bfa;">Baixa de Estoque Precisa:</strong> O abate de metros e insumos do estoque agora ocorre estritamente no momento em que o pedido avança para a etapa "Pronto pra Retirada" (ou Entregue), eliminando deduções antecipadas.
+            <strong style="color: var(--st-pre-fg);">Baixa de Estoque Precisa:</strong> O abate de metros e insumos do estoque agora ocorre estritamente no momento em que o pedido avança para a etapa "Pronto pra Retirada" (ou Entregue), eliminando deduções antecipadas.
           </li>
           <li>
-            <strong style="color: #38bdf8;">Novos Relatórios de Gestão (/reports/):</strong> Painéis dedicados para <em>Consumo de Materiais</em> (metros e faturamento agrupados por material com navegação mensal), <em>Ranking de Vendas da Equipe</em> (pódio de atendentes, faturamento, pedidos e ticket médio) e <em>Ranking de Clientes</em> (toggle entre volume em R$ e quantidade de itens comprados), todos com exportação CSV.
+            <strong style="color: var(--st-novo-fg);">Novos Relatórios de Gestão (/reports/):</strong> Painéis dedicados para <em>Consumo de Materiais</em> (metros e faturamento agrupados por material com navegação mensal), <em>Ranking de Vendas da Equipe</em> (pódio de atendentes, faturamento, pedidos e ticket médio) e <em>Ranking de Clientes</em> (toggle entre volume em R$ e quantidade de itens comprados), todos com exportação CSV.
           </li>
         </ul>
       </div>
 
       <!-- Entrada 29/08/2026 -->
-      <div style="background: rgba(15, 23, 42, 0.4); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 10px; padding: 16px;">
+      <div style="background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 16px;">
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
           <div style="display: flex; align-items: center; gap: 8px;">
-            <span style="background: rgba(148, 163, 184, 0.2); color: #cbd5e1; font-size: 0.75rem; font-weight: 600; padding: 3px 8px; border-radius: 6px;">ATUALIZAÇÃO</span>
-            <strong style="color: #e2e8f0; font-size: 0.92rem;">Fechamento de Caixa, Uploads Inteligentes & Usuários Online</strong>
+            <span style="background: var(--surface-3); color: var(--text); font-size: 0.75rem; font-weight: 600; padding: 3px 8px; border-radius: 6px;">ATUALIZAÇÃO</span>
+            <strong style="color: var(--text); font-size: 0.92rem;">Fechamento de Caixa, Uploads Inteligentes & Usuários Online</strong>
           </div>
-          <span style="font-size: 0.82rem; color: #94a3b8; font-weight: 500;"><i class="fa-regular fa-calendar" style="margin-right: 4px;"></i>29/08/2026</span>
+          <span style="font-size: 0.82rem; color: var(--muted); font-weight: 500;"><i class="fa-regular fa-calendar" style="margin-right: 4px;"></i>29/08/2026</span>
         </div>
         
-        <ul style="margin: 0; padding-left: 20px; color: #cbd5e1; font-size: 0.88rem; line-height: 1.6; display: flex; flex-direction: column; gap: 8px;">
+        <ul style="margin: 0; padding-left: 20px; color: var(--text); font-size: 0.88rem; line-height: 1.6; display: flex; flex-direction: column; gap: 8px;">
           <li>
-            <strong style="color: #60a5fa;">Módulo de Fechamento de Caixa Diário:</strong> Tela completa de conciliação financeira (<span style="font-family: monospace; color: #93c5fd;">/reports/caixa/</span>) com apuração de faturamento, discriminação de meios de pagamento (Dinheiro, PIX, Cartão de Crédito/Débito, Boleto, A Prazo), conferência de gaveta e termo de fechamento.
+            <strong style="color: var(--st-pronto-fg);">Módulo de Fechamento de Caixa Diário:</strong> Tela completa de conciliação financeira (<span style="font-family: monospace; color: var(--st-pronto-fg);">/reports/caixa/</span>) com apuração de faturamento, discriminação de meios de pagamento (Dinheiro, PIX, Cartão de Crédito/Débito, Boleto, A Prazo), conferência de gaveta e termo de fechamento.
           </li>
           <li>
-            <strong style="color: #34d399;">Upload em Tempo Real com Barra de Progresso:</strong> Indicador visual de upload com porcentagem e pré-visualização instantânea no navegador para arquivos de artes e comprovantes.
+            <strong style="color: var(--brand-text);">Upload em Tempo Real com Barra de Progresso:</strong> Indicador visual de upload com porcentagem e pré-visualização instantânea no navegador para arquivos de artes e comprovantes.
           </li>
           <li>
-            <strong style="color: #fbbf24;">Monitoramento de Usuários Online com Cronômetro:</strong> Ferramenta interativa na barra lateral (acima do botão Sair) com cronômetro em tempo real do tempo de sessão de cada colaborador, desconexão imediata ao fechar a aba via Web Beacon, modo stealth de invisibilidade do desenvolvedor para não-devs, última tela acessada e dispositivo.
+            <strong style="color: var(--st-aguardando-fg);">Monitoramento de Usuários Online com Cronômetro:</strong> Ferramenta interativa na barra lateral (acima do botão Sair) com cronômetro em tempo real do tempo de sessão de cada colaborador, desconexão imediata ao fechar a aba via Web Beacon, modo stealth de invisibilidade do desenvolvedor para não-devs, última tela acessada e dispositivo.
           </li>
           <li>
-            <strong style="color: #a78bfa;">Correções de Pagamento & Permissões:</strong> Atualização da compatibilidade de meios de pagamento e ajuste de permissões nas despesas operacionais.
+            <strong style="color: var(--st-pre-fg);">Correções de Pagamento & Permissões:</strong> Atualização da compatibilidade de meios de pagamento e ajuste de permissões nas despesas operacionais.
           </li>
         </ul>
       </div>
 
       <!-- Entrada 26/08/2026 -->
-      <div style="background: rgba(15, 23, 42, 0.4); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 10px; padding: 16px;">
+      <div style="background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 16px;">
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
           <div style="display: flex; align-items: center; gap: 8px;">
-            <span style="background: rgba(148, 163, 184, 0.2); color: #cbd5e1; font-size: 0.75rem; font-weight: 600; padding: 3px 8px; border-radius: 6px;">ATUALIZAÇÃO</span>
-            <strong style="color: #e2e8f0; font-size: 0.92rem;">Inventário Geral de Estoque & Baixa Inteligente por Cor</strong>
+            <span style="background: var(--surface-3); color: var(--text); font-size: 0.75rem; font-weight: 600; padding: 3px 8px; border-radius: 6px;">ATUALIZAÇÃO</span>
+            <strong style="color: var(--text); font-size: 0.92rem;">Inventário Geral de Estoque & Baixa Inteligente por Cor</strong>
           </div>
-          <span style="font-size: 0.82rem; color: #94a3b8; font-weight: 500;"><i class="fa-regular fa-calendar" style="margin-right: 4px;"></i>26/08/2026</span>
+          <span style="font-size: 0.82rem; color: var(--muted); font-weight: 500;"><i class="fa-regular fa-calendar" style="margin-right: 4px;"></i>26/08/2026</span>
         </div>
         
-        <ul style="margin: 0; padding-left: 20px; color: #cbd5e1; font-size: 0.88rem; line-height: 1.6; display: flex; flex-direction: column; gap: 8px;">
+        <ul style="margin: 0; padding-left: 20px; color: var(--text); font-size: 0.88rem; line-height: 1.6; display: flex; flex-direction: column; gap: 8px;">
           <li>
-            <strong style="color: #60a5fa;">Inventário e Correção Geral de Estoque:</strong> Ajuste oficial de todos os 31 itens em produção (DTF Têxtil, DTF UV e Camisetas) com base na contagem física, unidades padronizadas e histórico de auditoria.
+            <strong style="color: var(--st-pronto-fg);">Inventário e Correção Geral de Estoque:</strong> Ajuste oficial de todos os 31 itens em produção (DTF Têxtil, DTF UV e Camisetas) com base na contagem física, unidades padronizadas e histórico de auditoria.
           </li>
           <li>
-            <strong style="color: #34d399;">Grade Completa de Camisetas por Cor:</strong> Reestruturação da grade de camisetas separando <em>100% Algodão</em> (Branca: P, M, G, GG, XG e Preta: P, M, G, GG) e <em>Dry Fit</em> (Branca: P, M, G, GG e Preta: P, M, G, GG), eliminando inconsistências e duplicidades.
+            <strong style="color: var(--brand-text);">Grade Completa de Camisetas por Cor:</strong> Reestruturação da grade de camisetas separando <em>100% Algodão</em> (Branca: P, M, G, GG, XG e Preta: P, M, G, GG) e <em>Dry Fit</em> (Branca: P, M, G, GG e Preta: P, M, G, GG), eliminando inconsistências e duplicidades.
           </li>
           <li>
-            <strong style="color: #fbbf24;">Baixa Automática Inteligente por Cor:</strong> O algoritmo de consumo de insumos dos pedidos agora identifica com precisão a cor (Branca/Preta), malha e tamanho (com suporte a XG), debitando o insumo correto em estoque.
+            <strong style="color: var(--st-aguardando-fg);">Baixa Automática Inteligente por Cor:</strong> O algoritmo de consumo de insumos dos pedidos agora identifica com precisão a cor (Branca/Preta), malha e tamanho (com suporte a XG), debitando o insumo correto em estoque.
           </li>
         </ul>
       </div>
 
       <!-- Entrada 25/08/2026 -->
-      <div style="background: rgba(15, 23, 42, 0.4); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 10px; padding: 16px;">
+      <div style="background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 16px;">
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
           <div style="display: flex; align-items: center; gap: 8px;">
-            <span style="background: rgba(148, 163, 184, 0.2); color: #cbd5e1; font-size: 0.75rem; font-weight: 600; padding: 3px 8px; border-radius: 6px;">ATUALIZAÇÃO</span>
-            <strong style="color: #e2e8f0; font-size: 0.92rem;">Backups do Sistema & Correções Operacionais</strong>
+            <span style="background: var(--surface-3); color: var(--text); font-size: 0.75rem; font-weight: 600; padding: 3px 8px; border-radius: 6px;">ATUALIZAÇÃO</span>
+            <strong style="color: var(--text); font-size: 0.92rem;">Backups do Sistema & Correções Operacionais</strong>
           </div>
-          <span style="font-size: 0.82rem; color: #94a3b8; font-weight: 500;"><i class="fa-regular fa-calendar" style="margin-right: 4px;"></i>25/08/2026</span>
+          <span style="font-size: 0.82rem; color: var(--muted); font-weight: 500;"><i class="fa-regular fa-calendar" style="margin-right: 4px;"></i>25/08/2026</span>
         </div>
         
-        <ul style="margin: 0; padding-left: 20px; color: #cbd5e1; font-size: 0.88rem; line-height: 1.6; display: flex; flex-direction: column; gap: 8px;">
+        <ul style="margin: 0; padding-left: 20px; color: var(--text); font-size: 0.88rem; line-height: 1.6; display: flex; flex-direction: column; gap: 8px;">
           <li>
-            <strong style="color: #60a5fa;">Módulo de Gestão de Backups:</strong> Nova tela administrativa (<span style="font-family: monospace; color: #93c5fd;">/backups/</span>) que permite gerar backups manuais com 1 clique e baixar o arquivo compactado (<span style="font-family: monospace; color: #93c5fd;">.sql.gz</span>) direto para o seu computador (Desktop), além de rotina automática diária na madrugada (03:00 AM) e infraestrutura pronta para sincronização com o Google Drive.
+            <strong style="color: var(--st-pronto-fg);">Módulo de Gestão de Backups:</strong> Nova tela administrativa (<span style="font-family: monospace; color: var(--st-pronto-fg);">/backups/</span>) que permite gerar backups manuais com 1 clique e baixar o arquivo compactado (<span style="font-family: monospace; color: var(--st-pronto-fg);">.sql.gz</span>) direto para o seu computador (Desktop), além de rotina automática diária na madrugada (03:00 AM) e infraestrutura pronta para sincronização com o Google Drive.
           </li>
           <li>
-            <strong style="color: #34d399;">Correção de Pagamentos no Kanban (Bug #23):</strong> Desacoplada a movimentação física dos pedidos na produção em relação ao status financeiro. Pedidos que avançam na produção agora preservam rigorosamente pagamentos parciais e pedidos pendentes com pagamento na retirada, sem quitar indevidamente de forma antecipada.
+            <strong style="color: var(--brand-text);">Correção de Pagamentos no Kanban (Bug #23):</strong> Desacoplada a movimentação física dos pedidos na produção em relação ao status financeiro. Pedidos que avançam na produção agora preservam rigorosamente pagamentos parciais e pedidos pendentes com pagamento na retirada, sem quitar indevidamente de forma antecipada.
           </li>
           <li>
-            <strong style="color: #fbbf24;">Discriminação de Entrada e Saldo na Retirada (Bug #24):</strong> Os comprovantes térmicos e as mensagens de WhatsApp (Orçamento, Pronto e Entregue) agora discriminam claramente o valor de <em>Entrada Paga</em> e o <em>Saldo Restante a Pagar na Retirada</em>, além de modal de ação rápida para alteração/lançamento de pagamentos no detalhe do pedido.
+            <strong style="color: var(--st-aguardando-fg);">Discriminação de Entrada e Saldo na Retirada (Bug #24):</strong> Os comprovantes térmicos e as mensagens de WhatsApp (Orçamento, Pronto e Entregue) agora discriminam claramente o valor de <em>Entrada Paga</em> e o <em>Saldo Restante a Pagar na Retirada</em>, além de modal de ação rápida para alteração/lançamento de pagamentos no detalhe do pedido.
           </li>
         </ul>
       </div>
 
       <!-- Entrada 24/08/2026 -->
-      <div style="background: rgba(15, 23, 42, 0.4); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 10px; padding: 16px;">
+      <div style="background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 16px;">
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
           <div style="display: flex; align-items: center; gap: 8px;">
-            <span style="background: rgba(148, 163, 184, 0.2); color: #cbd5e1; font-size: 0.75rem; font-weight: 600; padding: 3px 8px; border-radius: 6px;">ATUALIZAÇÃO</span>
-            <strong style="color: #e2e8f0; font-size: 0.92rem;">Melhorias de Produção e Estoque</strong>
+            <span style="background: var(--surface-3); color: var(--text); font-size: 0.75rem; font-weight: 600; padding: 3px 8px; border-radius: 6px;">ATUALIZAÇÃO</span>
+            <strong style="color: var(--text); font-size: 0.92rem;">Melhorias de Produção e Estoque</strong>
           </div>
-          <span style="font-size: 0.82rem; color: #94a3b8; font-weight: 500;"><i class="fa-regular fa-calendar" style="margin-right: 4px;"></i>24/08/2026</span>
+          <span style="font-size: 0.82rem; color: var(--muted); font-weight: 500;"><i class="fa-regular fa-calendar" style="margin-right: 4px;"></i>24/08/2026</span>
         </div>
         
-        <ul style="margin: 0; padding-left: 20px; color: #cbd5e1; font-size: 0.88rem; line-height: 1.6; display: flex; flex-direction: column; gap: 8px;">
+        <ul style="margin: 0; padding-left: 20px; color: var(--text); font-size: 0.88rem; line-height: 1.6; display: flex; flex-direction: column; gap: 8px;">
           <li>
-            <strong style="color: #60a5fa;">Relatório de Produção Diária (Metros/Dia):</strong> Nova tela com visão de produção diária de DTF (Têxtil e UV), com filtros por mês e por colaborador (Paula, Paulo, Vinícius), estatísticas consolidadas e exportação CSV.
+            <strong style="color: var(--st-pronto-fg);">Relatório de Produção Diária (Metros/Dia):</strong> Nova tela com visão de produção diária de DTF (Têxtil e UV), com filtros por mês e por colaborador (Paula, Paulo, Vinícius), estatísticas consolidadas e exportação CSV.
           </li>
           <li>
-            <strong style="color: #34d399;">Baixa Automática de Estoque:</strong> Ao lançar um pedido, o sistema abate automaticamente a quantidade de filmes/bobinas de DTF (Têxtil e UV em metros) e camisetas por tamanho/modelo.
+            <strong style="color: var(--brand-text);">Baixa Automática de Estoque:</strong> Ao lançar um pedido, o sistema abate automaticamente a quantidade de filmes/bobinas de DTF (Têxtil e UV em metros) e camisetas por tamanho/modelo.
           </li>
           <li>
-            <strong style="color: #a78bfa;">Abatimento do Pacote do Cliente:</strong> O saldo de metros contratados no Plano de Volume do cliente é debitado automaticamente ao registrar pedidos DTF.
+            <strong style="color: var(--st-pre-fg);">Abatimento do Pacote do Cliente:</strong> O saldo de metros contratados no Plano de Volume do cliente é debitado automaticamente ao registrar pedidos DTF.
           </li>
           <li>
-            <strong style="color: #f59e0b;">Controle Manual de Pedido Pago:</strong> Opção rápida com 1 clique para alterar o status para "Pedido Pago", sem forçar quitação automática antecipada para clientes com pagamento na retirada.
+            <strong style="color: var(--st-producao-fg);">Controle Manual de Pedido Pago:</strong> Opção rápida com 1 clique para alterar o status para "Pedido Pago", sem forçar quitação automática antecipada para clientes com pagamento na retirada.
           </li>
           <li>
-            <strong style="color: #f43f5e;">Comprovante de Correção / Defeito:</strong> Ajuste na impressão térmica da nota para pedidos de reposição (R$ 0,00), exibindo status "PAGO / CORREÇÃO" sem alerta de pagamento pendente.
+            <strong style="color: var(--st-cancelado-fg);">Comprovante de Correção / Defeito:</strong> Ajuste na impressão térmica da nota para pedidos de reposição (R$ 0,00), exibindo status "PAGO / CORREÇÃO" sem alerta de pagamento pendente.
           </li>
           <li>
-            <strong style="color: #38bdf8;">Central de Changelog:</strong> Criação deste painel de histórico de atualizações integrado à barra superior e exibido no primeiro acesso do dia.
+            <strong style="color: var(--st-novo-fg);">Central de Changelog:</strong> Criação deste painel de histórico de atualizações integrado à barra superior e exibido no primeiro acesso do dia.
           </li>
         </ul>
       </div>
 
       <!-- Entrada Anterior -->
-      <div style="background: rgba(15, 23, 42, 0.4); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 10px; padding: 16px;">
+      <div style="background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 16px;">
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
           <div style="display: flex; align-items: center; gap: 8px;">
-            <span style="background: rgba(148, 163, 184, 0.2); color: #cbd5e1; font-size: 0.75rem; font-weight: 600; padding: 3px 8px; border-radius: 6px;">LANÇAMENTO</span>
-            <strong style="color: #e2e8f0; font-size: 0.92rem;">Melhorias Operacionais & Feedback</strong>
+            <span style="background: var(--surface-3); color: var(--text); font-size: 0.75rem; font-weight: 600; padding: 3px 8px; border-radius: 6px;">LANÇAMENTO</span>
+            <strong style="color: var(--text); font-size: 0.92rem;">Melhorias Operacionais & Feedback</strong>
           </div>
-          <span style="font-size: 0.8rem; color: #64748b;"><i class="fa-regular fa-calendar" style="margin-right: 4px;"></i>22/08/2026</span>
+          <span style="font-size: 0.8rem; color: var(--muted);"><i class="fa-regular fa-calendar" style="margin-right: 4px;"></i>22/08/2026</span>
         </div>
-        <ul style="margin: 0; padding-left: 20px; color: #94a3b8; font-size: 0.84rem; line-height: 1.5; display: flex; flex-direction: column; gap: 6px;">
+        <ul style="margin: 0; padding-left: 20px; color: var(--muted); font-size: 0.84rem; line-height: 1.5; display: flex; flex-direction: column; gap: 6px;">
           <li>Central de Relatos de Bugs e sugestões com anexos de captura de tela.</li>
           <li>Comprovante térmico de 80mm com snapshots imutáveis de valores e dados de impressão.</li>
           <li>Suporte a pedidos de correção/garantia com motivo e valor zerado.</li>
@@ -220,9 +220,9 @@
     </div>
 
     <!-- Rodapé -->
-    <div style="padding: 14px 20px; border-top: 1px solid rgba(255, 255, 255, 0.08); display: flex; justify-content: space-between; align-items: center;">
-      <small style="color: #64748b; font-size: 0.78rem;">Print Fornece · Produção</small>
-      <button type="button" id="closeChangelogModalFooterBtn" class="btn btn-primary" style="font-size: 0.88rem; padding: 8px 22px; background: #2563eb; border-color: #1d4ed8; font-weight: 600;">
+    <div style="padding: 14px 20px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center;">
+      <small style="color: var(--muted); font-size: 0.78rem;">Print Fornece · Produção</small>
+      <button type="button" id="closeChangelogModalFooterBtn" class="btn btn-primary" style="font-size: 0.88rem; padding: 8px 22px; background: var(--st-pronto-bg); border-color: var(--st-pronto-fg); font-weight: 600;">
         <i class="fa-solid fa-check"></i> Entendido, fechar
       </button>
     </div>

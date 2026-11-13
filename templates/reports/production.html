@@ -13,10 +13,10 @@
   <!-- Cabeçalho do Período -->
   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
     <div>
-      <h2 style="margin: 0; font-size: 1.3rem; color: #f8fafc; font-weight: 700;">
+      <h2 style="margin: 0; font-size: 1.3rem; color: var(--text); font-weight: 700;">
         Produção: {{ period.label }}
       </h2>
-      <p style="margin: 4px 0 0 0; font-size: 0.85rem; color: #94a3b8;">
+      <p style="margin: 4px 0 0 0; font-size: 0.85rem; color: var(--muted);">
         Metros lineares de DTF impressos e contabilizados diariamente no mês.
       </p>
     </div>
@@ -25,51 +25,51 @@
   <!-- KPIs de Produção -->
   <div class="metrics-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 24px;">
     
-    <div class="metric-card" style="background: rgba(37, 99, 235, 0.12); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 10px; padding: 16px;">
-      <small style="color: #60a5fa; font-weight: 600; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px;">Total Geral (Metros)</small>
-      <strong style="display: block; font-size: 1.8rem; color: #f8fafc; margin-top: 4px;">{{ total_meters|floatformat:2 }} <span style="font-size: 1.1rem; color: #94a3b8;">m</span></strong>
-      <small style="color: #cbd5e1; font-size: 0.8rem;">Em {{ total_orders_count }} pedido{{ total_orders_count|pluralize }}</small>
+    <div class="metric-card" style="background: var(--st-pronto-bg); border: 1px solid color-mix(in srgb, var(--st-pronto-fg) 55%, transparent); border-radius: 10px; padding: 16px;">
+      <small style="color: var(--st-pronto-fg); font-weight: 600; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px;">Total Geral (Metros)</small>
+      <strong style="display: block; font-size: 1.8rem; color: var(--text); margin-top: 4px;">{{ total_meters|floatformat:2 }} <span style="font-size: 1.1rem; color: var(--muted);">m</span></strong>
+      <small style="color: var(--text); font-size: 0.8rem;">Em {{ total_orders_count }} pedido{{ total_orders_count|pluralize }}</small>
     </div>
 
-    <div class="metric-card" style="background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 10px; padding: 16px;">
-      <small style="color: #34d399; font-weight: 600; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px;">DTF Têxtil</small>
-      <strong style="display: block; font-size: 1.8rem; color: #f8fafc; margin-top: 4px;">{{ total_textil|floatformat:2 }} <span style="font-size: 1.1rem; color: #94a3b8;">m</span></strong>
-      <small style="color: #cbd5e1; font-size: 0.8rem;">Bobina 60cm</small>
+    <div class="metric-card" style="background: var(--brand-soft); border: 1px solid color-mix(in srgb, var(--brand) 55%, transparent); border-radius: 10px; padding: 16px;">
+      <small style="color: var(--brand-text); font-weight: 600; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px;">DTF Têxtil</small>
+      <strong style="display: block; font-size: 1.8rem; color: var(--text); margin-top: 4px;">{{ total_textil|floatformat:2 }} <span style="font-size: 1.1rem; color: var(--muted);">m</span></strong>
+      <small style="color: var(--text); font-size: 0.8rem;">Bobina 60cm</small>
     </div>
 
-    <div class="metric-card" style="background: rgba(168, 85, 247, 0.12); border: 1px solid rgba(168, 85, 247, 0.3); border-radius: 10px; padding: 16px;">
-      <small style="color: #c084fc; font-weight: 600; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px;">DTF UV</small>
-      <strong style="display: block; font-size: 1.8rem; color: #f8fafc; margin-top: 4px;">{{ total_uv|floatformat:2 }} <span style="font-size: 1.1rem; color: #94a3b8;">m</span></strong>
-      <small style="color: #cbd5e1; font-size: 0.8rem;">Rígidos / Bobina 30cm</small>
+    <div class="metric-card" style="background: var(--st-pre-bg); border: 1px solid color-mix(in srgb, var(--st-pre-fg) 55%, transparent); border-radius: 10px; padding: 16px;">
+      <small style="color: var(--st-pre-fg); font-weight: 600; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px;">DTF UV</small>
+      <strong style="display: block; font-size: 1.8rem; color: var(--text); margin-top: 4px;">{{ total_uv|floatformat:2 }} <span style="font-size: 1.1rem; color: var(--muted);">m</span></strong>
+      <small style="color: var(--text); font-size: 0.8rem;">Rígidos / Bobina 30cm</small>
     </div>
 
-    <div class="metric-card" style="background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 10px; padding: 16px;">
-      <small style="color: #fbbf24; font-weight: 600; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px;">Média Diária</small>
-      <strong style="display: block; font-size: 1.8rem; color: #f8fafc; margin-top: 4px;">{{ avg_daily|floatformat:2 }} <span style="font-size: 1.1rem; color: #94a3b8;">m/dia</span></strong>
-      <small style="color: #cbd5e1; font-size: 0.8rem;">Em {{ active_days }} dia{{ active_days|pluralize }} com produção</small>
+    <div class="metric-card" style="background: var(--st-producao-bg); border: 1px solid color-mix(in srgb, var(--st-producao-fg) 55%, transparent); border-radius: 10px; padding: 16px;">
+      <small style="color: var(--st-aguardando-fg); font-weight: 600; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px;">Média Diária</small>
+      <strong style="display: block; font-size: 1.8rem; color: var(--text); margin-top: 4px;">{{ avg_daily|floatformat:2 }} <span style="font-size: 1.1rem; color: var(--muted);">m/dia</span></strong>
+      <small style="color: var(--text); font-size: 0.8rem;">Em {{ active_days }} dia{{ active_days|pluralize }} com produção</small>
     </div>
 
-    <div class="metric-card" style="background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 10px; padding: 16px;">
-      <small style="color: #f87171; font-weight: 600; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px;">Pico de Produção</small>
-      <strong style="display: block; font-size: 1.8rem; color: #f8fafc; margin-top: 4px;">{{ peak_meters|floatformat:2 }} <span style="font-size: 1.1rem; color: #94a3b8;">m</span></strong>
-      <small style="color: #cbd5e1; font-size: 0.8rem;">{% if peak_date %}Dia {{ peak_date|date:"d/m" }}{% else %}Sem registros{% endif %}</small>
+    <div class="metric-card" style="background: var(--st-cancelado-bg); border: 1px solid color-mix(in srgb, var(--st-cancelado-fg) 55%, transparent); border-radius: 10px; padding: 16px;">
+      <small style="color: var(--st-cancelado-fg); font-weight: 600; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px;">Pico de Produção</small>
+      <strong style="display: block; font-size: 1.8rem; color: var(--text); margin-top: 4px;">{{ peak_meters|floatformat:2 }} <span style="font-size: 1.1rem; color: var(--muted);">m</span></strong>
+      <small style="color: var(--text); font-size: 0.8rem;">{% if peak_date %}Dia {{ peak_date|date:"d/m" }}{% else %}Sem registros{% endif %}</small>
     </div>
 
   </div>
 
   <!-- Tabela Diária de Metros -->
-  <div class="card" style="background: var(--surface, #1e293b); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; overflow: hidden;">
-    <div style="padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; justify-content: space-between; align-items: center;">
-      <h3 style="margin: 0; font-size: 1.05rem; color: #f8fafc; font-weight: 600;">
-        <i class="fa-solid fa-list-ol" style="margin-right: 6px; color: #60a5fa;"></i> Detalhamento Dia a Dia
+  <div class="card" style="background: var(--surface, var(--st-pronto-bg)); border: 1px solid var(--line); border-radius: 12px; overflow: hidden;">
+    <div style="padding: 16px 20px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center;">
+      <h3 style="margin: 0; font-size: 1.05rem; color: var(--text); font-weight: 600;">
+        <i class="fa-solid fa-list-ol" style="margin-right: 6px; color: var(--st-pronto-fg);"></i> Detalhamento Dia a Dia
       </h3>
-      <span style="font-size: 0.82rem; color: #94a3b8;">{{ daily_rows|length }} dias no mês</span>
+      <span style="font-size: 0.82rem; color: var(--muted);">{{ daily_rows|length }} dias no mês</span>
     </div>
 
     <div class="table-responsive" style="overflow-x: auto;">
       <table class="table" style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem;">
         <thead>
-          <tr style="background: rgba(15, 23, 42, 0.8); border-bottom: 1px solid rgba(255,255,255,0.1); color: #94a3b8; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px;">
+          <tr style="background: var(--surface); border-bottom: 1px solid var(--line); color: var(--muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px;">
             <th style="padding: 12px 16px;">Data</th>
             <th style="padding: 12px 16px;">Dia da Semana</th>
             <th style="padding: 12px 16px; text-align: right;">DTF Têxtil (m)</th>
@@ -81,22 +81,22 @@
         </thead>
         <tbody>
           {% for r in daily_rows %}
-            <tr style="border-bottom: 1px solid rgba(255,255,255,0.05); {% if r.total_meters > 0 %}background: rgba(59, 130, 246, 0.03);{% endif %}">
-              <td style="padding: 12px 16px; font-weight: 600; color: #f8fafc;">
+            <tr style="border-bottom: 1px solid var(--line); {% if r.total_meters > 0 %}background: rgba(59, 130, 246, 0.03);{% endif %}">
+              <td style="padding: 12px 16px; font-weight: 600; color: var(--text);">
                 {{ r.date|date:"d/m/Y" }}
               </td>
-              <td style="padding: 12px 16px; color: {% if r.weekday in 'Sáb Dom' %}#f87171{% else %}#cbd5e1{% endif %};">
+              <td style="padding: 12px 16px; color: {% if r.weekday in 'Sáb Dom' %}var(--st-cancelado-fg){% else %}var(--text){% endif %};">
                 {{ r.weekday }}
               </td>
-              <td style="padding: 12px 16px; text-align: right; color: #34d399; font-weight: 500;">
-                {% if r.textil_meters > 0 %}{{ r.textil_meters|floatformat:2 }} m{% else %}<span style="color: #64748b;">-</span>{% endif %}
+              <td style="padding: 12px 16px; text-align: right; color: var(--brand-text); font-weight: 500;">
+                {% if r.textil_meters > 0 %}{{ r.textil_meters|floatformat:2 }} m{% else %}<span style="color: var(--muted);">-</span>{% endif %}
               </td>
-              <td style="padding: 12px 16px; text-align: right; color: #c084fc; font-weight: 500;">
-                {% if r.uv_meters > 0 %}{{ r.uv_meters|floatformat:2 }} m{% else %}<span style="color: #64748b;">-</span>{% endif %}
+              <td style="padding: 12px 16px; text-align: right; color: var(--st-pre-fg); font-weight: 500;">
+                {% if r.uv_meters > 0 %}{{ r.uv_meters|floatformat:2 }} m{% else %}<span style="color: var(--muted);">-</span>{% endif %}
               </td>
-              <td style="padding: 12px 16px; text-align: right; font-weight: 700; color: {% if r.total_meters > 0 %}#f8fafc{% else %}#64748b{% endif %};">
+              <td style="padding: 12px 16px; text-align: right; font-weight: 700; color: {% if r.total_meters > 0 %}var(--text){% else %}var(--muted){% endif %};">
                 {% if r.total_meters > 0 %}
-                  <span style="background: rgba(37, 99, 235, 0.18); padding: 3px 8px; border-radius: 6px; border: 1px solid rgba(59, 130, 246, 0.3);">
+                  <span style="background: var(--st-pronto-bg); padding: 3px 8px; border-radius: 6px; border: 1px solid color-mix(in srgb, var(--st-pronto-fg) 55%, transparent);">
                     {{ r.total_meters|floatformat:2 }} m
                   </span>
                 {% else %}
@@ -105,37 +105,37 @@
               </td>
               <td style="padding: 12px 16px; text-align: center;">
                 {% if r.orders_count > 0 %}
-                  <span class="badge" style="background: rgba(59, 130, 246, 0.2); color: #60a5fa; font-weight: 700; padding: 2px 8px; border-radius: 12px;">
+                  <span class="badge" style="background: var(--st-pronto-bg); color: var(--st-pronto-fg); font-weight: 700; padding: 2px 8px; border-radius: 12px;">
                     {{ r.orders_count }}
                   </span>
                 {% else %}
-                  <span style="color: #64748b;">0</span>
+                  <span style="color: var(--muted);">0</span>
                 {% endif %}
               </td>
-              <td style="padding: 12px 16px; font-size: 0.82rem; color: #94a3b8;">
+              <td style="padding: 12px 16px; font-size: 0.82rem; color: var(--muted);">
                 {% if r.orders_list %}
                   <div style="display: flex; gap: 4px; flex-wrap: wrap;">
                     {% for ord in r.orders_list %}
-                      <a href="{% url 'production:detail' pk=ord.pk %}" style="color: #38bdf8; text-decoration: none; background: rgba(56, 189, 248, 0.1); padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(56, 189, 248, 0.2);" title="{{ ord.client_name }}">
+                      <a href="{% url 'production:detail' pk=ord.pk %}" style="color: var(--st-novo-fg); text-decoration: none; background: var(--st-novo-bg); padding: 2px 6px; border-radius: 4px; border: 1px solid color-mix(in srgb, var(--st-novo-fg) 55%, transparent);" title="{{ ord.client_name }}">
                         #{{ ord.number }}
                       </a>
                     {% endfor %}
                   </div>
                 {% else %}
-                  <span style="color: #64748b;">Sem pedidos no dia</span>
+                  <span style="color: var(--muted);">Sem pedidos no dia</span>
                 {% endif %}
               </td>
             </tr>
           {% endfor %}
         </tbody>
-        <tfoot style="background: rgba(15, 23, 42, 0.95); border-top: 2px solid rgba(255,255,255,0.15); font-weight: 700;">
+        <tfoot style="background: var(--surface); border-top: 2px solid var(--line-strong); font-weight: 700;">
           <tr>
-            <td colspan="2" style="padding: 14px 16px; color: #f8fafc; text-transform: uppercase; font-size: 0.82rem;">Total Consolidado do Mês</td>
-            <td style="padding: 14px 16px; text-align: right; color: #34d399; font-size: 1rem;">{{ total_textil|floatformat:2 }} m</td>
-            <td style="padding: 14px 16px; text-align: right; color: #c084fc; font-size: 1rem;">{{ total_uv|floatformat:2 }} m</td>
-            <td style="padding: 14px 16px; text-align: right; color: #60a5fa; font-size: 1.1rem;">{{ total_meters|floatformat:2 }} m</td>
-            <td style="padding: 14px 16px; text-align: center; color: #f8fafc;">{{ total_orders_count }}</td>
-            <td style="padding: 14px 16px; color: #94a3b8; font-size: 0.84rem;">Média diária: {{ avg_daily|floatformat:2 }} m/dia</td>
+            <td colspan="2" style="padding: 14px 16px; color: var(--text); text-transform: uppercase; font-size: 0.82rem;">Total Consolidado do Mês</td>
+            <td style="padding: 14px 16px; text-align: right; color: var(--brand-text); font-size: 1rem;">{{ total_textil|floatformat:2 }} m</td>
+            <td style="padding: 14px 16px; text-align: right; color: var(--st-pre-fg); font-size: 1rem;">{{ total_uv|floatformat:2 }} m</td>
+            <td style="padding: 14px 16px; text-align: right; color: var(--st-pronto-fg); font-size: 1.1rem;">{{ total_meters|floatformat:2 }} m</td>
+            <td style="padding: 14px 16px; text-align: center; color: var(--text);">{{ total_orders_count }}</td>
+            <td style="padding: 14px 16px; color: var(--muted); font-size: 0.84rem;">Média diária: {{ avg_daily|floatformat:2 }} m/dia</td>
           </tr>
         </tfoot>
       </table>

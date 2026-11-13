@@ -197,7 +197,7 @@
     <div style="position: sticky; top: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem;">
       <!-- CAIXA DE STATUS DE EXECUÇÃO -->
       <section id="result-status-card" class="card" hidden>
-        <div class="card__header" style="background: #111823;">
+        <div class="card__header" style="background: var(--surface);">
           <div>
             <p class="eyebrow" id="result-badge-label">Resultado da Operação</p>
             <h3 id="result-status-title" style="margin: 0;">Processando...</h3>
@@ -222,11 +222,11 @@
 
       <!-- RESULTADO DA RESPOSTA HTTP (RESPONSE) -->
       <section id="response-preview-container" class="json-preview-container" hidden>
-        <div class="json-preview-header" style="background: #141c2b;">
-          <span style="color: #6ee7b7;">📥 Resposta da API Stone / Pagar.me</span>
+        <div class="json-preview-header" style="background: var(--surface);">
+          <span style="color: var(--brand-text);">📥 Resposta da API Stone / Pagar.me</span>
           <button class="button-link button--quiet" type="button" id="btn-copy-response" style="font-size: 0.72rem; padding: 0.2rem 0.5rem;">📋 Copiar Resposta</button>
         </div>
-        <pre id="response-preview" class="json-preview-body" style="color: #a7f3d0; max-height: 300px;"></pre>
+        <pre id="response-preview" class="json-preview-body" style="color: var(--brand-text); max-height: 300px;"></pre>
       </section>
     </div>
   </div>
@@ -433,15 +433,15 @@
           resultHttpPill.textContent = 'HTTP ' + result.data.http_status + ' (' + result.data.duracao_ms + 'ms)';
 
           var html = '<div class="details-list" style="margin-top: 0.5rem;">';
-          html += '<div><dt>Order ID</dt><dd><code style="color: #4ade80;">' + result.data.order_id + '</code></dd></div>';
+          html += '<div><dt>Order ID</dt><dd><code style="color: var(--brand-text);">' + result.data.order_id + '</code></dd></div>';
           html += '<div><dt>Status</dt><dd><span class="badge-status badge-status--pass">' + result.data.status_pedido + '</span></dd></div>';
           if (result.data.charge_id) html += '<div><dt>Charge ID</dt><dd><code>' + result.data.charge_id + '</code></dd></div>';
           if (result.data.transaction_id) html += '<div><dt>Transaction ID</dt><dd><code>' + result.data.transaction_id + '</code></dd></div>';
           html += '</div>';
 
           if (result.data.pix_qr_code) {
-            html += '<div style="margin-top: 1rem; padding: 0.85rem; background: #0a111a; border-radius: 8px;">';
-            html += '<strong style="color: #38bdf8;">PIX Copia e Cola retornado pela Stone:</strong>';
+            html += '<div style="margin-top: 1rem; padding: 0.85rem; background: var(--bg); border-radius: 8px;">';
+            html += '<strong style="color: var(--st-novo-fg);">PIX Copia e Cola retornado pela Stone:</strong>';
             html += '<div style="display: flex; gap: 0.5rem; margin-top: 0.35rem;">';
             html += '<input type="text" readonly value="' + result.data.pix_qr_code + '" style="font-size: 0.75rem; width: 100%;">';
             html += '<button class="button button--quiet" type="button" onclick="navigator.clipboard.writeText(\'' + result.data.pix_qr_code + '\')">Copiar</button>';
@@ -454,13 +454,13 @@
           resultHttpPill.className = 'badge-status badge-status--fail';
           resultHttpPill.textContent = 'HTTP ' + (result.data.http_status || result.status);
 
-          var html = '<div style="padding: 0.85rem; background: #261115; border-radius: 8px; border: 1px solid #7f1d1d; margin-top: 0.5rem;">';
-          html += '<strong style="color: #f87171; font-size: 0.95rem;">' + (err.tipo || 'Erro') + ': ' + (err.mensagem || 'Rejeição na requisição') + '</strong>';
+          var html = '<div style="padding: 0.85rem; background: var(--surface); border-radius: 8px; border: 1px solid var(--st-cancelado-fg); margin-top: 0.5rem;">';
+          html += '<strong style="color: var(--st-cancelado-fg); font-size: 0.95rem;">' + (err.tipo || 'Erro') + ': ' + (err.mensagem || 'Rejeição na requisição') + '</strong>';
           if (err.parametro) {
-            html += '<p style="margin: 0.35rem 0 0; color: #fca5a5;">Campo com problema: <code>' + err.parametro + '</code></p>';
+            html += '<p style="margin: 0.35rem 0 0; color: var(--st-cancelado-fg);">Campo com problema: <code>' + err.parametro + '</code></p>';
           }
           if (err.detalhes && err.detalhes.length) {
-            html += '<ul style="margin: 0.5rem 0 0; padding-left: 1.2rem; color: #fca5a5; font-size: 0.82rem;">';
+            html += '<ul style="margin: 0.5rem 0 0; padding-left: 1.2rem; color: var(--st-cancelado-fg); font-size: 0.82rem;">';
             err.detalhes.forEach(function(d) {
               html += '<li><strong>' + (d.parameter_name || d.field || 'erro') + '</strong>: ' + d.message + '</li>';
             });

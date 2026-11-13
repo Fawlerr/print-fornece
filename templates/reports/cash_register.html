@@ -8,12 +8,12 @@
 <section class="section" style="max-width: 1200px; margin: 0 auto;">
 
   <!-- Abas de Navegação do Módulo de Caixa (Ocultas na Impressão) -->
-  <div class="no-print" style="display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 12px; flex-wrap: wrap; align-items: center; justify-content: space-between;">
+  <div class="no-print" style="display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid var(--line); padding-bottom: 12px; flex-wrap: wrap; align-items: center; justify-content: space-between;">
     <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-      <a href="{% url 'reports:cash_register' %}" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 8px; font-weight: 600; background: #2563eb; border-color: #1d4ed8;">
+      <a href="{% url 'reports:cash_register' %}" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 8px; font-weight: 600; background: var(--st-pronto-bg); border-color: var(--st-pronto-fg);">
         <i class="fa-solid fa-cash-register"></i> Fechamento de Caixa Diário
       </a>
-      <a href="{% url 'reports:cash_register_beta' %}" class="btn btn-secondary" style="display: inline-flex; align-items: center; gap: 8px; font-weight: 600; background: rgba(168, 85, 247, 0.15); color: #c084fc; border-color: rgba(168, 85, 247, 0.4);">
+      <a href="{% url 'reports:cash_register_beta' %}" class="btn btn-secondary" style="display: inline-flex; align-items: center; gap: 8px; font-weight: 600; background: var(--st-pre-bg); color: var(--st-pre-fg); border-color: color-mix(in srgb, var(--st-pre-fg) 55%, transparent);">
         <i class="fa-solid fa-rocket"></i> Caixa Completo (Versão BETA)
       </a>
     </div>
@@ -22,17 +22,17 @@
   {% include "reports/_period_filter.html" %}
 
   <!-- Cabeçalho do Fechamento (Visível na tela e na impressão) -->
-  <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px; border-bottom: 2px solid rgba(255,255,255,0.1); padding-bottom: 12px;">
+  <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px; border-bottom: 2px solid var(--line); padding-bottom: 12px;">
     <div>
-      <span style="font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.05em; color: #38bdf8; font-weight: 700;">Conferência e Prestação de Contas</span>
-      <h1 style="font-size: 1.6rem; font-weight: 800; color: #fff; margin: 4px 0 2px 0;">
+      <span style="font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--st-novo-fg); font-weight: 700;">Conferência e Prestação de Contas</span>
+      <h1 style="font-size: 1.6rem; font-weight: 800; color: var(--text); margin: 4px 0 2px 0;">
         Fechamento de Caixa: {{ target_date_display }}
       </h1>
-      <p style="font-size: 0.92rem; color: #94a3b8; margin: 0;">
-        {{ weekday_label }} {% if is_today %}<span class="badge" style="background: rgba(34, 197, 94, 0.2); color: #22c55e; margin-left: 6px;">Hoje</span>{% endif %}
+      <p style="font-size: 0.92rem; color: var(--muted); margin: 0;">
+        {{ weekday_label }} {% if is_today %}<span class="badge" style="background: var(--brand-soft); color: var(--brand-text); margin-left: 6px;">Hoje</span>{% endif %}
       </p>
     </div>
-    <div style="text-align: right; font-size: 0.82rem; color: #94a3b8;">
+    <div style="text-align: right; font-size: 0.82rem; color: var(--muted);">
       Emitido em: <strong>{% now "d/m/Y H:i" %}</strong><br>
       Por: <strong>{{ request.user.name }}</strong>
     </div>
@@ -42,58 +42,58 @@
   <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px;">
     
     <!-- Total Entradas -->
-    <div class="card" style="padding: 16px 20px; background: rgba(34, 197, 94, 0.08); border: 1px solid rgba(34, 197, 94, 0.3); border-radius: 10px;">
-      <span style="font-size: 0.8rem; text-transform: uppercase; font-weight: 700; color: #4ade80; display: block; margin-bottom: 4px;">
+    <div class="card" style="padding: 16px 20px; background: var(--brand-soft); border: 1px solid color-mix(in srgb, var(--brand) 55%, transparent); border-radius: 10px;">
+      <span style="font-size: 0.8rem; text-transform: uppercase; font-weight: 700; color: var(--brand-text); display: block; margin-bottom: 4px;">
         <i class="fa-solid fa-arrow-down"></i> Total Recebido (Entradas)
       </span>
-      <div style="font-size: 1.5rem; font-weight: 800; color: #22c55e;">
+      <div style="font-size: 1.5rem; font-weight: 800; color: var(--brand-text);">
         R$ {{ total_revenue|floatformat:2 }}
       </div>
-      <small style="color: #94a3b8; font-size: 0.78rem;">{{ total_orders_count }} pedido(s) faturado(s)</small>
+      <small style="color: var(--muted); font-size: 0.78rem;">{{ total_orders_count }} pedido(s) faturado(s)</small>
     </div>
 
     <!-- Saldo Dinheiro Gaveta -->
-    <div class="card" style="padding: 16px 20px; background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 10px;">
-      <span style="font-size: 0.8rem; text-transform: uppercase; font-weight: 700; color: #38bdf8; display: block; margin-bottom: 4px;">
+    <div class="card" style="padding: 16px 20px; background: var(--st-novo-bg); border: 1px solid color-mix(in srgb, var(--st-novo-fg) 55%, transparent); border-radius: 10px;">
+      <span style="font-size: 0.8rem; text-transform: uppercase; font-weight: 700; color: var(--st-novo-fg); display: block; margin-bottom: 4px;">
         <i class="fa-solid fa-money-bill-wave"></i> Gaveta Física (Dinheiro)
       </span>
-      <div style="font-size: 1.5rem; font-weight: 800; color: #38bdf8;">
+      <div style="font-size: 1.5rem; font-weight: 800; color: var(--st-novo-fg);">
         R$ {{ cash_in|floatformat:2 }}
       </div>
-      <small style="color: #94a3b8; font-size: 0.78rem;">{{ methods_summary.dinheiro.count }} recebimento(s) em espécie</small>
+      <small style="color: var(--muted); font-size: 0.78rem;">{{ methods_summary.dinheiro.count }} recebimento(s) em espécie</small>
     </div>
 
     <!-- Total PIX -->
-    <div class="card" style="padding: 16px 20px; background: rgba(168, 85, 247, 0.08); border: 1px solid rgba(168, 85, 247, 0.3); border-radius: 10px;">
-      <span style="font-size: 0.8rem; text-transform: uppercase; font-weight: 700; color: #c084fc; display: block; margin-bottom: 4px;">
+    <div class="card" style="padding: 16px 20px; background: var(--st-pre-bg); border: 1px solid color-mix(in srgb, var(--st-pre-fg) 55%, transparent); border-radius: 10px;">
+      <span style="font-size: 0.8rem; text-transform: uppercase; font-weight: 700; color: var(--st-pre-fg); display: block; margin-bottom: 4px;">
         <i class="fa-brands fa-pix"></i> Total em PIX
       </span>
-      <div style="font-size: 1.5rem; font-weight: 800; color: #c084fc;">
+      <div style="font-size: 1.5rem; font-weight: 800; color: var(--st-pre-fg);">
         R$ {{ methods_summary.pix.total|floatformat:2 }}
       </div>
-      <small style="color: #94a3b8; font-size: 0.78rem;">{{ methods_summary.pix.count }} pedido(s)</small>
+      <small style="color: var(--muted); font-size: 0.78rem;">{{ methods_summary.pix.count }} pedido(s)</small>
     </div>
 
     <!-- Total Despesas -->
-    <div class="card" style="padding: 16px 20px; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 10px;">
-      <span style="font-size: 0.8rem; text-transform: uppercase; font-weight: 700; color: #f87171; display: block; margin-bottom: 4px;">
+    <div class="card" style="padding: 16px 20px; background: var(--st-cancelado-bg); border: 1px solid color-mix(in srgb, var(--st-cancelado-fg) 55%, transparent); border-radius: 10px;">
+      <span style="font-size: 0.8rem; text-transform: uppercase; font-weight: 700; color: var(--st-cancelado-fg); display: block; margin-bottom: 4px;">
         <i class="fa-solid fa-arrow-up"></i> Total de Despesas (Saídas)
       </span>
-      <div style="font-size: 1.5rem; font-weight: 800; color: #ef4444;">
+      <div style="font-size: 1.5rem; font-weight: 800; color: var(--st-cancelado-fg);">
         R$ {{ total_expenses|floatformat:2 }}
       </div>
-      <small style="color: #94a3b8; font-size: 0.78rem;">{{ expenses|length }} lançamento(s)</small>
+      <small style="color: var(--muted); font-size: 0.78rem;">{{ expenses|length }} lançamento(s)</small>
     </div>
 
     <!-- Saldo Líquido do Dia -->
-    <div class="card" style="padding: 16px 20px; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 10px;">
-      <span style="font-size: 0.8rem; text-transform: uppercase; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 4px;">
+    <div class="card" style="padding: 16px 20px; background: var(--surface-2); border: 1px solid var(--line-strong); border-radius: 10px;">
+      <span style="font-size: 0.8rem; text-transform: uppercase; font-weight: 700; color: var(--text); display: block; margin-bottom: 4px;">
         <i class="fa-solid fa-scale-balanced"></i> Resultado Líquido do Dia
       </span>
-      <div style="font-size: 1.5rem; font-weight: 800; color: {% if net_balance >= 0 %}#4ade80{% else %}#f87171{% endif %};">
+      <div style="font-size: 1.5rem; font-weight: 800; color: {% if net_balance >= 0 %}var(--brand-text){% else %}var(--st-cancelado-fg){% endif %};">
         R$ {{ net_balance|floatformat:2 }}
       </div>
-      <small style="color: #94a3b8; font-size: 0.78rem;">Entradas - Despesas do Dia</small>
+      <small style="color: var(--muted); font-size: 0.78rem;">Entradas - Despesas do Dia</small>
     </div>
 
   </div>
@@ -102,97 +102,97 @@
   <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 20px; margin-bottom: 28px;">
     
     <!-- Discriminação por Forma de Pagamento -->
-    <div class="card" style="padding: 20px; background: var(--surface, #1e293b); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px;">
-      <h3 style="font-size: 1.05rem; font-weight: 700; color: #fff; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
-        <i class="fa-solid fa-list-check" style="color: #38bdf8;"></i> Entradas por Forma de Pagamento
+    <div class="card" style="padding: 20px; background: var(--surface, var(--st-pronto-bg)); border: 1px solid var(--line); border-radius: 12px;">
+      <h3 style="font-size: 1.05rem; font-weight: 700; color: var(--text); margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+        <i class="fa-solid fa-list-check" style="color: var(--st-novo-fg);"></i> Entradas por Forma de Pagamento
       </h3>
 
       <div style="display: flex; flex-direction: column; gap: 10px;">
         
         <!-- PIX -->
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: rgba(34, 197, 94, 0.06); border-radius: 8px; border: 1px solid rgba(34, 197, 94, 0.2);">
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: var(--brand-soft); border-radius: 8px; border: 1px solid color-mix(in srgb, var(--brand) 55%, transparent);">
           <div style="display: flex; align-items: center; gap: 10px;">
-            <i class="fa-brands fa-pix" style="color: #22c55e; font-size: 1.2rem;"></i>
-            <span style="font-weight: 600; color: #f8fafc;">PIX</span>
+            <i class="fa-brands fa-pix" style="color: var(--brand-text); font-size: 1.2rem;"></i>
+            <span style="font-weight: 600; color: var(--text);">PIX</span>
           </div>
           <div style="text-align: right;">
-            <strong style="color: #22c55e; font-size: 1.05rem;">R$ {{ methods_summary.pix.total|floatformat:2 }}</strong>
-            <small style="display: block; color: #94a3b8; font-size: 0.75rem;">{{ methods_summary.pix.count }} pedido(s)</small>
+            <strong style="color: var(--brand-text); font-size: 1.05rem;">R$ {{ methods_summary.pix.total|floatformat:2 }}</strong>
+            <small style="display: block; color: var(--muted); font-size: 0.75rem;">{{ methods_summary.pix.count }} pedido(s)</small>
           </div>
         </div>
 
         <!-- Cartão de Crédito -->
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: rgba(56, 189, 248, 0.06); border-radius: 8px; border: 1px solid rgba(56, 189, 248, 0.2);">
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: var(--st-novo-bg); border-radius: 8px; border: 1px solid color-mix(in srgb, var(--st-novo-fg) 55%, transparent);">
           <div style="display: flex; align-items: center; gap: 10px;">
-            <i class="fa-solid fa-credit-card" style="color: #38bdf8; font-size: 1.1rem;"></i>
-            <span style="font-weight: 600; color: #f8fafc;">Cartão de Crédito</span>
+            <i class="fa-solid fa-credit-card" style="color: var(--st-novo-fg); font-size: 1.1rem;"></i>
+            <span style="font-weight: 600; color: var(--text);">Cartão de Crédito</span>
           </div>
           <div style="text-align: right;">
-            <strong style="color: #38bdf8; font-size: 1.05rem;">R$ {{ methods_summary.cartao_credito.total|floatformat:2 }}</strong>
-            <small style="display: block; color: #94a3b8; font-size: 0.75rem;">{{ methods_summary.cartao_credito.count }} pedido(s)</small>
+            <strong style="color: var(--st-novo-fg); font-size: 1.05rem;">R$ {{ methods_summary.cartao_credito.total|floatformat:2 }}</strong>
+            <small style="display: block; color: var(--muted); font-size: 0.75rem;">{{ methods_summary.cartao_credito.count }} pedido(s)</small>
           </div>
         </div>
 
         <!-- Cartão de Débito -->
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: rgba(129, 140, 248, 0.06); border-radius: 8px; border: 1px solid rgba(129, 140, 248, 0.2);">
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: var(--st-pronto-bg); border-radius: 8px; border: 1px solid color-mix(in srgb, var(--st-pronto-fg) 55%, transparent);">
           <div style="display: flex; align-items: center; gap: 10px;">
-            <i class="fa-solid fa-id-card" style="color: #818cf8; font-size: 1.1rem;"></i>
-            <span style="font-weight: 600; color: #f8fafc;">Cartão de Débito</span>
+            <i class="fa-solid fa-id-card" style="color: var(--st-pronto-fg); font-size: 1.1rem;"></i>
+            <span style="font-weight: 600; color: var(--text);">Cartão de Débito</span>
           </div>
           <div style="text-align: right;">
-            <strong style="color: #818cf8; font-size: 1.05rem;">R$ {{ methods_summary.cartao_debito.total|floatformat:2 }}</strong>
-            <small style="display: block; color: #94a3b8; font-size: 0.75rem;">{{ methods_summary.cartao_debito.count }} pedido(s)</small>
+            <strong style="color: var(--st-pronto-fg); font-size: 1.05rem;">R$ {{ methods_summary.cartao_debito.total|floatformat:2 }}</strong>
+            <small style="display: block; color: var(--muted); font-size: 0.75rem;">{{ methods_summary.cartao_debito.count }} pedido(s)</small>
           </div>
         </div>
 
         <!-- Dinheiro / À Vista -->
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: rgba(52, 211, 153, 0.06); border-radius: 8px; border: 1px solid rgba(52, 211, 153, 0.2);">
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: var(--brand-soft); border-radius: 8px; border: 1px solid color-mix(in srgb, var(--brand) 55%, transparent);">
           <div style="display: flex; align-items: center; gap: 10px;">
-            <i class="fa-solid fa-money-bill-wave" style="color: #34d399; font-size: 1.1rem;"></i>
-            <span style="font-weight: 600; color: #f8fafc;">Dinheiro (À Vista / Gaveta)</span>
+            <i class="fa-solid fa-money-bill-wave" style="color: var(--brand-text); font-size: 1.1rem;"></i>
+            <span style="font-weight: 600; color: var(--text);">Dinheiro (À Vista / Gaveta)</span>
           </div>
           <div style="text-align: right;">
-            <strong style="color: #34d399; font-size: 1.05rem;">R$ {{ methods_summary.dinheiro.total|floatformat:2 }}</strong>
-            <small style="display: block; color: #94a3b8; font-size: 0.75rem;">{{ methods_summary.dinheiro.count }} pedido(s)</small>
+            <strong style="color: var(--brand-text); font-size: 1.05rem;">R$ {{ methods_summary.dinheiro.total|floatformat:2 }}</strong>
+            <small style="display: block; color: var(--muted); font-size: 0.75rem;">{{ methods_summary.dinheiro.count }} pedido(s)</small>
           </div>
         </div>
 
         <!-- Cartão Geral / Outros -->
         {% if methods_summary.cartao.total > 0 %}
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: rgba(96, 165, 250, 0.06); border-radius: 8px; border: 1px solid rgba(96, 165, 250, 0.2);">
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: var(--st-pronto-bg); border-radius: 8px; border: 1px solid color-mix(in srgb, var(--st-pronto-fg) 55%, transparent);">
           <div style="display: flex; align-items: center; gap: 10px;">
-            <i class="fa-solid fa-credit-card" style="color: #60a5fa; font-size: 1.1rem;"></i>
-            <span style="font-weight: 600; color: #f8fafc;">Cartão (Geral)</span>
+            <i class="fa-solid fa-credit-card" style="color: var(--st-pronto-fg); font-size: 1.1rem;"></i>
+            <span style="font-weight: 600; color: var(--text);">Cartão (Geral)</span>
           </div>
           <div style="text-align: right;">
-            <strong style="color: #60a5fa; font-size: 1.05rem;">R$ {{ methods_summary.cartao.total|floatformat:2 }}</strong>
-            <small style="display: block; color: #94a3b8; font-size: 0.75rem;">{{ methods_summary.cartao.count }} pedido(s)</small>
+            <strong style="color: var(--st-pronto-fg); font-size: 1.05rem;">R$ {{ methods_summary.cartao.total|floatformat:2 }}</strong>
+            <small style="display: block; color: var(--muted); font-size: 0.75rem;">{{ methods_summary.cartao.count }} pedido(s)</small>
           </div>
         </div>
         {% endif %}
 
         {% if methods_summary.transferencia.total > 0 %}
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: rgba(251, 191, 36, 0.06); border-radius: 8px; border: 1px solid rgba(251, 191, 36, 0.2);">
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: var(--st-aguardando-bg); border-radius: 8px; border: 1px solid color-mix(in srgb, var(--st-aguardando-fg) 55%, transparent);">
           <div style="display: flex; align-items: center; gap: 10px;">
-            <i class="fa-solid fa-building-columns" style="color: #fbbf24; font-size: 1.1rem;"></i>
-            <span style="font-weight: 600; color: #f8fafc;">Transferência / TED</span>
+            <i class="fa-solid fa-building-columns" style="color: var(--st-aguardando-fg); font-size: 1.1rem;"></i>
+            <span style="font-weight: 600; color: var(--text);">Transferência / TED</span>
           </div>
           <div style="text-align: right;">
-            <strong style="color: #fbbf24; font-size: 1.05rem;">R$ {{ methods_summary.transferencia.total|floatformat:2 }}</strong>
-            <small style="display: block; color: #94a3b8; font-size: 0.75rem;">{{ methods_summary.transferencia.count }} pedido(s)</small>
+            <strong style="color: var(--st-aguardando-fg); font-size: 1.05rem;">R$ {{ methods_summary.transferencia.total|floatformat:2 }}</strong>
+            <small style="display: block; color: var(--muted); font-size: 0.75rem;">{{ methods_summary.transferencia.count }} pedido(s)</small>
           </div>
         </div>
         {% endif %}
 
         {% if methods_summary.saldo_credito.total > 0 %}
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: rgba(192, 132, 252, 0.06); border-radius: 8px; border: 1px solid rgba(192, 132, 252, 0.2);">
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: var(--st-pre-bg); border-radius: 8px; border: 1px solid color-mix(in srgb, var(--st-pre-fg) 55%, transparent);">
           <div style="display: flex; align-items: center; gap: 10px;">
-            <i class="fa-solid fa-wallet" style="color: #c084fc; font-size: 1.1rem;"></i>
-            <span style="font-weight: 600; color: #f8fafc;">Saldo do Plano / Crédito</span>
+            <i class="fa-solid fa-wallet" style="color: var(--st-pre-fg); font-size: 1.1rem;"></i>
+            <span style="font-weight: 600; color: var(--text);">Saldo do Plano / Crédito</span>
           </div>
           <div style="text-align: right;">
-            <strong style="color: #c084fc; font-size: 1.05rem;">R$ {{ methods_summary.saldo_credito.total|floatformat:2 }}</strong>
-            <small style="display: block; color: #94a3b8; font-size: 0.75rem;">{{ methods_summary.saldo_credito.count }} pedido(s)</small>
+            <strong style="color: var(--st-pre-fg); font-size: 1.05rem;">R$ {{ methods_summary.saldo_credito.total|floatformat:2 }}</strong>
+            <small style="display: block; color: var(--muted); font-size: 0.75rem;">{{ methods_summary.saldo_credito.count }} pedido(s)</small>
           </div>
         </div>
         {% endif %}
@@ -201,44 +201,44 @@
     </div>
 
     <!-- Conciliação de Gaveta Física vs. Contas Digitais -->
-    <div class="card" style="padding: 20px; background: var(--surface, #1e293b); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px;">
-      <h3 style="font-size: 1.05rem; font-weight: 700; color: #fff; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
-        <i class="fa-solid fa-vault" style="color: #38bdf8;"></i> Conciliação de Caixa & Gaveta
+    <div class="card" style="padding: 20px; background: var(--surface, var(--st-pronto-bg)); border: 1px solid var(--line); border-radius: 12px;">
+      <h3 style="font-size: 1.05rem; font-weight: 700; color: var(--text); margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+        <i class="fa-solid fa-vault" style="color: var(--st-novo-fg);"></i> Conciliação de Caixa & Gaveta
       </h3>
 
-      <div style="background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 14px; margin-bottom: 16px;">
-        <strong style="color: #38bdf8; font-size: 0.9rem; display: block; margin-bottom: 8px;">
+      <div style="background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 14px; margin-bottom: 16px;">
+        <strong style="color: var(--st-novo-fg); font-size: 0.9rem; display: block; margin-bottom: 8px;">
           <i class="fa-solid fa-cash-register"></i> Dinheiro Físico / Espécie (Gaveta)
         </strong>
-        <div style="display: flex; justify-content: space-between; font-size: 0.88rem; color: #cbd5e1; margin-bottom: 4px;">
+        <div style="display: flex; justify-content: space-between; font-size: 0.88rem; color: var(--text); margin-bottom: 4px;">
           <span>(+) Entradas em Dinheiro:</span>
-          <strong style="color: #22c55e;">R$ {{ cash_in|floatformat:2 }}</strong>
+          <strong style="color: var(--brand-text);">R$ {{ cash_in|floatformat:2 }}</strong>
         </div>
-        <div style="display: flex; justify-content: space-between; font-size: 0.88rem; color: #94a3b8; margin-bottom: 6px;">
+        <div style="display: flex; justify-content: space-between; font-size: 0.88rem; color: var(--muted); margin-bottom: 6px;">
           <span>Qtd. de pagamentos em espécie:</span>
           <strong>{{ methods_summary.dinheiro.count }}</strong>
         </div>
-        <div style="display: flex; justify-content: space-between; font-size: 1rem; color: #fff; border-top: 1px solid rgba(255,255,255,0.15); padding-top: 8px;">
+        <div style="display: flex; justify-content: space-between; font-size: 1rem; color: var(--text); border-top: 1px solid var(--line-strong); padding-top: 8px;">
           <strong>(=) Total a Conferir na Gaveta:</strong>
-          <strong style="color: #38bdf8;">R$ {{ cash_in|floatformat:2 }}</strong>
+          <strong style="color: var(--st-novo-fg);">R$ {{ cash_in|floatformat:2 }}</strong>
         </div>
       </div>
 
-      <div style="background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 14px;">
-        <strong style="color: #c084fc; font-size: 0.9rem; display: block; margin-bottom: 8px;">
+      <div style="background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 14px;">
+        <strong style="color: var(--st-pre-fg); font-size: 0.9rem; display: block; margin-bottom: 8px;">
           <i class="fa-solid fa-building-columns"></i> Contas Digitais & Cartões (PIX + Crédito + Débito + TED)
         </strong>
-        <div style="display: flex; justify-content: space-between; font-size: 0.88rem; color: #cbd5e1; margin-bottom: 4px;">
+        <div style="display: flex; justify-content: space-between; font-size: 0.88rem; color: var(--text); margin-bottom: 4px;">
           <span>(+) Entradas Digitais (Contas/Bancos):</span>
-          <strong style="color: #22c55e;">R$ {{ digital_in|floatformat:2 }}</strong>
+          <strong style="color: var(--brand-text);">R$ {{ digital_in|floatformat:2 }}</strong>
         </div>
-        <div style="display: flex; justify-content: space-between; font-size: 0.88rem; color: #94a3b8; margin-bottom: 6px;">
+        <div style="display: flex; justify-content: space-between; font-size: 0.88rem; color: var(--muted); margin-bottom: 6px;">
           <span>Qtd. de transações digitais:</span>
           <strong>{{ total_orders_count }}</strong>
         </div>
-        <div style="display: flex; justify-content: space-between; font-size: 1rem; color: #fff; border-top: 1px solid rgba(255,255,255,0.15); padding-top: 8px;">
+        <div style="display: flex; justify-content: space-between; font-size: 1rem; color: var(--text); border-top: 1px solid var(--line-strong); padding-top: 8px;">
           <strong>(=) Total Entrado em Contas/Cartões:</strong>
-          <strong style="color: #c084fc;">R$ {{ digital_in|floatformat:2 }}</strong>
+          <strong style="color: var(--st-pre-fg);">R$ {{ digital_in|floatformat:2 }}</strong>
         </div>
       </div>
 
@@ -247,18 +247,18 @@
   </div>
 
   <!-- Tabela Discriminada de Pedidos e Recebimentos -->
-  <div class="card" style="margin-bottom: 28px; padding: 20px; background: var(--surface, #1e293b); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px;">
+  <div class="card" style="margin-bottom: 28px; padding: 20px; background: var(--surface, var(--st-pronto-bg)); border: 1px solid var(--line); border-radius: 12px;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
       <div>
-        <h3 style="font-size: 1.1rem; font-weight: 700; color: #fff; margin: 0; display: flex; align-items: center; gap: 8px;">
-          <i class="fa-solid fa-file-invoice-dollar" style="color: #22c55e;"></i> Recebimentos do Dia ({{ orders|length }})
+        <h3 style="font-size: 1.1rem; font-weight: 700; color: var(--text); margin: 0; display: flex; align-items: center; gap: 8px;">
+          <i class="fa-solid fa-file-invoice-dollar" style="color: var(--brand-text);"></i> Recebimentos do Dia ({{ orders|length }})
         </h3>
-        <p style="margin: 4px 0 0 0; color: #94a3b8; font-size: 0.85rem;">
+        <p style="margin: 4px 0 0 0; color: var(--muted); font-size: 0.85rem;">
           Exibindo: 
           {% if payment_type == 'completo' %}
-            <strong style="color: #4ade80;">Somente Pagamentos 100% Integrais / Completos</strong> ({{ complete_count }} pedido(s) - R$ {{ complete_total|floatformat:2 }})
+            <strong style="color: var(--brand-text);">Somente Pagamentos 100% Integrais / Completos</strong> ({{ complete_count }} pedido(s) - R$ {{ complete_total|floatformat:2 }})
           {% elif payment_type == 'parcial' %}
-            <strong style="color: #facc15;">Somente Pagamentos Parciais / Entradas</strong> ({{ partial_count }} pedido(s) - R$ {{ partial_total|floatformat:2 }})
+            <strong style="color: var(--st-aguardando-fg);">Somente Pagamentos Parciais / Entradas</strong> ({{ partial_count }} pedido(s) - R$ {{ partial_total|floatformat:2 }})
           {% else %}
             <strong>Todos os Recebimentos</strong> ({{ all_orders_count }} pedido(s))
           {% endif %}
@@ -266,25 +266,25 @@
       </div>
 
       <!-- Filtro Completo vs Parcial -->
-      <div class="no-print" style="display: flex; gap: 6px; background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255,255,255,0.12); padding: 4px; border-radius: 8px;">
-        <a href="?{{ period.querystring }}&payment_type=todos" class="btn btn-small" style="{% if payment_type == 'todos' %}background: #2563eb; color: #fff; font-weight: 700;{% else %}background: transparent; color: #94a3b8;{% endif %} border: none; padding: 5px 12px; border-radius: 6px; font-size: 0.82rem; text-decoration: none;">
+      <div class="no-print" style="display: flex; gap: 6px; background: var(--surface); border: 1px solid var(--line); padding: 4px; border-radius: 8px;">
+        <a href="?{{ period.querystring }}&payment_type=todos" class="btn btn-small" style="{% if payment_type == 'todos' %}background: #2563eb; color: var(--text); font-weight: 700;{% else %}background: transparent; color: var(--muted);{% endif %} border: none; padding: 5px 12px; border-radius: 6px; font-size: 0.82rem; text-decoration: none;">
           Todos ({{ all_orders_count }})
         </a>
-        <a href="?{{ period.querystring }}&payment_type=completo" class="btn btn-small" style="{% if payment_type == 'completo' %}background: #10b981; color: #fff; font-weight: 700;{% else %}background: transparent; color: #94a3b8;{% endif %} border: none; padding: 5px 12px; border-radius: 6px; font-size: 0.82rem; text-decoration: none;">
+        <a href="?{{ period.querystring }}&payment_type=completo" class="btn btn-small" style="{% if payment_type == 'completo' %}background: #10b981; color: var(--text); font-weight: 700;{% else %}background: transparent; color: var(--muted);{% endif %} border: none; padding: 5px 12px; border-radius: 6px; font-size: 0.82rem; text-decoration: none;">
           <i class="fa-solid fa-circle-check"></i> Completos ({{ complete_count }})
         </a>
-        <a href="?{{ period.querystring }}&payment_type=parcial" class="btn btn-small" style="{% if payment_type == 'parcial' %}background: #eab308; color: #000; font-weight: 700;{% else %}background: transparent; color: #94a3b8;{% endif %} border: none; padding: 5px 12px; border-radius: 6px; font-size: 0.82rem; text-decoration: none;">
+        <a href="?{{ period.querystring }}&payment_type=parcial" class="btn btn-small" style="{% if payment_type == 'parcial' %}background: #eab308; color: var(--muted); font-weight: 700;{% else %}background: transparent; color: var(--muted);{% endif %} border: none; padding: 5px 12px; border-radius: 6px; font-size: 0.82rem; text-decoration: none;">
           <i class="fa-solid fa-clock-rotate-left"></i> Parciais ({{ partial_count }})
         </a>
       </div>
 
-      <strong style="color: #22c55e; font-size: 1.1rem;">Total Exibido: R$ {{ total_revenue|floatformat:2 }}</strong>
+      <strong style="color: var(--brand-text); font-size: 1.1rem;">Total Exibido: R$ {{ total_revenue|floatformat:2 }}</strong>
     </div>
 
     <div class="table-responsive" style="overflow-x: auto;">
       <table class="table" style="width: 100%; border-collapse: collapse;">
         <thead>
-          <tr style="border-bottom: 1px solid rgba(255,255,255,0.15); text-align: left; font-size: 0.82rem; color: #94a3b8; text-transform: uppercase;">
+          <tr style="border-bottom: 1px solid var(--line-strong); text-align: left; font-size: 0.82rem; color: var(--muted); text-transform: uppercase;">
             <th style="padding: 10px 8px;">Horário</th>
             <th style="padding: 10px 8px;">Pedido</th>
             <th style="padding: 10px 8px;">Cliente</th>
@@ -297,8 +297,8 @@
         </thead>
         <tbody style="font-size: 0.88rem;">
           {% for o in orders %}
-            <tr style="border-bottom: 1px solid rgba(255,255,255,0.06); transition: background 0.15s ease;">
-              <td style="padding: 10px 8px; color: #94a3b8; white-space: nowrap;">
+            <tr style="border-bottom: 1px solid var(--line); transition: background 0.15s ease;">
+              <td style="padding: 10px 8px; color: var(--muted); white-space: nowrap;">
                 {% if o.payment_confirmed_at %}
                   {{ o.payment_confirmed_at|date:"H:i" }}
                 {% else %}
@@ -306,52 +306,52 @@
                 {% endif %}
               </td>
               <td style="padding: 10px 8px; font-weight: 700; white-space: nowrap;">
-                <a href="{% url 'production:detail' pk=o.pk %}" style="color: #38bdf8; text-decoration: none;">
+                <a href="{% url 'production:detail' pk=o.pk %}" style="color: var(--st-novo-fg); text-decoration: none;">
                   #{{ o.number }}
                 </a>
               </td>
-              <td style="padding: 10px 8px; color: #f8fafc; font-weight: 600;">
+              <td style="padding: 10px 8px; color: var(--text); font-weight: 600;">
                 {{ o.client_name }}
               </td>
               <td style="padding: 10px 8px;">
                 {% if o.payment_method == "pix" %}
-                  <span class="badge" style="background: rgba(34, 197, 94, 0.18); color: #22c55e; border: 1px solid rgba(34, 197, 94, 0.35);"><i class="fa-brands fa-pix"></i> <span>PIX</span></span>
+                  <span class="badge" style="background: var(--brand-soft); color: var(--brand-text); border: 1px solid color-mix(in srgb, var(--brand) 55%, transparent);"><i class="fa-brands fa-pix"></i> <span>PIX</span></span>
                 {% elif o.payment_method == "cartao_credito" %}
-                  <span class="badge" style="background: rgba(56, 189, 248, 0.18); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.35);"><i class="fa-solid fa-credit-card"></i> <span>Crédito</span></span>
+                  <span class="badge" style="background: var(--st-novo-bg); color: var(--st-novo-fg); border: 1px solid color-mix(in srgb, var(--st-novo-fg) 55%, transparent);"><i class="fa-solid fa-credit-card"></i> <span>Crédito</span></span>
                 {% elif o.payment_method == "cartao_debito" %}
-                  <span class="badge" style="background: rgba(129, 140, 248, 0.18); color: #818cf8; border: 1px solid rgba(129, 140, 248, 0.35);"><i class="fa-solid fa-id-card"></i> <span>Débito</span></span>
+                  <span class="badge" style="background: var(--st-pronto-bg); color: var(--st-pronto-fg); border: 1px solid color-mix(in srgb, var(--st-pronto-fg) 55%, transparent);"><i class="fa-solid fa-id-card"></i> <span>Débito</span></span>
                 {% elif o.payment_method == "dinheiro" %}
-                  <span class="badge" style="background: rgba(52, 211, 153, 0.18); color: #34d399; border: 1px solid rgba(52, 211, 153, 0.35);"><i class="fa-solid fa-money-bill-wave"></i> <span>Dinheiro</span></span>
+                  <span class="badge" style="background: var(--brand-soft); color: var(--brand-text); border: 1px solid color-mix(in srgb, var(--brand) 55%, transparent);"><i class="fa-solid fa-money-bill-wave"></i> <span>Dinheiro</span></span>
                 {% elif o.payment_method == "saldo_credito" %}
-                  <span class="badge" style="background: rgba(192, 132, 252, 0.18); color: #c084fc; border: 1px solid rgba(192, 132, 252, 0.35);"><i class="fa-solid fa-wallet"></i> <span>Saldo Plano</span></span>
+                  <span class="badge" style="background: var(--st-pre-bg); color: var(--st-pre-fg); border: 1px solid color-mix(in srgb, var(--st-pre-fg) 55%, transparent);"><i class="fa-solid fa-wallet"></i> <span>Saldo Plano</span></span>
                 {% elif not o.payment_method or o.payment_method == "None" or o.payment_method == "none" %}
-                  <span class="badge" style="background: rgba(148, 163, 184, 0.12); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.25);"><i class="fa-regular fa-circle-question"></i> <span>Pendente</span></span>
+                  <span class="badge" style="background: var(--surface-3); color: var(--muted); border: 1px solid var(--line-strong);"><i class="fa-regular fa-circle-question"></i> <span>Pendente</span></span>
                 {% else %}
-                  <span class="badge" style="background: rgba(255, 255, 255, 0.08); color: #cbd5e1; border: 1px solid rgba(255, 255, 255, 0.15);"><i class="fa-solid fa-receipt"></i> <span>{{ o.get_payment_method_display|default:o.payment_method }}</span></span>
+                  <span class="badge" style="background: var(--surface-3); color: var(--text); border: 1px solid var(--line-strong);"><i class="fa-solid fa-receipt"></i> <span>{{ o.get_payment_method_display|default:o.payment_method }}</span></span>
                 {% endif %}
               </td>
-              <td style="padding: 10px 8px; text-align: right; color: #94a3b8;">
+              <td style="padding: 10px 8px; text-align: right; color: var(--muted);">
                 R$ {{ o.total_amount|floatformat:2 }}
               </td>
-              <td style="padding: 10px 8px; text-align: right; font-weight: 700; color: #22c55e;">
+              <td style="padding: 10px 8px; text-align: right; font-weight: 700; color: var(--brand-text);">
                 R$ {{ o.paid_amount|floatformat:2 }}
               </td>
               <td style="padding: 10px 8px; text-align: center;">
                 {% if o.payment_status == "pago" %}
-                  <span class="badge" style="background: rgba(34, 197, 94, 0.2); color: #22c55e; font-size: 0.72rem;">Pago</span>
+                  <span class="badge" style="background: var(--brand-soft); color: var(--brand-text); font-size: 0.72rem;">Pago</span>
                 {% elif o.payment_status == "parcial" %}
-                  <span class="badge" style="background: rgba(234, 179, 8, 0.2); color: #eab308; font-size: 0.72rem;">Parcial</span>
+                  <span class="badge" style="background: var(--st-aguardando-bg); color: var(--st-aguardando-fg); font-size: 0.72rem;">Parcial</span>
                 {% else %}
-                  <span class="badge" style="background: rgba(239, 68, 68, 0.2); color: #ef4444; font-size: 0.72rem;">Pendente</span>
+                  <span class="badge" style="background: var(--st-cancelado-bg); color: var(--st-cancelado-fg); font-size: 0.72rem;">Pendente</span>
                 {% endif %}
               </td>
-              <td style="padding: 10px 8px; color: #cbd5e1; font-size: 0.82rem;">
+              <td style="padding: 10px 8px; color: var(--text); font-size: 0.82rem;">
                 {% if o.responsible %}{{ o.responsible.name }}{% else %}{{ o.created_by.name|default:"-" }}{% endif %}
               </td>
             </tr>
           {% empty %}
             <tr>
-              <td colspan="8" style="padding: 24px; text-align: center; color: #94a3b8;">
+              <td colspan="8" style="padding: 24px; text-align: center; color: var(--muted);">
                 Nenhum pagamento registrado nesta data.
               </td>
             </tr>
@@ -363,18 +363,18 @@
 
   <!-- Tabela Discriminada de Despesas / Saídas do Dia -->
   {% if expenses %}
-  <div class="card" style="margin-bottom: 28px; padding: 20px; background: var(--surface, #1e293b); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px;">
+  <div class="card" style="margin-bottom: 28px; padding: 20px; background: var(--surface, var(--st-pronto-bg)); border: 1px solid var(--line); border-radius: 12px;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-      <h3 style="font-size: 1.1rem; font-weight: 700; color: #fff; margin: 0; display: flex; align-items: center; gap: 8px;">
-        <i class="fa-solid fa-receipt" style="color: #ef4444;"></i> Despesas / Saídas Pagas no Dia ({{ expenses|length }})
+      <h3 style="font-size: 1.1rem; font-weight: 700; color: var(--text); margin: 0; display: flex; align-items: center; gap: 8px;">
+        <i class="fa-solid fa-receipt" style="color: var(--st-cancelado-fg);"></i> Despesas / Saídas Pagas no Dia ({{ expenses|length }})
       </h3>
-      <strong style="color: #ef4444; font-size: 1.1rem;">Total: R$ {{ total_expenses|floatformat:2 }}</strong>
+      <strong style="color: var(--st-cancelado-fg); font-size: 1.1rem;">Total: R$ {{ total_expenses|floatformat:2 }}</strong>
     </div>
 
     <div class="table-responsive" style="overflow-x: auto;">
       <table class="table" style="width: 100%; border-collapse: collapse;">
         <thead>
-          <tr style="border-bottom: 1px solid rgba(255,255,255,0.15); text-align: left; font-size: 0.82rem; color: #94a3b8; text-transform: uppercase;">
+          <tr style="border-bottom: 1px solid var(--line-strong); text-align: left; font-size: 0.82rem; color: var(--muted); text-transform: uppercase;">
             <th style="padding: 10px 8px;">Descrição</th>
             <th style="padding: 10px 8px;">Categoria</th>
             <th style="padding: 10px 8px;">Observação</th>
@@ -384,20 +384,20 @@
         </thead>
         <tbody style="font-size: 0.88rem;">
           {% for exp in expenses %}
-            <tr style="border-bottom: 1px solid rgba(255,255,255,0.06);">
-              <td style="padding: 10px 8px; color: #f8fafc; font-weight: 600;">
+            <tr style="border-bottom: 1px solid var(--line);">
+              <td style="padding: 10px 8px; color: var(--text); font-weight: 600;">
                 {{ exp.description }}
               </td>
-              <td style="padding: 10px 8px; color: #94a3b8;">
+              <td style="padding: 10px 8px; color: var(--muted);">
                 {{ exp.get_category_display }}
               </td>
-              <td style="padding: 10px 8px; color: #cbd5e1; font-size: 0.82rem;">
+              <td style="padding: 10px 8px; color: var(--text); font-size: 0.82rem;">
                 {{ exp.note|default:"-" }}
               </td>
-              <td style="padding: 10px 8px; text-align: right; font-weight: 700; color: #ef4444;">
+              <td style="padding: 10px 8px; text-align: right; font-weight: 700; color: var(--st-cancelado-fg);">
                 R$ {{ exp.amount|floatformat:2 }}
               </td>
-              <td style="padding: 10px 8px; color: #94a3b8; font-size: 0.82rem;">
+              <td style="padding: 10px 8px; color: var(--muted); font-size: 0.82rem;">
                 {{ exp.created_by.name|default:"-" }}
               </td>
             </tr>
@@ -409,29 +409,29 @@
   {% endif %}
 
   <!-- Quadro de Conferência e Assinaturas (Ideal para Impressão) -->
-  <div class="card" style="padding: 24px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; page-break-inside: avoid;">
-    <h4 style="font-size: 1rem; font-weight: 700; color: #fff; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.05em;">
+  <div class="card" style="padding: 24px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 12px; page-break-inside: avoid;">
+    <h4 style="font-size: 1rem; font-weight: 700; color: var(--text); margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.05em;">
       Termo de Conferência de Caixa
     </h4>
 
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 30px; padding-top: 10px;">
       <div style="text-align: center;">
-        <div style="border-top: 1px solid rgba(255,255,255,0.4); margin-bottom: 6px; padding-top: 6px;"></div>
-        <strong style="color: #f8fafc; font-size: 0.9rem; display: block;">Operador de Caixa / Atendente</strong>
-        <small style="color: #94a3b8; font-size: 0.75rem;">Assinatura / Visto</small>
+        <div style="border-top: 1px solid var(--line-strong); margin-bottom: 6px; padding-top: 6px;"></div>
+        <strong style="color: var(--text); font-size: 0.9rem; display: block;">Operador de Caixa / Atendente</strong>
+        <small style="color: var(--muted); font-size: 0.75rem;">Assinatura / Visto</small>
       </div>
 
       <div style="text-align: center;">
-        <div style="border-top: 1px solid rgba(255,255,255,0.4); margin-bottom: 6px; padding-top: 6px;"></div>
-        <strong style="color: #f8fafc; font-size: 0.9rem; display: block;">Gerência / Administração</strong>
-        <small style="color: #94a3b8; font-size: 0.75rem;">Assinatura de Conferência</small>
+        <div style="border-top: 1px solid var(--line-strong); margin-bottom: 6px; padding-top: 6px;"></div>
+        <strong style="color: var(--text); font-size: 0.9rem; display: block;">Gerência / Administração</strong>
+        <small style="color: var(--muted); font-size: 0.75rem;">Assinatura de Conferência</small>
       </div>
     </div>
   </div>
 
   <!-- VISUALIZAÇÃO DO CUPOM TÉRMICO (BOBINA 80MM / 58MM) -->
-  <div id="cupom-termico-wrap" style="display: none; max-width: 340px; margin: 24px auto; background: #fff; color: #000; padding: 18px; font-family: 'Courier New', Courier, monospace; font-size: 11.5px; border: 1px dashed #777; box-shadow: 0 4px 20px rgba(0,0,0,0.35); border-radius: 4px;">
-    <div style="text-align: center; border-bottom: 1px dashed #000; padding-bottom: 8px; margin-bottom: 8px;">
+  <div id="cupom-termico-wrap" style="display: none; max-width: 340px; margin: 24px auto; background: var(--surface); color: var(--muted); padding: 18px; font-family: 'Courier New', Courier, monospace; font-size: 11.5px; border: 1px dashed var(--line-strong); box-shadow: 0 4px 20px rgba(0,0,0,0.35); border-radius: 4px;">
+    <div style="text-align: center; border-bottom: 1px dashed var(--line); padding-bottom: 8px; margin-bottom: 8px;">
       <strong style="font-size: 14px; letter-spacing: 1px;">PRINT FORNECE</strong><br>
       FECHAMENTO DE CAIXA DIÁRIO<br>
       Data: {{ target_date_display }}
@@ -500,8 +500,8 @@ function imprimirCupomTermico() {
           font-size: 11px;
           margin: 0;
           padding: 6px;
-          color: #000;
-          background: #fff;
+          color: var(--muted);
+          background: var(--surface);
           width: 72mm;
         }
         @media print {
@@ -528,8 +528,8 @@ function imprimirCupomTermico() {
 <style>
   @media print {
     body {
-      background: #fff !important;
-      color: #000 !important;
+      background: var(--surface) !important;
+      color: var(--muted) !important;
       font-size: 10pt;
     }
     .sidebar, .topbar, .no-print, header, nav, .icon-button {
@@ -541,25 +541,25 @@ function imprimirCupomTermico() {
       max-width: 100% !important;
     }
     .card {
-      background: #fff !important;
-      border: 1px solid #ccc !important;
+      background: var(--surface) !important;
+      border: 1px solid var(--line-strong) !important;
       box-shadow: none !important;
-      color: #000 !important;
+      color: var(--muted) !important;
       padding: 10px !important;
       margin-bottom: 16px !important;
     }
     h1, h2, h3, h4, strong, span, td, th {
-      color: #000 !important;
+      color: var(--muted) !important;
     }
     .table th, .table td {
-      border-color: #ddd !important;
-      color: #000 !important;
+      border-color: var(--line-strong) !important;
+      color: var(--muted) !important;
       padding: 5px 6px !important;
     }
     .badge {
-      border: 1px solid #999 !important;
-      color: #000 !important;
-      background: #f0f0f0 !important;
+      border: 1px solid var(--line-strong) !important;
+      color: var(--muted) !important;
+      background: var(--surface) !important;
     }
   }
 </style>

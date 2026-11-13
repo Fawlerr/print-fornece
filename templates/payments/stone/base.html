@@ -60,17 +60,17 @@
   </header>
 
   <main id="conteudo" class="page-shell container" tabindex="-1">
-    <div style="background: rgba(234, 179, 8, 0.12); border: 1px solid #eab308; color: #fef08a; padding: 12px 18px; border-radius: 8px; margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap;">
+    <div style="background: var(--st-aguardando-bg); border: 1px solid var(--st-aguardando-fg); color: var(--st-aguardando-fg); padding: 12px 18px; border-radius: 8px; margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap;">
       <div style="display: flex; align-items: center; gap: 10px;">
         <span style="font-size: 1.3rem;">🧪</span>
         <div>
           <strong>AMBIENTE DE HOMOLOGAÇÃO STONE V5 (SANDBOX)</strong>
-          <div style="font-size: 0.85rem; color: #fef9c3; margin-top: 2px;">
+          <div style="font-size: 0.85rem; color: var(--st-aguardando-fg); margin-top: 2px;">
             Módulo em teste inserido pelo desenvolvedor exclusivamente para validação técnica da integração. Nenhuma cobrança real é efetuada.
           </div>
         </div>
       </div>
-      <a href="{% url 'production:kanban' %}" class="button button--quiet" style="font-size: 0.8rem; border-color: rgba(234,179,8,0.4); color: #fef08a;">
+      <a href="{% url 'production:kanban' %}" class="button button--quiet" style="font-size: 0.8rem; border-color: color-mix(in srgb, var(--st-aguardando-fg) 55%, transparent); color: var(--st-aguardando-fg);">
         ⬅ Sair dos Testes
       </a>
     </div>

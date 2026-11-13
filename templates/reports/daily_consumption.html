@@ -12,80 +12,80 @@
   {% include "reports/_period_filter.html" %}
 
   <!-- Cabeçalho do Relatório -->
-  <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px; border-bottom: 2px solid rgba(255,255,255,0.1); padding-bottom: 12px;">
+  <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px; border-bottom: 2px solid var(--line); padding-bottom: 12px;">
     <div>
-      <span style="font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.05em; color: #38bdf8; font-weight: 700;">Apuração Dia a Dia</span>
-      <h1 style="font-size: 1.6rem; font-weight: 800; color: #fff; margin: 4px 0 2px 0;">
+      <span style="font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--st-novo-fg); font-weight: 700;">Apuração Dia a Dia</span>
+      <h1 style="font-size: 1.6rem; font-weight: 800; color: var(--text); margin: 4px 0 2px 0;">
         Consumo Diário: {{ period.label }}
       </h1>
-      <p style="font-size: 0.92rem; color: #94a3b8; margin: 0;">
+      <p style="font-size: 0.92rem; color: var(--muted); margin: 0;">
         Acompanhamento detalhado da saída diária de materiais, produtos e serviços prestados
       </p>
     </div>
-    <div style="text-align: right; font-size: 0.82rem; color: #94a3b8;">
+    <div style="text-align: right; font-size: 0.82rem; color: var(--muted);">
       Emitido em: <strong>{% now "d/m/Y H:i" %}</strong>
     </div>
   </div>
 
   <!-- Cards de KPIs do Mês -->
   <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
-    <div class="card" style="padding: 16px; background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 10px;">
-      <span style="font-size: 0.78rem; text-transform: uppercase; font-weight: 700; color: #38bdf8; display: block; margin-bottom: 4px;">
+    <div class="card" style="padding: 16px; background: var(--st-novo-bg); border: 1px solid color-mix(in srgb, var(--st-novo-fg) 55%, transparent); border-radius: 10px;">
+      <span style="font-size: 0.78rem; text-transform: uppercase; font-weight: 700; color: var(--st-novo-fg); display: block; margin-bottom: 4px;">
         <i class="fa-solid fa-scroll"></i> Total DTF Têxtil
       </span>
-      <div style="font-size: 1.4rem; font-weight: 800; color: #38bdf8;">
+      <div style="font-size: 1.4rem; font-weight: 800; color: var(--st-novo-fg);">
         {{ grand_textil|floatformat:2 }} m
       </div>
-      <small style="color: #94a3b8; font-size: 0.75rem;">Metros no mês</small>
+      <small style="color: var(--muted); font-size: 0.75rem;">Metros no mês</small>
     </div>
 
-    <div class="card" style="padding: 16px; background: rgba(192, 132, 252, 0.08); border: 1px solid rgba(192, 132, 252, 0.3); border-radius: 10px;">
-      <span style="font-size: 0.78rem; text-transform: uppercase; font-weight: 700; color: #c084fc; display: block; margin-bottom: 4px;">
+    <div class="card" style="padding: 16px; background: var(--st-pre-bg); border: 1px solid color-mix(in srgb, var(--st-pre-fg) 55%, transparent); border-radius: 10px;">
+      <span style="font-size: 0.78rem; text-transform: uppercase; font-weight: 700; color: var(--st-pre-fg); display: block; margin-bottom: 4px;">
         <i class="fa-solid fa-sun"></i> Total DTF UV
       </span>
-      <div style="font-size: 1.4rem; font-weight: 800; color: #c084fc;">
+      <div style="font-size: 1.4rem; font-weight: 800; color: var(--st-pre-fg);">
         {{ grand_uv|floatformat:2 }} m
       </div>
-      <small style="color: #94a3b8; font-size: 0.75rem;">Metros / rolos no mês</small>
+      <small style="color: var(--muted); font-size: 0.75rem;">Metros / rolos no mês</small>
     </div>
 
-    <div class="card" style="padding: 16px; background: rgba(52, 211, 153, 0.08); border: 1px solid rgba(52, 211, 153, 0.3); border-radius: 10px;">
-      <span style="font-size: 0.78rem; text-transform: uppercase; font-weight: 700; color: #34d399; display: block; margin-bottom: 4px;">
+    <div class="card" style="padding: 16px; background: var(--brand-soft); border: 1px solid color-mix(in srgb, var(--brand) 55%, transparent); border-radius: 10px;">
+      <span style="font-size: 0.78rem; text-transform: uppercase; font-weight: 700; color: var(--brand-text); display: block; margin-bottom: 4px;">
         <i class="fa-solid fa-shirt"></i> Total Camisetas
       </span>
-      <div style="font-size: 1.4rem; font-weight: 800; color: #34d399;">
+      <div style="font-size: 1.4rem; font-weight: 800; color: var(--brand-text);">
         {{ grand_shirts }} un
       </div>
-      <small style="color: #94a3b8; font-size: 0.75rem;">Peças de vestuário</small>
+      <small style="color: var(--muted); font-size: 0.75rem;">Peças de vestuário</small>
     </div>
 
-    <div class="card" style="padding: 16px; background: rgba(251, 191, 36, 0.08); border: 1px solid rgba(251, 191, 36, 0.3); border-radius: 10px;">
-      <span style="font-size: 0.78rem; text-transform: uppercase; font-weight: 700; color: #fbbf24; display: block; margin-bottom: 4px;">
+    <div class="card" style="padding: 16px; background: var(--st-aguardando-bg); border: 1px solid color-mix(in srgb, var(--st-aguardando-fg) 55%, transparent); border-radius: 10px;">
+      <span style="font-size: 0.78rem; text-transform: uppercase; font-weight: 700; color: var(--st-aguardando-fg); display: block; margin-bottom: 4px;">
         <i class="fa-solid fa-wand-magic-sparkles"></i> Serviços Prestados
       </span>
-      <div style="font-size: 1.4rem; font-weight: 800; color: #fbbf24;">
+      <div style="font-size: 1.4rem; font-weight: 800; color: var(--st-aguardando-fg);">
         {{ grand_services }} un
       </div>
-      <small style="color: #94a3b8; font-size: 0.75rem;">Ajustes e formatos</small>
+      <small style="color: var(--muted); font-size: 0.75rem;">Ajustes e formatos</small>
     </div>
 
-    <div class="card" style="padding: 16px; background: rgba(34, 197, 94, 0.08); border: 1px solid rgba(34, 197, 94, 0.3); border-radius: 10px;">
-      <span style="font-size: 0.78rem; text-transform: uppercase; font-weight: 700; color: #4ade80; display: block; margin-bottom: 4px;">
+    <div class="card" style="padding: 16px; background: var(--brand-soft); border: 1px solid color-mix(in srgb, var(--brand) 55%, transparent); border-radius: 10px;">
+      <span style="font-size: 0.78rem; text-transform: uppercase; font-weight: 700; color: var(--brand-text); display: block; margin-bottom: 4px;">
         <i class="fa-solid fa-dollar-sign"></i> Total Faturado
       </span>
-      <div style="font-size: 1.4rem; font-weight: 800; color: #22c55e;">
+      <div style="font-size: 1.4rem; font-weight: 800; color: var(--brand-text);">
         R$ {{ grand_revenue|floatformat:2 }}
       </div>
-      <small style="color: #94a3b8; font-size: 0.75rem;">{{ grand_orders }} pedido(s)</small>
+      <small style="color: var(--muted); font-size: 0.75rem;">{{ grand_orders }} pedido(s)</small>
     </div>
   </div>
 
   <!-- Tabela Cronológica Dia a Dia -->
-  <div class="card card-pad" style="background: var(--surface, #1e293b); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; margin-bottom: 24px;">
+  <div class="card card-pad" style="background: var(--surface, var(--st-pronto-bg)); border: 1px solid var(--line); border-radius: 12px; margin-bottom: 24px;">
     <div class="table-wrap">
       <table class="data-table" style="width: 100%; font-size: 0.88rem;">
         <thead>
-          <tr style="background: rgba(255,255,255,0.04);">
+          <tr style="background: var(--surface-2);">
             <th style="padding: 10px 12px;">Data</th>
             <th style="padding: 10px 12px;">Dia</th>
             <th style="padding: 10px 12px; text-align: center;">Qtd. Pedidos</th>
@@ -98,29 +98,29 @@
         </thead>
         <tbody>
           {% for r in daily_rows %}
-            <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
-              <td style="padding: 10px 12px; font-weight: 700; color: #fff;">
+            <tr style="border-bottom: 1px solid var(--line);">
+              <td style="padding: 10px 12px; font-weight: 700; color: var(--text);">
                 {{ r.date_display }}
               </td>
-              <td style="padding: 10px 12px; color: #94a3b8;">
+              <td style="padding: 10px 12px; color: var(--muted);">
                 {{ r.weekday }}
               </td>
               <td style="padding: 10px 12px; text-align: center;">
-                <span class="badge" style="background: rgba(255,255,255,0.08); color: #fff;">{{ r.orders_count }}</span>
+                <span class="badge" style="background: var(--surface-3); color: var(--text);">{{ r.orders_count }}</span>
               </td>
-              <td style="padding: 10px 12px; text-align: right; color: #38bdf8; font-weight: 600;">
+              <td style="padding: 10px 12px; text-align: right; color: var(--st-novo-fg); font-weight: 600;">
                 {% if r.dtf_textil_meters > 0 %}{{ r.dtf_textil_meters|floatformat:2 }} m{% else %}-{% endif %}
               </td>
-              <td style="padding: 10px 12px; text-align: right; color: #c084fc; font-weight: 600;">
+              <td style="padding: 10px 12px; text-align: right; color: var(--st-pre-fg); font-weight: 600;">
                 {% if r.dtf_uv_meters > 0 %}{{ r.dtf_uv_meters|floatformat:2 }} m{% else %}-{% endif %}
               </td>
-              <td style="padding: 10px 12px; text-align: right; color: #34d399;">
+              <td style="padding: 10px 12px; text-align: right; color: var(--brand-text);">
                 {% if r.shirts_qty > 0 %}{{ r.shirts_qty }} un{% else %}-{% endif %}
               </td>
-              <td style="padding: 10px 12px; text-align: right; color: #fbbf24;">
+              <td style="padding: 10px 12px; text-align: right; color: var(--st-aguardando-fg);">
                 {% if r.services_qty > 0 %}{{ r.services_qty }} un{% else %}-{% endif %}
               </td>
-              <td style="padding: 10px 12px; text-align: right; font-weight: 700; color: #22c55e;">
+              <td style="padding: 10px 12px; text-align: right; font-weight: 700; color: var(--brand-text);">
                 R$ {{ r.revenue|floatformat:2 }}
               </td>
             </tr>
@@ -133,14 +133,14 @@
           {% endfor %}
         </tbody>
         <tfoot>
-          <tr style="background: rgba(255,255,255,0.06); font-weight: 700;">
+          <tr style="background: var(--surface-2); font-weight: 700;">
             <td colspan="2" style="padding: 12px; text-transform: uppercase;">Total do Período</td>
             <td style="padding: 12px; text-align: center;">{{ grand_orders }}</td>
-            <td style="padding: 12px; text-align: right; color: #38bdf8;">{{ grand_textil|floatformat:2 }} m</td>
-            <td style="padding: 12px; text-align: right; color: #c084fc;">{{ grand_uv|floatformat:2 }} m</td>
-            <td style="padding: 12px; text-align: right; color: #34d399;">{{ grand_shirts }} un</td>
-            <td style="padding: 12px; text-align: right; color: #fbbf24;">{{ grand_services }} un</td>
-            <td style="padding: 12px; text-align: right; color: #22c55e; font-size: 1rem;">R$ {{ grand_revenue|floatformat:2 }}</td>
+            <td style="padding: 12px; text-align: right; color: var(--st-novo-fg);">{{ grand_textil|floatformat:2 }} m</td>
+            <td style="padding: 12px; text-align: right; color: var(--st-pre-fg);">{{ grand_uv|floatformat:2 }} m</td>
+            <td style="padding: 12px; text-align: right; color: var(--brand-text);">{{ grand_shirts }} un</td>
+            <td style="padding: 12px; text-align: right; color: var(--st-aguardando-fg);">{{ grand_services }} un</td>
+            <td style="padding: 12px; text-align: right; color: var(--brand-text); font-size: 1rem;">R$ {{ grand_revenue|floatformat:2 }}</td>
           </tr>
         </tfoot>
       </table>

@@ -9,15 +9,15 @@
     <div>
       <div style="display: flex; align-items: center; gap: 10px;">
         <span style="font-size: 1.6rem;">🛠️</span>
-        <h1 style="font-size: 1.6rem; font-weight: 700; margin: 0; color: #fff;">Console Dev & Observabilidade Stone V5</h1>
+        <h1 style="font-size: 1.6rem; font-weight: 700; margin: 0; color: var(--text);">Console Dev & Observabilidade Stone V5</h1>
       </div>
-      <p style="color: var(--muted, #94a3b8); margin-top: 4px; font-size: 0.88rem;">
+      <p style="color: var(--muted, var(--muted)); margin-top: 4px; font-size: 0.88rem;">
         Ambiente exclusivo para desenvolvedores e superusers inspecionarem payloads brutos, latências, webhooks e simulação de eventos.
       </p>
     </div>
 
     <div style="display: flex; align-items: center; gap: 10px;">
-      <button type="button" class="btn btn-secondary btn-small" id="btn-ping-stone" onclick="executarPingStone()" style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.82rem; background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.35);">
+      <button type="button" class="btn btn-secondary btn-small" id="btn-ping-stone" onclick="executarPingStone()" style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.82rem; background: var(--st-novo-bg); color: var(--st-novo-fg); border: 1px solid color-mix(in srgb, var(--st-novo-fg) 55%, transparent);">
         <i class="fa-solid fa-satellite-dish"></i> Testar Conectividade (Ping)
       </button>
       <span id="ping-result-badge" style="display: none; font-size: 0.78rem; font-weight: 700; padding: 4px 10px; border-radius: 6px;"></span>
@@ -26,47 +26,47 @@
 
   <!-- Cards de Status e Métricas -->
   <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 24px;">
-    <div style="background: var(--surface, #1e293b); border: 1px solid var(--border, rgba(255,255,255,0.1)); border-radius: 8px; padding: 14px 18px;">
-      <small style="color: var(--muted, #94a3b8); text-transform: uppercase; font-size: 0.72rem; font-weight: 700;">Ambiente Ativo</small>
+    <div style="background: var(--surface, var(--st-pronto-bg)); border: 1px solid var(--border, var(--line)); border-radius: 8px; padding: 14px 18px;">
+      <small style="color: var(--muted, var(--muted)); text-transform: uppercase; font-size: 0.72rem; font-weight: 700;">Ambiente Ativo</small>
       <div style="display: flex; align-items: center; gap: 8px; margin-top: 6px;">
-        <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: {% if stone_environment == 'production' %}#ef4444{% else %}#eab308{% endif %};"></span>
-        <strong style="font-size: 1.15rem; color: #fff; text-transform: uppercase;">{{ stone_environment|default:'sandbox' }}</strong>
+        <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: {% if stone_environment == 'production' %}var(--danger){% else %}var(--st-aguardando-bg){% endif %};"></span>
+        <strong style="font-size: 1.15rem; color: var(--text); text-transform: uppercase;">{{ stone_environment|default:'sandbox' }}</strong>
       </div>
-      <small style="color: #64748b; font-size: 0.74rem; display: block; margin-top: 4px;">{{ stone_base_url }}</small>
+      <small style="color: var(--muted); font-size: 0.74rem; display: block; margin-top: 4px;">{{ stone_base_url }}</small>
     </div>
 
-    <div style="background: var(--surface, #1e293b); border: 1px solid var(--border, rgba(255,255,255,0.1)); border-radius: 8px; padding: 14px 18px;">
-      <small style="color: var(--muted, #94a3b8); text-transform: uppercase; font-size: 0.72rem; font-weight: 700;">Total de Cobranças</small>
-      <div style="font-size: 1.4rem; font-weight: 800; color: #38bdf8; margin-top: 4px;">{{ total_payments|default:0 }}</div>
-      <small style="color: #64748b; font-size: 0.74rem;">Registradas na base Stone</small>
+    <div style="background: var(--surface, var(--st-pronto-bg)); border: 1px solid var(--border, var(--line)); border-radius: 8px; padding: 14px 18px;">
+      <small style="color: var(--muted, var(--muted)); text-transform: uppercase; font-size: 0.72rem; font-weight: 700;">Total de Cobranças</small>
+      <div style="font-size: 1.4rem; font-weight: 800; color: var(--st-novo-fg); margin-top: 4px;">{{ total_payments|default:0 }}</div>
+      <small style="color: var(--muted); font-size: 0.74rem;">Registradas na base Stone</small>
     </div>
 
-    <div style="background: var(--surface, #1e293b); border: 1px solid var(--border, rgba(255,255,255,0.1)); border-radius: 8px; padding: 14px 18px;">
-      <small style="color: var(--muted, #94a3b8); text-transform: uppercase; font-size: 0.72rem; font-weight: 700;">Liquidadas (Pagas)</small>
-      <div style="font-size: 1.4rem; font-weight: 800; color: #4ade80; margin-top: 4px;">{{ paid_payments|default:0 }}</div>
-      <small style="color: #64748b; font-size: 0.74rem;">Confirmadas via webhook/sync</small>
+    <div style="background: var(--surface, var(--st-pronto-bg)); border: 1px solid var(--border, var(--line)); border-radius: 8px; padding: 14px 18px;">
+      <small style="color: var(--muted, var(--muted)); text-transform: uppercase; font-size: 0.72rem; font-weight: 700;">Liquidadas (Pagas)</small>
+      <div style="font-size: 1.4rem; font-weight: 800; color: var(--brand-text); margin-top: 4px;">{{ paid_payments|default:0 }}</div>
+      <small style="color: var(--muted); font-size: 0.74rem;">Confirmadas via webhook/sync</small>
     </div>
 
-    <div style="background: var(--surface, #1e293b); border: 1px solid var(--border, rgba(255,255,255,0.1)); border-radius: 8px; padding: 14px 18px;">
-      <small style="color: var(--muted, #94a3b8); text-transform: uppercase; font-size: 0.72rem; font-weight: 700;">Pendentes</small>
-      <div style="font-size: 1.4rem; font-weight: 800; color: #facc15; margin-top: 4px;">{{ pending_payments|default:0 }}</div>
-      <small style="color: #64748b; font-size: 0.74rem;">Aguardando pagamento</small>
+    <div style="background: var(--surface, var(--st-pronto-bg)); border: 1px solid var(--border, var(--line)); border-radius: 8px; padding: 14px 18px;">
+      <small style="color: var(--muted, var(--muted)); text-transform: uppercase; font-size: 0.72rem; font-weight: 700;">Pendentes</small>
+      <div style="font-size: 1.4rem; font-weight: 800; color: var(--st-aguardando-fg); margin-top: 4px;">{{ pending_payments|default:0 }}</div>
+      <small style="color: var(--muted); font-size: 0.74rem;">Aguardando pagamento</small>
     </div>
 
-    <div style="background: var(--surface, #1e293b); border: 1px solid var(--border, rgba(255,255,255,0.1)); border-radius: 8px; padding: 14px 18px;">
-      <small style="color: var(--muted, #94a3b8); text-transform: uppercase; font-size: 0.72rem; font-weight: 700;">Erros Registrados</small>
-      <div style="font-size: 1.4rem; font-weight: 800; color: #f87171; margin-top: 4px;">{{ failed_payments|default:0 }}</div>
-      <small style="color: #64748b; font-size: 0.74rem;">Transações recusadas/falhadas</small>
+    <div style="background: var(--surface, var(--st-pronto-bg)); border: 1px solid var(--border, var(--line)); border-radius: 8px; padding: 14px 18px;">
+      <small style="color: var(--muted, var(--muted)); text-transform: uppercase; font-size: 0.72rem; font-weight: 700;">Erros Registrados</small>
+      <div style="font-size: 1.4rem; font-weight: 800; color: var(--st-cancelado-fg); margin-top: 4px;">{{ failed_payments|default:0 }}</div>
+      <small style="color: var(--muted); font-size: 0.74rem;">Transações recusadas/falhadas</small>
     </div>
   </div>
 
   <!-- Abas de Ferramentas -->
-  <div style="background: var(--surface, #1e293b); border: 1px solid var(--border, rgba(255,255,255,0.1)); border-radius: 10px; overflow: hidden; margin-bottom: 24px;">
-    <div style="display: flex; border-bottom: 1px solid var(--border, rgba(255,255,255,0.1)); background: rgba(0,0,0,0.2);">
-      <button type="button" class="dev-tab-btn active" onclick="switchDevTab('logs')" style="padding: 12px 20px; font-weight: 700; font-size: 0.85rem; border: none; background: none; color: #38bdf8; border-bottom: 2px solid #38bdf8; cursor: pointer;">
+  <div style="background: var(--surface, var(--st-pronto-bg)); border: 1px solid var(--border, var(--line)); border-radius: 10px; overflow: hidden; margin-bottom: 24px;">
+    <div style="display: flex; border-bottom: 1px solid var(--border, var(--line)); background: var(--surface-2);">
+      <button type="button" class="dev-tab-btn active" onclick="switchDevTab('logs')" style="padding: 12px 20px; font-weight: 700; font-size: 0.85rem; border: none; background: none; color: var(--st-novo-fg); border-bottom: 2px solid var(--st-novo-fg); cursor: pointer;">
         📋 Logs de Requisição & Resposta ({{ recent_logs|length }})
       </button>
-      <button type="button" class="dev-tab-btn" onclick="switchDevTab('simulador')" style="padding: 12px 20px; font-weight: 700; font-size: 0.85rem; border: none; background: none; color: var(--muted, #94a3b8); cursor: pointer;">
+      <button type="button" class="dev-tab-btn" onclick="switchDevTab('simulador')" style="padding: 12px 20px; font-weight: 700; font-size: 0.85rem; border: none; background: none; color: var(--muted, var(--muted)); cursor: pointer;">
         ⚡ Simulador de Webhooks & Eventos
       </button>
     </div>
@@ -76,7 +76,7 @@
       <div style="overflow-x: auto;">
         <table style="width: 100%; border-collapse: collapse; font-size: 0.82rem; text-align: left;">
           <thead>
-            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1); color: var(--muted, #94a3b8);">
+            <tr style="border-bottom: 1px solid var(--line); color: var(--muted, var(--muted));">
               <th style="padding: 10px 8px;">Horário</th>
               <th style="padding: 10px 8px;">Nível</th>
               <th style="padding: 10px 8px;">Evento</th>
@@ -88,31 +88,31 @@
           </thead>
           <tbody>
             {% for log in recent_logs %}
-              <tr style="border-bottom: 1px solid rgba(255,255,255,0.05); transition: background 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.02)'" onmouseout="this.style.background='none'">
-                <td style="padding: 10px 8px; color: #94a3b8; font-family: monospace;">{{ log.timestamp|date:"d/m H:i:s" }}</td>
+              <tr style="border-bottom: 1px solid var(--line); transition: background 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.02)'" onmouseout="this.style.background='none'">
+                <td style="padding: 10px 8px; color: var(--muted); font-family: monospace;">{{ log.timestamp|date:"d/m H:i:s" }}</td>
                 <td style="padding: 10px 8px;">
                   {% if log.nivel == 'SUCCESS' %}
-                    <span style="background: rgba(34,197,94,0.2); color: #4ade80; padding: 2px 6px; border-radius: 4px; font-weight: 700; font-size: 0.72rem;">SUCCESS</span>
+                    <span style="background: var(--brand-soft); color: var(--brand-text); padding: 2px 6px; border-radius: 4px; font-weight: 700; font-size: 0.72rem;">SUCCESS</span>
                   {% elif log.nivel == 'ERROR' %}
-                    <span style="background: rgba(239,68,68,0.2); color: #f87171; padding: 2px 6px; border-radius: 4px; font-weight: 700; font-size: 0.72rem;">ERROR</span>
+                    <span style="background: var(--st-cancelado-bg); color: var(--st-cancelado-fg); padding: 2px 6px; border-radius: 4px; font-weight: 700; font-size: 0.72rem;">ERROR</span>
                   {% elif log.nivel == 'REQUEST' %}
-                    <span style="background: rgba(56,189,248,0.2); color: #38bdf8; padding: 2px 6px; border-radius: 4px; font-weight: 700; font-size: 0.72rem;">REQUEST</span>
+                    <span style="background: var(--st-novo-bg); color: var(--st-novo-fg); padding: 2px 6px; border-radius: 4px; font-weight: 700; font-size: 0.72rem;">REQUEST</span>
                   {% elif log.nivel == 'WARNING' %}
-                    <span style="background: rgba(234,179,8,0.2); color: #facc15; padding: 2px 6px; border-radius: 4px; font-weight: 700; font-size: 0.72rem;">WARNING</span>
+                    <span style="background: var(--st-aguardando-bg); color: var(--st-aguardando-fg); padding: 2px 6px; border-radius: 4px; font-weight: 700; font-size: 0.72rem;">WARNING</span>
                   {% else %}
-                    <span style="background: rgba(148,163,184,0.2); color: #cbd5e1; padding: 2px 6px; border-radius: 4px; font-weight: 700; font-size: 0.72rem;">{{ log.nivel }}</span>
+                    <span style="background: var(--surface-3); color: var(--text); padding: 2px 6px; border-radius: 4px; font-weight: 700; font-size: 0.72rem;">{{ log.nivel }}</span>
                   {% endif %}
                 </td>
-                <td style="padding: 10px 8px; font-weight: 600; color: #fff;">{{ log.tipo_evento }}</td>
-                <td style="padding: 10px 8px; color: #cbd5e1; font-family: monospace;">{{ log.metodo_http }} {{ log.endpoint|truncatechars:40 }}</td>
+                <td style="padding: 10px 8px; font-weight: 600; color: var(--text);">{{ log.tipo_evento }}</td>
+                <td style="padding: 10px 8px; color: var(--text); font-family: monospace;">{{ log.metodo_http }} {{ log.endpoint|truncatechars:40 }}</td>
                 <td style="padding: 10px 8px;">
                   {% if log.http_status %}
-                    <span style="font-weight: 700; font-family: monospace; color: {% if log.http_status < 400 %}#4ade80{% else %}#f87171{% endif %};">{{ log.http_status }}</span>
+                    <span style="font-weight: 700; font-family: monospace; color: {% if log.http_status < 400 %}var(--brand-text){% else %}var(--st-cancelado-fg){% endif %};">{{ log.http_status }}</span>
                   {% else %}
-                    <span style="color: #64748b;">-</span>
+                    <span style="color: var(--muted);">-</span>
                   {% endif %}
                 </td>
-                <td style="padding: 10px 8px; color: #94a3b8; font-family: monospace;">{% if log.duracao_ms %}{{ log.duracao_ms }}ms{% else %}-{% endif %}</td>
+                <td style="padding: 10px 8px; color: var(--muted); font-family: monospace;">{% if log.duracao_ms %}{{ log.duracao_ms }}ms{% else %}-{% endif %}</td>
                 <td style="padding: 10px 8px; text-align: right;">
                   <button type="button" class="btn btn-secondary btn-small" onclick="abrirModalPayload('{{ log.pk }}')" style="font-size: 0.72rem; padding: 3px 8px;">
                     Inspecionar JSON
@@ -141,7 +141,7 @@
               </tr>
             {% empty %}
               <tr>
-                <td colspan="7" style="padding: 30px; text-align: center; color: var(--muted, #94a3b8);">Nenhum log registrado ainda.</td>
+                <td colspan="7" style="padding: 30px; text-align: center; color: var(--muted, var(--muted));">Nenhum log registrado ainda.</td>
               </tr>
             {% endfor %}
           </tbody>
@@ -151,29 +151,29 @@
 
     <!-- Aba de Simulador de Webhooks -->
     <div id="dev-tab-simulador" style="display: none; padding: 20px;">
-      <h3 style="font-size: 1.05rem; font-weight: 700; color: #fff; margin-bottom: 8px;">Simulador de Disparos de Webhook Stone V5</h3>
-      <p style="color: var(--muted, #94a3b8); font-size: 0.85rem; margin-bottom: 16px;">
+      <h3 style="font-size: 1.05rem; font-weight: 700; color: var(--text); margin-bottom: 8px;">Simulador de Disparos de Webhook Stone V5</h3>
+      <p style="color: var(--muted, var(--muted)); font-size: 0.85rem; margin-bottom: 16px;">
         Envie eventos simulados diretamente para o endpoint de webhook oficial para testar idempotência, liquidação de pedidos e conciliação de caixa.
       </p>
 
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
         <div>
-          <label style="display: block; font-size: 0.8rem; font-weight: 700; color: var(--muted, #94a3b8); margin-bottom: 4px;">Tipo de Evento:</label>
-          <select id="sim-event-type" onchange="carregarTemplateWebhook()" style="width: 100%; padding: 8px 12px; background: #0f172a; border: 1px solid var(--border, rgba(255,255,255,0.1)); border-radius: 6px; color: #fff;">
+          <label style="display: block; font-size: 0.8rem; font-weight: 700; color: var(--muted, var(--muted)); margin-bottom: 4px;">Tipo de Evento:</label>
+          <select id="sim-event-type" onchange="carregarTemplateWebhook()" style="width: 100%; padding: 8px 12px; background: var(--surface); border: 1px solid var(--border, var(--line)); border-radius: 6px; color: var(--text);">
             <option value="charge.paid">charge.paid (Pagamento Aprovado / Liquidado)</option>
             <option value="charge.failed">charge.failed (Pagamento Recusado / Falhou)</option>
             <option value="charge.refunded">charge.refunded (Pagamento Estornado)</option>
           </select>
         </div>
         <div>
-          <label style="display: block; font-size: 0.8rem; font-weight: 700; color: var(--muted, #94a3b8); margin-bottom: 4px;">Identificador de Pedido / Cobrança:</label>
-          <input type="text" id="sim-order-ref" placeholder="Ex: 0851 ou ch_..." oninput="atualizarRefWebhook()" style="width: 100%; padding: 8px 12px; background: #0f172a; border: 1px solid var(--border, rgba(255,255,255,0.1)); border-radius: 6px; color: #fff;">
+          <label style="display: block; font-size: 0.8rem; font-weight: 700; color: var(--muted, var(--muted)); margin-bottom: 4px;">Identificador de Pedido / Cobrança:</label>
+          <input type="text" id="sim-order-ref" placeholder="Ex: 0851 ou ch_..." oninput="atualizarRefWebhook()" style="width: 100%; padding: 8px 12px; background: var(--surface); border: 1px solid var(--border, var(--line)); border-radius: 6px; color: var(--text);">
         </div>
       </div>
 
       <div style="margin-bottom: 16px;">
-        <label style="display: block; font-size: 0.8rem; font-weight: 700; color: var(--muted, #94a3b8); margin-bottom: 4px;">Payload JSON:</label>
-        <textarea id="sim-json-payload" rows="12" style="width: 100%; padding: 12px; background: #0b1120; border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; color: #38bdf8; font-family: monospace; font-size: 0.82rem;"></textarea>
+        <label style="display: block; font-size: 0.8rem; font-weight: 700; color: var(--muted, var(--muted)); margin-bottom: 4px;">Payload JSON:</label>
+        <textarea id="sim-json-payload" rows="12" style="width: 100%; padding: 12px; background: var(--surface); border: 1px solid var(--line-strong); border-radius: 8px; color: var(--st-novo-fg); font-family: monospace; font-size: 0.82rem;"></textarea>
       </div>
 
       <div style="display: flex; gap: 10px; align-items: center;">
@@ -183,38 +183,38 @@
         <span id="sim-status-msg" style="font-size: 0.85rem; font-weight: 600;"></span>
       </div>
 
-      <div id="sim-response-box" style="display: none; margin-top: 16px; background: #0b1120; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 12px;">
-        <small style="color: var(--muted, #94a3b8); font-weight: 700; display: block; margin-bottom: 4px;">Resposta Retornada:</small>
-        <pre id="sim-response-json" style="margin: 0; color: #4ade80; font-family: monospace; font-size: 0.8rem; white-space: pre-wrap;"></pre>
+      <div id="sim-response-box" style="display: none; margin-top: 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 12px;">
+        <small style="color: var(--muted, var(--muted)); font-weight: 700; display: block; margin-bottom: 4px;">Resposta Retornada:</small>
+        <pre id="sim-response-json" style="margin: 0; color: var(--brand-text); font-family: monospace; font-size: 0.8rem; white-space: pre-wrap;"></pre>
       </div>
     </div>
   </div>
 </div>
 
 <!-- Modal Inspecionar JSON -->
-<div id="modal-json-inspector" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 9999; align-items: center; justify-content: center; padding: 20px;">
-  <div style="background: #1e293b; border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; max-width: 900px; width: 100%; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.7);">
-    <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.1); background: #0f172a;">
-      <h3 style="margin: 0; font-size: 1.1rem; color: #fff; display: flex; align-items: center; gap: 8px;">
-        <i class="fa-solid fa-code" style="color: #38bdf8;"></i> Inspeção Técnica do Log <span id="modal-log-id" style="color: #38bdf8;"></span>
+<div id="modal-json-inspector" style="display: none; position: fixed; inset: 0; background: var(--surface); z-index: 9999; align-items: center; justify-content: center; padding: 20px;">
+  <div style="background: var(--st-pronto-bg); border: 1px solid var(--line-strong); border-radius: 10px; max-width: 900px; width: 100%; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.7);">
+    <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--line); background: var(--surface);">
+      <h3 style="margin: 0; font-size: 1.1rem; color: var(--text); display: flex; align-items: center; gap: 8px;">
+        <i class="fa-solid fa-code" style="color: var(--st-novo-fg);"></i> Inspeção Técnica do Log <span id="modal-log-id" style="color: var(--st-novo-fg);"></span>
       </h3>
-      <button type="button" onclick="fecharModalPayload()" style="background: none; border: none; color: #94a3b8; font-size: 1.4rem; cursor: pointer;">&times;</button>
+      <button type="button" onclick="fecharModalPayload()" style="background: none; border: none; color: var(--muted); font-size: 1.4rem; cursor: pointer;">&times;</button>
     </div>
     <div style="padding: 20px; overflow-y: auto; flex: 1;">
-      <div id="modal-log-meta" style="font-size: 0.82rem; color: #cbd5e1; margin-bottom: 16px; background: rgba(0,0,0,0.25); padding: 10px; border-radius: 6px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px;"></div>
+      <div id="modal-log-meta" style="font-size: 0.82rem; color: var(--text); margin-bottom: 16px; background: var(--surface-2); padding: 10px; border-radius: 6px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px;"></div>
 
       <div style="display: grid; gap: 14px;">
         <div>
-          <strong style="color: #38bdf8; font-size: 0.82rem; display: block; margin-bottom: 4px;">Payload de Envio (Request Body):</strong>
-          <pre id="modal-request-json" style="background: #0b1120; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 10px; font-family: monospace; font-size: 0.78rem; color: #93c5fd; max-height: 220px; overflow-y: auto; margin: 0;"></pre>
+          <strong style="color: var(--st-novo-fg); font-size: 0.82rem; display: block; margin-bottom: 4px;">Payload de Envio (Request Body):</strong>
+          <pre id="modal-request-json" style="background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 10px; font-family: monospace; font-size: 0.78rem; color: var(--st-pronto-fg); max-height: 220px; overflow-y: auto; margin: 0;"></pre>
         </div>
         <div>
-          <strong style="color: #4ade80; font-size: 0.82rem; display: block; margin-bottom: 4px;">Resposta Recebida (Response Body):</strong>
-          <pre id="modal-response-json" style="background: #0b1120; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 10px; font-family: monospace; font-size: 0.78rem; color: #86efac; max-height: 220px; overflow-y: auto; margin: 0;"></pre>
+          <strong style="color: var(--brand-text); font-size: 0.82rem; display: block; margin-bottom: 4px;">Resposta Recebida (Response Body):</strong>
+          <pre id="modal-response-json" style="background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 10px; font-family: monospace; font-size: 0.78rem; color: var(--brand-text); max-height: 220px; overflow-y: auto; margin: 0;"></pre>
         </div>
       </div>
     </div>
-    <div style="padding: 12px 20px; border-top: 1px solid rgba(255,255,255,0.1); background: #0f172a; text-align: right;">
+    <div style="padding: 12px 20px; border-top: 1px solid var(--line); background: var(--surface); text-align: right;">
       <button type="button" class="btn btn-secondary btn-small" onclick="fecharModalPayload()">Fechar</button>
     </div>
   </div>

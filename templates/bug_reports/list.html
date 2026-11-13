@@ -8,11 +8,11 @@
   <!-- Header da Central -->
   <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 24px;">
     <div>
-      <h2 style="font-size: 1.4rem; font-weight: 700; margin: 0 0 4px 0; color: #f8fafc;">
-        <i class="fa-solid fa-bug" style="color: #ef4444; margin-right: 8px;"></i>
+      <h2 style="font-size: 1.4rem; font-weight: 700; margin: 0 0 4px 0; color: var(--text);">
+        <i class="fa-solid fa-bug" style="color: var(--st-cancelado-fg); margin-right: 8px;"></i>
         {% if is_dev_user %}Painel do Desenvolvedor: Relatos de Bugs{% else %}Meus Relatos de Bugs{% endif %}
       </h2>
-      <p style="margin: 0; color: var(--muted, #94a3b8); font-size: 0.9rem;">
+      <p style="margin: 0; color: var(--muted, var(--muted)); font-size: 0.9rem;">
         {% if is_dev_user %}
           Analise e atualize os chamados e problemas relatados pela equipe.
         {% else %}
@@ -21,36 +21,36 @@
       </p>
     </div>
 
-    <button type="button" class="btn btn-primary" data-open-bug-report style="display: inline-flex; align-items: center; gap: 8px; background: #ef4444; border-color: #dc2626;">
+    <button type="button" class="btn btn-primary" data-open-bug-report style="display: inline-flex; align-items: center; gap: 8px; background: var(--danger); border-color: var(--st-cancelado-fg);">
       <i class="fa-solid fa-plus"></i> Reportar Novo Bug
     </button>
   </div>
 
   <!-- Cards de Resumo / Filtros de Status -->
   <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 24px;">
-    <a href="{% url 'bug_reports:list' %}" style="text-decoration: none; padding: 16px; border-radius: 10px; background: {% if not current_status %}rgba(59, 130, 246, 0.15){% else %}var(--surface, #1e293b){% endif %}; border: 1px solid {% if not current_status %}rgba(59, 130, 246, 0.4){% else %}rgba(255, 255, 255, 0.08){% endif %}; transition: all 0.2s ease;">
-      <div style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 4px;">Todos os Relatos</div>
-      <div style="font-size: 1.4rem; font-weight: 700; color: #f8fafc;">{{ total_count }}</div>
+    <a href="{% url 'bug_reports:list' %}" style="text-decoration: none; padding: 16px; border-radius: 10px; background: {% if not current_status %}var(--st-pronto-bg){% else %}var(--surface, var(--st-pronto-bg)){% endif %}; border: 1px solid {% if not current_status %}color-mix(in srgb, var(--st-pronto-fg) 55%, transparent){% else %}var(--line){% endif %}; transition: all 0.2s ease;">
+      <div style="font-size: 0.8rem; color: var(--muted); margin-bottom: 4px;">Todos os Relatos</div>
+      <div style="font-size: 1.4rem; font-weight: 700; color: var(--text);">{{ total_count }}</div>
     </a>
 
-    <a href="{% url 'bug_reports:list' %}?status=pendente" style="text-decoration: none; padding: 16px; border-radius: 10px; background: {% if current_status == 'pendente' %}rgba(245, 158, 11, 0.18){% else %}var(--surface, #1e293b){% endif %}; border: 1px solid {% if current_status == 'pendente' %}rgba(245, 158, 11, 0.45){% else %}rgba(255, 255, 255, 0.08){% endif %}; transition: all 0.2s ease;">
-      <div style="font-size: 0.8rem; color: #fbbf24; margin-bottom: 4px;"><i class="fa-solid fa-hourglass-half"></i> Pendente de Análise</div>
-      <div style="font-size: 1.4rem; font-weight: 700; color: #f8fafc;">{{ pending_count }}</div>
+    <a href="{% url 'bug_reports:list' %}?status=pendente" style="text-decoration: none; padding: 16px; border-radius: 10px; background: {% if current_status == 'pendente' %}var(--st-producao-bg){% else %}var(--surface, var(--st-pronto-bg)){% endif %}; border: 1px solid {% if current_status == 'pendente' %}color-mix(in srgb, var(--st-producao-fg) 55%, transparent){% else %}var(--line){% endif %}; transition: all 0.2s ease;">
+      <div style="font-size: 0.8rem; color: var(--st-aguardando-fg); margin-bottom: 4px;"><i class="fa-solid fa-hourglass-half"></i> Pendente de Análise</div>
+      <div style="font-size: 1.4rem; font-weight: 700; color: var(--text);">{{ pending_count }}</div>
     </a>
 
-    <a href="{% url 'bug_reports:list' %}?status=verificado" style="text-decoration: none; padding: 16px; border-radius: 10px; background: {% if current_status == 'verificado' %}rgba(56, 189, 248, 0.18){% else %}var(--surface, #1e293b){% endif %}; border: 1px solid {% if current_status == 'verificado' %}rgba(56, 189, 248, 0.45){% else %}rgba(255, 255, 255, 0.08){% endif %}; transition: all 0.2s ease;">
-      <div style="font-size: 0.8rem; color: #38bdf8; margin-bottom: 4px;"><i class="fa-solid fa-magnifying-glass"></i> Verificado</div>
-      <div style="font-size: 1.4rem; font-weight: 700; color: #f8fafc;">{{ verified_count }}</div>
+    <a href="{% url 'bug_reports:list' %}?status=verificado" style="text-decoration: none; padding: 16px; border-radius: 10px; background: {% if current_status == 'verificado' %}var(--st-novo-bg){% else %}var(--surface, var(--st-pronto-bg)){% endif %}; border: 1px solid {% if current_status == 'verificado' %}color-mix(in srgb, var(--st-novo-fg) 55%, transparent){% else %}var(--line){% endif %}; transition: all 0.2s ease;">
+      <div style="font-size: 0.8rem; color: var(--st-novo-fg); margin-bottom: 4px;"><i class="fa-solid fa-magnifying-glass"></i> Verificado</div>
+      <div style="font-size: 1.4rem; font-weight: 700; color: var(--text);">{{ verified_count }}</div>
     </a>
 
-    <a href="{% url 'bug_reports:list' %}?status=corrigido" style="text-decoration: none; padding: 16px; border-radius: 10px; background: {% if current_status == 'corrigido' %}rgba(16, 185, 129, 0.18){% else %}var(--surface, #1e293b){% endif %}; border: 1px solid {% if current_status == 'corrigido' %}rgba(16, 185, 129, 0.45){% else %}rgba(255, 255, 255, 0.08){% endif %}; transition: all 0.2s ease;">
-      <div style="font-size: 0.8rem; color: #34d399; margin-bottom: 4px;"><i class="fa-solid fa-circle-check"></i> Corrigido</div>
-      <div style="font-size: 1.4rem; font-weight: 700; color: #f8fafc;">{{ fixed_count }}</div>
+    <a href="{% url 'bug_reports:list' %}?status=corrigido" style="text-decoration: none; padding: 16px; border-radius: 10px; background: {% if current_status == 'corrigido' %}var(--brand-soft){% else %}var(--surface, var(--st-pronto-bg)){% endif %}; border: 1px solid {% if current_status == 'corrigido' %}color-mix(in srgb, var(--brand) 55%, transparent){% else %}var(--line){% endif %}; transition: all 0.2s ease;">
+      <div style="font-size: 0.8rem; color: var(--brand-text); margin-bottom: 4px;"><i class="fa-solid fa-circle-check"></i> Corrigido</div>
+      <div style="font-size: 1.4rem; font-weight: 700; color: var(--text);">{{ fixed_count }}</div>
     </a>
   </div>
 
   <!-- Tabela de Relatos -->
-  <div class="card" style="background: var(--surface, #1e293b); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; overflow: hidden;">
+  <div class="card" style="background: var(--surface, var(--st-pronto-bg)); border: 1px solid var(--line); border-radius: 12px; overflow: hidden;">
     <div class="table-wrap">
       <table class="data-table" style="width: 100%;">
         <thead>
@@ -69,54 +69,54 @@
           {% for report in reports %}
             <tr>
               <td>
-                <span style="font-weight: 700; color: #94a3b8;">#{{ report.pk }}</span>
+                <span style="font-weight: 700; color: var(--muted);">#{{ report.pk }}</span>
               </td>
               {% if is_dev_user %}
                 <td>
-                  <div style="font-weight: 600; color: #f8fafc;">{{ report.user.name|default:report.user.email }}</div>
-                  <small style="color: #64748b;">{{ report.user.get_role_display }}</small>
+                  <div style="font-weight: 600; color: var(--text);">{{ report.user.name|default:report.user.email }}</div>
+                  <small style="color: var(--muted);">{{ report.user.get_role_display }}</small>
                 </td>
               {% endif %}
               <td>
-                <span style="font-family: monospace; font-size: 0.82rem; color: #cbd5e1; background: rgba(15, 23, 42, 0.6); padding: 2px 6px; border-radius: 4px;">
+                <span style="font-family: monospace; font-size: 0.82rem; color: var(--text); background: var(--surface); padding: 2px 6px; border-radius: 4px;">
                   {{ report.current_url|default:"/"|truncatechars:35 }}
                 </span>
               </td>
               <td>
-                <div style="color: #f8fafc; font-size: 0.88rem; max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                <div style="color: var(--text); font-size: 0.88rem; max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                   {{ report.description }}
                 </div>
                 {% if report.dev_notes %}
-                  <small style="color: #38bdf8; display: block; margin-top: 2px;">
+                  <small style="color: var(--st-novo-fg); display: block; margin-top: 2px;">
                     <i class="fa-solid fa-code"></i> Dev: {{ report.dev_notes|truncatechars:40 }}
                   </small>
                 {% endif %}
               </td>
               <td style="text-align: center;">
                 {% if report.screenshot %}
-                  <a href="{{ report.screenshot.url }}" target="_blank" title="Ver print" style="display: inline-flex; align-items: center; gap: 4px; color: #38bdf8; font-size: 0.84rem; text-decoration: none; padding: 4px 8px; border-radius: 4px; background: rgba(56, 189, 248, 0.1);">
+                  <a href="{{ report.screenshot.url }}" target="_blank" title="Ver print" style="display: inline-flex; align-items: center; gap: 4px; color: var(--st-novo-fg); font-size: 0.84rem; text-decoration: none; padding: 4px 8px; border-radius: 4px; background: var(--st-novo-bg);">
                     <i class="fa-solid fa-image"></i> Ver
                   </a>
                 {% else %}
-                  <span style="color: #64748b; font-size: 0.8rem;">—</span>
+                  <span style="color: var(--muted); font-size: 0.8rem;">—</span>
                 {% endif %}
               </td>
               <td>
                 {% if report.status == "pendente" %}
-                  <span class="badge" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3);">
+                  <span class="badge" style="background: var(--st-producao-bg); color: var(--st-aguardando-fg); border: 1px solid color-mix(in srgb, var(--st-producao-fg) 55%, transparent);">
                     <i class="fa-solid fa-hourglass-half"></i> Pendente
                   </span>
                 {% elif report.status == "verificado" %}
-                  <span class="badge" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3);">
+                  <span class="badge" style="background: var(--st-novo-bg); color: var(--st-novo-fg); border: 1px solid color-mix(in srgb, var(--st-novo-fg) 55%, transparent);">
                     <i class="fa-solid fa-magnifying-glass"></i> Verificado
                   </span>
                 {% elif report.status == "corrigido" %}
-                  <span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3);">
+                  <span class="badge" style="background: var(--brand-soft); color: var(--brand-text); border: 1px solid color-mix(in srgb, var(--brand) 55%, transparent);">
                     <i class="fa-solid fa-circle-check"></i> Corrigido
                   </span>
                 {% endif %}
               </td>
-              <td style="color: #94a3b8; font-size: 0.84rem;">
+              <td style="color: var(--muted); font-size: 0.84rem;">
                 {{ report.created_at|date:"d/m/Y H:i" }}
               </td>
               <td style="text-align: center;">
@@ -127,8 +127,8 @@
             </tr>
           {% empty %}
             <tr>
-              <td colspan="{% if is_dev_user %}8{% else %}7{% endif %}" style="text-align: center; padding: 32px 16px; color: #94a3b8;">
-                <i class="fa-solid fa-circle-check" style="font-size: 2rem; color: #34d399; display: block; margin-bottom: 8px;"></i>
+              <td colspan="{% if is_dev_user %}8{% else %}7{% endif %}" style="text-align: center; padding: 32px 16px; color: var(--muted);">
+                <i class="fa-solid fa-circle-check" style="font-size: 2rem; color: var(--brand-text); display: block; margin-bottom: 8px;"></i>
                 Nenhum relato de bug encontrado para os filtros selecionados.
               </td>
             </tr>

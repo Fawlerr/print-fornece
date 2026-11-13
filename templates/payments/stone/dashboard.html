@@ -19,7 +19,7 @@
   </section>
 
   <!-- PAINEL DE STATUS DA CONEXÃO & AMBIENTE -->
-  <section class="card" style="margin-bottom: 1.5rem; background: linear-gradient(180deg, #131c2a 0%, #0e1522 100%); border-color: var(--border-strong);">
+  <section class="card" style="margin-bottom: 1.5rem; background: var(--surface); border-color: var(--border-strong);">
     <div class="card__body" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.25rem;">
       <div>
         <span class="metric-card__label">Ambiente</span>
@@ -136,7 +136,7 @@
               <td>{{ pagamento.cliente.nome|default:'Cliente não informado' }}</td>
               <td>
                 {% if pagamento.stone_order_id %}
-                  <code style="color: #6ee7b7; font-size: 0.78rem;">{{ pagamento.stone_order_id }}</code>
+                  <code style="color: var(--brand-text); font-size: 0.78rem;">{{ pagamento.stone_order_id }}</code>
                 {% else %}
                   <span class="muted">—</span>
                 {% endif %}

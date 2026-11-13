@@ -19,8 +19,8 @@
 
 .stat-card {
   padding: 22px 24px;
-  background: var(--panel, #151917);
-  border: 1px solid var(--line, #2a332d);
+  background: var(--panel, var(--surface));
+  border: 1px solid var(--line, var(--line));
   border-radius: var(--radius, 14px);
   box-shadow: var(--shadow);
   transition: transform 0.2s ease, border-color 0.2s ease;
@@ -28,7 +28,7 @@
 
 .stat-card:hover {
   transform: translateY(-2px);
-  border-color: rgba(36, 211, 102, 0.4);
+  border-color: color-mix(in srgb, var(--brand) 55%, transparent);
 }
 
 .two-col {
@@ -50,8 +50,8 @@
 
 .card {
   margin-bottom: 24px;
-  background: var(--panel, #151917);
-  border: 1px solid var(--line, #2a332d);
+  background: var(--panel, var(--surface));
+  border: 1px solid var(--line, var(--line));
   border-radius: var(--radius, 14px);
   box-shadow: var(--shadow);
 }
@@ -74,8 +74,8 @@
   padding: 32px;
   max-width: 960px;
   margin: 0 auto 32px auto;
-  background: var(--panel, #151917);
-  border: 1px solid var(--line, #2a332d);
+  background: var(--panel, var(--surface));
+  border: 1px solid var(--line, var(--line));
   border-radius: var(--radius, 14px);
   box-shadow: var(--shadow);
 }
@@ -103,8 +103,8 @@
 
 .kanban-column {
   min-height: 400px;
-  background: #101411;
-  border: 1px solid var(--line, #2a332d);
+  background: var(--bg);
+  border: 1px solid var(--line, var(--line));
   border-radius: 14px;
   padding: 16px;
 }
@@ -144,16 +144,16 @@ canvas#finance-chart, canvas#stage-chart {
 /* Notification dropdown */
 .notification-item { padding: 0; overflow: hidden; }
 .notification-button { display: block; width: 100%; text-align: left; color: inherit; background: transparent; border: 0; padding: 14px; }
-.notification-button:hover { background: rgba(255, 255, 255, 0.025); }
+.notification-button:hover { background: var(--surface-2); }
 .notification-area { margin-left: auto; position: relative; }
 .notification-area .notification-bell { margin-left: 0; }
-.notification-dropdown { display: none; position: absolute; right: 0; top: 48px; width: min(340px, 88vw); padding: 12px; background: #151917; border: 1px solid #2a332d; border-radius: 10px; box-shadow: 0 15px 35px rgba(0,0,0,0.4); z-index: 50; }
+.notification-dropdown { display: none; position: absolute; right: 0; top: 48px; width: min(340px, 88vw); padding: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 15px 35px rgba(0,0,0,0.4); z-index: 50; }
 .notification-area:hover .notification-dropdown, .notification-area:focus-within .notification-dropdown { display: grid; gap: 7px; }
 .notification-dropdown > a { padding: 8px; border-radius: 7px; display: grid; gap: 2px; font-size: 13px; }
-.notification-dropdown > a:hover { background: #202821; }
-.notification-dropdown > a.unread { border-left: 2px solid #24d366; }
-.notification-dropdown small, .notification-dropdown p { color: #9da69f; margin: 0; font-size: 12px; }
-.notification-dropdown .notification-see-all { color: #24d366; font-weight: 700; }
+.notification-dropdown > a:hover { background: var(--surface); }
+.notification-dropdown > a.unread { border-left: 2px solid var(--brand); }
+.notification-dropdown small, .notification-dropdown p { color: var(--muted); margin: 0; font-size: 12px; }
+.notification-dropdown .notification-see-all { color: var(--brand-text); font-weight: 700; }
 
 /* Quote URL break text fix */
 .quote-url-link {
@@ -173,9 +173,9 @@ canvas#finance-chart, canvas#stage-chart {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  background: rgba(56, 189, 248, 0.12);
-  color: #38bdf8;
-  border: 1px solid rgba(56, 189, 248, 0.3);
+  background: var(--st-novo-bg);
+  color: var(--st-novo-fg);
+  border: 1px solid color-mix(in srgb, var(--st-novo-fg) 55%, transparent);
   padding: 3px 8px;
   border-radius: 6px;
   font-size: 0.76rem;
@@ -185,29 +185,29 @@ canvas#finance-chart, canvas#stage-chart {
 }
 
 .kanban-quick-download:hover {
-  background: rgba(56, 189, 248, 0.25);
-  color: #7dd3fc;
-  border-color: #38bdf8;
+  background: var(--st-novo-bg);
+  color: var(--st-novo-fg);
+  border-color: var(--st-novo-fg);
   transform: translateY(-1px);
 }
 
 .catalog-tab-btn.active {
-  background-color: #10b981 !important;
-  border-color: #10b981 !important;
-  color: #ffffff !important;
+  background-color: var(--brand) !important;
+  border-color: var(--brand) !important;
+  color: var(--brand-ink) !important;
 }
 
 .cart-table th {
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--surface-2);
   padding: 12px 16px;
-  color: var(--muted, #9ca3af);
+  color: var(--muted, var(--muted));
   font-size: 0.8rem;
   text-transform: uppercase;
 }
 
 .cart-table td {
   padding: 14px 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid var(--line);
   vertical-align: middle;
 }
 
@@ -218,9 +218,9 @@ canvas#finance-chart, canvas#stage-chart {
   gap: 6px;
   padding: 6px 12px;
   border-radius: 8px;
-  background: rgba(239, 68, 68, 0.15) !important;
-  color: #f87171 !important;
-  border: 1px solid rgba(239, 68, 68, 0.35) !important;
+  background: var(--st-cancelado-bg) !important;
+  color: var(--st-cancelado-fg) !important;
+  border: 1px solid color-mix(in srgb, var(--st-cancelado-fg) 55%, transparent) !important;
   font-size: 0.82rem !important;
   font-weight: 600 !important;
   cursor: pointer;
@@ -228,9 +228,9 @@ canvas#finance-chart, canvas#stage-chart {
 }
 
 .topbar-bug-btn:hover {
-  background: rgba(239, 68, 68, 0.25) !important;
-  border-color: rgba(239, 68, 68, 0.6) !important;
-  color: #fca5a5 !important;
+  background: var(--st-cancelado-bg) !important;
+  border-color: color-mix(in srgb, var(--st-cancelado-fg) 55%, transparent) !important;
+  color: var(--st-cancelado-fg) !important;
   transform: translateY(-1px);
 }
 
@@ -290,7 +290,7 @@ canvas#finance-chart, canvas#stage-chart {
     right: 0 !important;
     height: calc(62px + env(safe-area-inset-bottom, 0px)) !important;
     padding-bottom: env(safe-area-inset-bottom, 0px) !important;
-    background: #101310 !important;
+    background: var(--bg) !important;
     border-top: 1px solid var(--line) !important;
     z-index: 100 !important;
     justify-content: space-around !important;
@@ -301,7 +301,7 @@ canvas#finance-chart, canvas#stage-chart {
 /* Regras de impressão de alto contraste / preto puro para relatórios e páginas */
 @media print {
   *, *::before, *::after {
-    color: #000000 !important;
+    color: var(--muted) !important;
     background: transparent !important;
     box-shadow: none !important;
     text-shadow: none !important;
@@ -310,8 +310,8 @@ canvas#finance-chart, canvas#stage-chart {
   }
 
   html, body, .app-shell, .main-content, .page-body {
-    background: #ffffff !important;
-    color: #000000 !important;
+    background: var(--surface) !important;
+    color: var(--muted) !important;
     margin: 0 !important;
     padding: 0 !important;
   }
@@ -321,15 +321,15 @@ canvas#finance-chart, canvas#stage-chart {
   }
 
   .card, .stat-card, .form-card {
-    background: #ffffff !important;
-    border: 1px solid #000000 !important;
-    color: #000000 !important;
+    background: var(--surface) !important;
+    border: 1px solid var(--line) !important;
+    color: var(--muted) !important;
     box-shadow: none !important;
     break-inside: avoid;
   }
 
   .stat-card strong, .stat-card small {
-    color: #000000 !important;
+    color: var(--muted) !important;
   }
 
   .data-table {
@@ -339,24 +339,24 @@ canvas#finance-chart, canvas#stage-chart {
   }
 
   .data-table th, .data-table td {
-    color: #000000 !important;
-    border: 1px solid #333333 !important;
+    color: var(--muted) !important;
+    border: 1px solid var(--line) !important;
     padding: 6px 8px !important;
   }
 
   .data-table th {
-    background: #f0f0f0 !important;
+    background: var(--surface) !important;
     font-weight: 700 !important;
   }
 
   .text-muted, .text-green, .text-danger, small, p, span, h1, h2, h3, strong, b {
-    color: #000000 !important;
+    color: var(--muted) !important;
   }
 
   .badge {
-    border: 1px solid #000000 !important;
-    color: #000000 !important;
-    background: #ffffff !important;
+    border: 1px solid var(--line) !important;
+    color: var(--muted) !important;
+    background: var(--surface) !important;
     font-weight: 700 !important;
   }
 }
@@ -390,7 +390,7 @@ canvas#finance-chart, canvas#stage-chart {
   width: 100%;
   padding: 10px 14px;
   border-radius: 9px;
-  color: var(--muted, #9da69f);
+  color: var(--muted, var(--muted));
   font-weight: 600;
   background: transparent;
   border: 1px solid transparent;
@@ -401,9 +401,9 @@ canvas#finance-chart, canvas#stage-chart {
 }
 
 .sidebar-online-users-btn:hover {
-  background: rgba(36, 211, 102, 0.12);
-  color: var(--green, #24d366);
-  border-color: rgba(36, 211, 102, 0.25);
+  background: var(--brand-soft);
+  color: var(--green, var(--brand-text));
+  border-color: color-mix(in srgb, var(--brand) 55%, transparent);
 }
 
 .sidebar-online-badge {
@@ -413,9 +413,9 @@ canvas#finance-chart, canvas#stage-chart {
   gap: 6px;
   padding: 3px 8px;
   border-radius: 99px;
-  background: rgba(36, 211, 102, 0.15);
-  border: 1px solid rgba(36, 211, 102, 0.35);
-  color: #86f5ac;
+  background: var(--brand-soft);
+  border: 1px solid color-mix(in srgb, var(--brand) 55%, transparent);
+  color: var(--brand-text);
   font-size: 0.76rem;
   font-weight: 700;
 }
@@ -424,7 +424,7 @@ canvas#finance-chart, canvas#stage-chart {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #24d366;
+  background: var(--brand);
   box-shadow: 0 0 8px #24d366;
   display: inline-block;
   animation: pulseGreen 1.8s infinite;
@@ -435,16 +435,16 @@ canvas#finance-chart, canvas#stage-chart {
   align-items: center;
   gap: 6px;
   font-size: 0.76rem;
-  color: #9da69f;
+  color: var(--muted);
   margin-top: 4px;
-  background: rgba(0, 0, 0, 0.25);
+  background: var(--surface-2);
   padding: 4px 8px;
   border-radius: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--line);
 }
 
 .sidebar-user-session strong {
-  color: #24d366;
+  color: var(--brand-text);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
   font-size: 0.8rem;
   letter-spacing: 0.5px;
@@ -461,10 +461,10 @@ canvas#finance-chart, canvas#stage-chart {
   align-items: center;
   gap: 6px;
   padding: 3px 9px;
-  background: rgba(36, 211, 102, 0.12);
-  border: 1px solid rgba(36, 211, 102, 0.3);
+  background: var(--brand-soft);
+  border: 1px solid color-mix(in srgb, var(--brand) 55%, transparent);
   border-radius: 99px;
-  color: #86f5ac;
+  color: var(--brand-text);
   font-size: 0.76rem;
   font-weight: 600;
 }
@@ -472,7 +472,7 @@ canvas#finance-chart, canvas#stage-chart {
 .pulse-dot-live {
   width: 8px;
   height: 8px;
-  background: #24d366;
+  background: var(--brand);
   border-radius: 50%;
   animation: pulseGreen 1.8s infinite;
 }
@@ -484,9 +484,9 @@ canvas#finance-chart, canvas#stage-chart {
 }
 
 .online-filter-tab {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: #cbd5e1;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  color: var(--text);
   padding: 6px 12px;
   border-radius: 8px;
   font-size: 0.82rem;
@@ -499,18 +499,18 @@ canvas#finance-chart, canvas#stage-chart {
 }
 
 .online-filter-tab:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: #ffffff;
+  background: var(--surface-3);
+  color: var(--text);
 }
 
 .online-filter-tab.active {
-  background: rgba(36, 211, 102, 0.16);
-  border-color: rgba(36, 211, 102, 0.4);
-  color: #86f5ac;
+  background: var(--brand-soft);
+  border-color: color-mix(in srgb, var(--brand) 55%, transparent);
+  color: var(--brand-text);
 }
 
 .tab-badge {
-  background: rgba(0, 0, 0, 0.35);
+  background: var(--surface-2);
   padding: 1px 6px;
   border-radius: 99px;
   font-size: 0.72rem;
@@ -525,22 +525,22 @@ canvas#finance-chart, canvas#stage-chart {
 }
 
 .status-indicator-dot.online {
-  background: #24d366;
+  background: var(--brand);
   box-shadow: 0 0 6px rgba(36, 211, 102, 0.6);
 }
 
 .status-indicator-dot.idle {
-  background: #f5b942;
+  background: var(--st-producao-bg);
   box-shadow: 0 0 6px rgba(245, 185, 66, 0.6);
 }
 
 .status-indicator-dot.offline {
-  background: #64748b;
+  background: var(--surface-3);
 }
 
 .online-user-card {
-  background: rgba(21, 25, 23, 0.85);
-  border: 1px solid #232c26;
+  background: var(--surface);
+  border: 1px solid var(--line);
   border-radius: 12px;
   padding: 14px 18px;
   display: grid;
@@ -551,13 +551,13 @@ canvas#finance-chart, canvas#stage-chart {
 }
 
 .online-user-card:hover {
-  border-color: rgba(36, 211, 102, 0.3);
-  background: rgba(27, 33, 30, 0.95);
+  border-color: color-mix(in srgb, var(--brand) 55%, transparent);
+  background: var(--surface);
 }
 
 .online-user-card.is-self {
-  border-color: rgba(96, 165, 250, 0.35);
-  background: linear-gradient(90deg, rgba(30, 41, 59, 0.7), rgba(21, 25, 23, 0.85));
+  border-color: color-mix(in srgb, var(--st-pronto-fg) 55%, transparent);
+  background: var(--st-pronto-bg);
 }
 
 .online-avatar-wrap {
@@ -565,14 +565,14 @@ canvas#finance-chart, canvas#stage-chart {
   width: 44px;
   height: 44px;
   border-radius: 12px;
-  background: #1c2420;
+  background: var(--surface);
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
   font-size: 1.1rem;
-  color: #f5f7f5;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text);
+  border: 1px solid var(--line);
 }
 
 .online-avatar-status {
@@ -582,12 +582,12 @@ canvas#finance-chart, canvas#stage-chart {
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  border: 2px solid #131815;
+  border: 2px solid var(--line);
 }
 
-.online-avatar-status.online { background: #24d366; }
-.online-avatar-status.idle { background: #f5b942; }
-.online-avatar-status.offline { background: #64748b; }
+.online-avatar-status.online { background: var(--brand); }
+.online-avatar-status.idle { background: var(--st-producao-bg); }
+.online-avatar-status.offline { background: var(--surface-3); }
 
 .online-user-main {
   display: flex;
@@ -606,7 +606,7 @@ canvas#finance-chart, canvas#stage-chart {
 .online-user-name {
   font-weight: 700;
   font-size: 0.96rem;
-  color: #f5f7f5;
+  color: var(--text);
   margin: 0;
 }
 
@@ -622,7 +622,7 @@ canvas#finance-chart, canvas#stage-chart {
   align-items: center;
   gap: 14px;
   font-size: 0.8rem;
-  color: #9da69f;
+  color: var(--muted);
   flex-wrap: wrap;
 }
 
@@ -652,33 +652,33 @@ canvas#finance-chart, canvas#stage-chart {
 }
 
 .stopwatch-digital-clock.online {
-  background: rgba(36, 211, 102, 0.12);
-  color: #86f5ac;
-  border: 1px solid rgba(36, 211, 102, 0.25);
+  background: var(--brand-soft);
+  color: var(--brand-text);
+  border: 1px solid color-mix(in srgb, var(--brand) 55%, transparent);
 }
 
 .stopwatch-digital-clock.idle {
-  background: rgba(245, 185, 66, 0.12);
-  color: #ffd678;
-  border: 1px solid rgba(245, 185, 66, 0.25);
+  background: var(--st-producao-bg);
+  color: var(--st-aguardando-fg);
+  border: 1px solid color-mix(in srgb, var(--st-producao-fg) 55%, transparent);
 }
 
 .stopwatch-digital-clock.offline {
-  background: rgba(100, 116, 139, 0.12);
-  color: #94a3b8;
-  border: 1px solid rgba(100, 116, 139, 0.2);
+  background: var(--surface-3);
+  color: var(--muted);
+  border: 1px solid var(--line);
   font-size: 0.85rem;
 }
 
 .stopwatch-label {
   font-size: 0.74rem;
-  color: #7f8e82;
+  color: var(--muted);
 }
 
 .icon-action-btn {
   background: transparent;
   border: none;
-  color: #9da69f;
+  color: var(--muted);
   font-size: 1.1rem;
   padding: 6px 8px;
   border-radius: 6px;
@@ -687,8 +687,8 @@ canvas#finance-chart, canvas#stage-chart {
 }
 
 .icon-action-btn:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: #ffffff;
+  background: var(--surface-3);
+  color: var(--text);
 }
 
 .online-loading-state {
@@ -705,7 +705,7 @@ canvas#finance-chart, canvas#stage-chart {
     text-align: left;
     align-items: flex-start;
     min-width: unset;
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    border-top: 1px solid var(--line);
     padding-top: 8px;
     width: 100%;
   }

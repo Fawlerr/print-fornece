@@ -107,9 +107,9 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: rgba(0, 230, 118, 0.1);
+  background: var(--brand-soft);
   color: var(--green);
-  border: 1px solid rgba(0, 230, 118, 0.3);
+  border: 1px solid color-mix(in srgb, var(--brand) 55%, transparent);
   padding: 7px 13px;
   border-radius: 20px;
   font-size: 13px;
@@ -121,13 +121,13 @@
 
 .pwa-install-btn:hover, .pwa-push-btn:hover {
   background: var(--green);
-  color: #000;
+  color: var(--muted);
   border-color: var(--green);
   box-shadow: 0 0 12px rgba(0, 230, 118, 0.4);
 }
 
 .pwa-push-btn.active {
-  background: #14351e;
+  background: var(--brand);
   border-color: var(--green);
 }
 
@@ -225,7 +225,7 @@
 
 .detail-grid div {
   padding: 16px 18px;
-  background: #101411;
+  background: var(--bg);
   border: 1px solid var(--line);
   border-radius: 10px;
   display: flex;
@@ -257,7 +257,7 @@
   gap: 6px;
   font-size: 13px;
   font-weight: 600;
-  color: #d6ddd7;
+  color: var(--text);
 }
 
 /* Ajustes do Kanban */
@@ -274,7 +274,7 @@
 .kanban-column {
   min-height: 520px;
   height: 100%;
-  background: #101411;
+  background: var(--bg);
   border: 1px solid var(--line);
   border-radius: var(--card-radius);
   padding: 18px;
@@ -295,7 +295,7 @@
   padding: 16px 18px;
   border-radius: 10px;
   background: var(--panel);
-  border: 1px solid #2d3830;
+  border: 1px solid var(--line);
   cursor: grab;
   display: flex;
   flex-direction: column;
@@ -339,7 +339,7 @@
   width: 100%;
   height: calc(58px + env(safe-area-inset-bottom, 0px));
   padding-bottom: env(safe-area-inset-bottom, 0px);
-  background: #0B0D0C !important;
+  background: var(--bg) !important;
   border-top: 1px solid var(--line);
   z-index: 99999;
   box-sizing: border-box;
@@ -397,7 +397,7 @@
   transform: translateX(-50%);
   width: calc(100% - 24px);
   max-width: 440px;
-  background: rgba(16, 20, 17, 0.95);
+  background: var(--bg);
   backdrop-filter: blur(12px);
   border: 1px solid var(--green);
   border-radius: 14px;
@@ -424,7 +424,7 @@
 .pwa-banner-text strong {
   display: block;
   font-size: 13px;
-  color: #fff;
+  color: var(--text);
   margin-bottom: 2px;
 }
 
@@ -448,7 +448,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.75);
+  background: var(--surface);
   backdrop-filter: blur(6px);
   z-index: 10001;
   display: flex;
@@ -458,7 +458,7 @@
 }
 
 .pwa-modal {
-  background: #101411;
+  background: var(--bg);
   border: 1px solid var(--line);
   border-radius: 16px;
   width: 100%;
@@ -504,7 +504,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  background: #18201b;
+  background: var(--surface);
   padding: 12px 14px;
   border-radius: 10px;
   font-size: 12px;

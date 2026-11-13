@@ -201,7 +201,7 @@
     if (cartItems.length === 0) {
       cartTbody.innerHTML = `
         <tr class="empty-cart-row">
-          <td colspan="5" style="text-align: center; color: var(--muted, #9ca3af); padding: 16px;">
+          <td colspan="5" style="text-align: center; color: var(--muted, var(--muted)); padding: 16px;">
             Nenhum item adicionado ainda. Escolha no catálogo acima e clique para inserir.
           </td>
         </tr>
@@ -237,7 +237,7 @@
         </td>
         <td>${escapeHtml(measureText)}</td>
         <td>${unitPriceCell(item)}</td>
-        <td><strong style="color: #10b981;">${money(item.total)}</strong></td>
+        <td><strong style="color: var(--brand-text);">${money(item.total)}</strong></td>
         <td style="text-align: center;">
           <button type="button" class="btn btn-danger btn-small" data-remove-item="${index}" title="Remover item" style="padding: 4px 8px; font-size: 0.8rem;">
             <i class="fa-solid fa-trash"></i>
