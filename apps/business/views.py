@@ -8,8 +8,9 @@ from django.shortcuts import redirect, render
 
 from apps.accounts.permissions import require_administrator
 from apps.audit.services import record_audit
+from apps.production.services import MAX_CANCEL_ATTEMPTS
 
-from .forms import BusinessHoursSettingsForm, ReceiptPrintSettingsForm, ShirtDiscountSettingsForm
+from .forms import BusinessHoursSettingsForm, CancellationPinForm, ReceiptPrintSettingsForm, ShirtDiscountSettingsForm
 from .hours import get_business_hours
 from .models import BusinessSettings
 
@@ -21,6 +22,7 @@ SECTION_FORMS = {
     "desconto_camisa": ShirtDiscountSettingsForm,
     "horario": BusinessHoursSettingsForm,
     "impressao": ReceiptPrintSettingsForm,
+    "cancelamento": CancellationPinForm,
 }
 
 
@@ -58,8 +60,14 @@ def settings_view(request):
             with transaction.atomic():
                 updated = form.save(commit=False)
                 updated.updated_by = request.user
+                if section == "cancelamento":
+                    updated.cancellation_pin_updated_by = request.user
                 updated.save()
-                record_audit(request.user, "configuracoes_alteradas", "configuracoes", updated.pk, before=before, after=_audit_snapshot(updated), request=request)
+                if section == "cancelamento":
+                    # Nunca registra a senha (nem o hash) — só que ela foi trocada e por quem.
+                    record_audit(request.user, "senha_cancelamento_alterada", "configuracoes", updated.pk, request=request)
+                else:
+                    record_audit(request.user, "configuracoes_alteradas", "configuracoes", updated.pk, before=before, after=_audit_snapshot(updated), request=request)
             messages.success(request, "Configurações salvas.")
             return redirect(f"{request.path}#{section}")
         messages.error(request, "Revise os campos destacados.")
@@ -68,4 +76,5 @@ def settings_view(request):
         "config": config,
         "forms": forms,
         "business_hours_text": get_business_hours(config).describe(),
+        "max_cancel_attempts": MAX_CANCEL_ATTEMPTS,
     })

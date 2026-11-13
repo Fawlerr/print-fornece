@@ -13,7 +13,15 @@
     <a href="#desconto_camisa">Desconto em camisas</a>
     <a href="#horario">Horário de funcionamento</a>
     <a href="#impressao">Impressão da nota</a>
+    <a href="#cancelamento">Senha de cancelamento</a>
   </nav>
+
+  {% if not config.has_cancellation_pin %}
+    <div class="alert alert-danger" role="alert">
+      <strong>O administrador precisa definir a senha de cancelamento.</strong>
+      Enquanto ela não for definida, nenhum pedido pode ser cancelado. <a href="#cancelamento">Definir agora</a>.
+    </div>
+  {% endif %}
 
   {% with form=forms.desconto_camisa %}
     <section class="card form-card settings-section" id="desconto_camisa" aria-labelledby="desconto_camisa_title">
@@ -100,6 +108,34 @@
         <p class="help" data-print-station-status aria-live="polite"></p>
         <p class="help">Para imprimir sem a janela de confirmação, abra o sistema no Chrome em modo <code>--kiosk-printing</code> (veja o passo a passo no relatório de implantação).</p>
       </div>
+    </section>
+  {% endwith %}
+
+  {% with form=forms.cancelamento %}
+    <section class="card form-card settings-section" id="cancelamento" aria-labelledby="cancelamento_title">
+      <div class="section-heading">
+        <div>
+          <h2 id="cancelamento_title">Senha de cancelamento (gerente)</h2>
+          <p>
+            Obrigatória para cancelar qualquer pedido. É guardada com criptografia (hash) e nunca aparece na tela nem nos registros.
+            Após {{ max_cancel_attempts }} tentativas erradas, o usuário fica bloqueado por 15 minutos.
+          </p>
+          {% if config.cancellation_pin_updated_at %}
+            <p class="help">Última troca: {{ config.cancellation_pin_updated_at|date:"d/m/Y H:i" }}{% if config.cancellation_pin_updated_by %} por {{ config.cancellation_pin_updated_by.name|default:config.cancellation_pin_updated_by.email }}{% endif %}.</p>
+          {% endif %}
+        </div>
+        <span class="status-pill {% if config.has_cancellation_pin %}status-pill--on{% else %}status-pill--off{% endif %}">
+          {% if config.has_cancellation_pin %}Definida{% else %}Não definida{% endif %}
+        </span>
+      </div>
+      <form method="post" novalidate autocomplete="off">
+        {% csrf_token %}
+        <input type="hidden" name="section" value="cancelamento">
+        {% include "includes/form_fields.html" with form=form %}
+        <div class="form-actions">
+          <button class="btn btn-primary" type="submit">{% if config.has_cancellation_pin %}Trocar senha{% else %}Definir senha{% endif %}</button>
+        </div>
+      </form>
     </section>
   {% endwith %}
 

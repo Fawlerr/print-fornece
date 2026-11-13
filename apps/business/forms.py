@@ -36,6 +36,38 @@ class BusinessHoursSettingsForm(forms.ModelForm):
         return cleaned
 
 
+class CancellationPinForm(forms.Form):
+    """Define/troca a senha de gerente para cancelar pedidos (nunca mostra a atual)."""
+
+    new_pin = forms.CharField(
+        label="Nova senha de cancelamento",
+        min_length=4,
+        max_length=32,
+        strip=False,
+        widget=forms.PasswordInput(attrs={"autocomplete": "new-password", "inputmode": "numeric"}),
+        help_text="De 4 a 32 caracteres. Pode ser só números (PIN).",
+    )
+    confirm_pin = forms.CharField(
+        label="Repita a nova senha",
+        strip=False,
+        widget=forms.PasswordInput(attrs={"autocomplete": "new-password", "inputmode": "numeric"}),
+    )
+
+    def __init__(self, *args, instance=None, **kwargs):
+        self.instance = instance
+        super().__init__(*args, **kwargs)
+
+    def clean(self):
+        cleaned = super().clean()
+        if cleaned.get("new_pin") and cleaned.get("new_pin") != cleaned.get("confirm_pin"):
+            self.add_error("confirm_pin", "As senhas não conferem.")
+        return cleaned
+
+    def save(self, commit=True):
+        self.instance.set_cancellation_pin(self.cleaned_data["new_pin"])
+        return self.instance
+
+
 class ReceiptPrintSettingsForm(forms.ModelForm):
     class Meta:
         model = BusinessSettings

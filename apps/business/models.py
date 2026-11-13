@@ -65,6 +65,14 @@ class BusinessSettings(models.Model):
         "largura do papel da nota", choices=[(80, "80 mm (térmica)"), (58, "58 mm (térmica)")], default=80,
     )
 
+    # A5 — senha (PIN) de gerente para cancelar pedidos. Só o hash é guardado.
+    cancellation_pin_hash = models.CharField("hash da senha de cancelamento", max_length=128, blank=True, default="", editable=False)
+    cancellation_pin_updated_at = models.DateTimeField("senha de cancelamento alterada em", null=True, blank=True, editable=False)
+    cancellation_pin_updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, editable=False,
+        related_name="cancellation_pin_updates", verbose_name="senha de cancelamento alterada por",
+    )
+
     updated_at = models.DateTimeField("atualizado em", auto_now=True)
     updated_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL,
@@ -82,6 +90,26 @@ class BusinessSettings(models.Model):
     def save(self, *args, **kwargs):
         self.pk = 1
         super().save(*args, **kwargs)
+
+    @property
+    def has_cancellation_pin(self) -> bool:
+        return bool(self.cancellation_pin_hash)
+
+    def set_cancellation_pin(self, raw_pin: str, actor=None) -> None:
+        """Guarda a senha de cancelamento com hash seguro (hasher padrão do Django)."""
+        from django.contrib.auth.hashers import make_password
+        from django.utils import timezone
+
+        self.cancellation_pin_hash = make_password(raw_pin)
+        self.cancellation_pin_updated_at = timezone.now()
+        self.cancellation_pin_updated_by = actor if getattr(actor, "is_authenticated", False) else None
+
+    def check_cancellation_pin(self, raw_pin: str) -> bool:
+        from django.contrib.auth.hashers import check_password
+
+        if not self.cancellation_pin_hash or not raw_pin:
+            return False
+        return check_password(raw_pin, self.cancellation_pin_hash)
 
     @classmethod
     def load(cls) -> "BusinessSettings":

@@ -150,13 +150,17 @@
           </form>
         {% endif %}
         {% if order.stage != "cancelado" and order.stage != "entregue" and order.stage != "finalizado" %}
-          <form method="post" id="cancel_order_form" action="{% url 'production:cancel' pk=order.pk %}" style="display: inline-block;">
-            {% csrf_token %}
-            <input type="hidden" name="cancellation_reason" id="cancellation_reason_input" value="">
-            <button class="btn btn-danger" type="button" onclick="confirmCancelOrder()" style="height: 40px; display: inline-flex; align-items: center; gap: 6px;">
+          {% if cancellation_pin_configured %}
+            <button class="btn btn-danger" type="button" data-open-cancel-dialog style="height: 40px; display: inline-flex; align-items: center; gap: 6px;">
               <i class="fa-solid fa-ban" aria-hidden="true"></i> Cancelar pedido
             </button>
-          </form>
+          {% else %}
+            <p class="cancel-blocked" role="note">
+              <i class="fa-solid fa-lock" aria-hidden="true"></i>
+              O administrador precisa definir a senha de cancelamento.
+              {% if user.is_administrator %}<a href="{% url 'business:settings' %}#cancelamento">Definir agora</a>{% endif %}
+            </p>
+          {% endif %}
         {% endif %}
         {% if order.stage == "cancelado" and user.is_administrator %}
           <form method="post" action="{% url 'production:restore' pk=order.pk %}" style="display: inline-block;">
@@ -615,6 +619,28 @@
       </div>
     </section>
   </div>
+
+  {% if cancellation_pin_configured and order.stage != "cancelado" and order.stage != "entregue" %}
+    <dialog id="cancel-order-dialog" class="pf-dialog" aria-labelledby="cancel-order-title">
+      <form method="post" action="{% url 'production:cancel' pk=order.pk %}" autocomplete="off">
+        {% csrf_token %}
+        <h2 id="cancel-order-title">Cancelar pedido {{ order.number }}</h2>
+        <p>O pedido não é apagado: ele vai para "Cancelado" e fica no histórico. Somente um administrador pode restaurá-lo.</p>
+        <label for="cancel-reason">Motivo do cancelamento <span aria-hidden="true">*</span>
+          <textarea id="cancel-reason" name="cancellation_reason" rows="3" required minlength="5" maxlength="500" placeholder="Ex.: cliente desistiu do pedido"></textarea>
+        </label>
+        <label for="cancel-pin">Senha de cancelamento (gerente) <span aria-hidden="true">*</span></label>
+        <div class="pin-field">
+          <input id="cancel-pin" name="cancellation_pin" type="password" inputmode="numeric" autocomplete="off" required maxlength="32">
+          <button type="button" class="btn btn-secondary" data-toggle-pin aria-pressed="false" aria-controls="cancel-pin">Mostrar</button>
+        </div>
+        <div class="pf-dialog__actions">
+          <button type="button" class="btn btn-secondary" data-close-cancel-dialog>Voltar</button>
+          <button type="submit" class="btn btn-danger">Confirmar cancelamento</button>
+        </div>
+      </form>
+    </dialog>
+  {% endif %}
 {% endblock %}
 
 {% block extra_scripts %}
@@ -928,12 +954,33 @@
     trocoDisplay.innerText = 'R$ ' + troco.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
-  function confirmCancelOrder() {
-    const reason = prompt("Confirma o cancelamento deste pedido?\n\nDigite o motivo do cancelamento (OBS):");
-    if (reason === null) return;
-    document.getElementById('cancellation_reason_input').value = reason.trim();
-    document.getElementById('cancel_order_form').submit();
-  }
+  // A5 — modal de cancelamento com senha de gerente e motivo obrigatório.
+  (() => {
+    const dialog = document.getElementById("cancel-order-dialog");
+    const opener = document.querySelector("[data-open-cancel-dialog]");
+    if (!dialog || !opener) return;
+    const pin = dialog.querySelector("#cancel-pin");
+    const reason = dialog.querySelector("#cancel-reason");
+    const toggle = dialog.querySelector("[data-toggle-pin]");
+    opener.addEventListener("click", () => {
+      if (typeof dialog.showModal === "function") dialog.showModal(); else dialog.setAttribute("open", "");
+      reason.focus();
+    });
+    dialog.querySelectorAll("[data-close-cancel-dialog]").forEach((btn) => btn.addEventListener("click", () => dialog.close()));
+    toggle.addEventListener("click", () => {
+      const show = pin.type === "password";
+      pin.type = show ? "text" : "password";
+      toggle.setAttribute("aria-pressed", show ? "true" : "false");
+      toggle.textContent = show ? "Ocultar" : "Mostrar";
+    });
+    dialog.querySelector("form").addEventListener("submit", (event) => {
+      if (reason.value.trim().length < 5) { event.preventDefault(); reason.setCustomValidity("Informe o motivo (pelo menos 5 caracteres)."); reason.reportValidity(); return; }
+      reason.setCustomValidity("");
+      const submit = dialog.querySelector("[type=submit]");
+      submit.disabled = true; submit.textContent = "Cancelando…";
+    });
+    reason.addEventListener("input", () => reason.setCustomValidity(""));
+  })();
 
   function confirmRemoveAttachment(event, form) {
     event.preventDefault();

@@ -7,7 +7,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db.models import Count, Prefetch, Q
-from django.http import HttpResponseBadRequest, JsonResponse
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
 from django.utils import timezone
@@ -184,6 +184,8 @@ class OrderDetailView(LoginRequiredMixin, DetailView):
         context["whatsapp_share_url"] = wa_links["quote_url"]
         context["public_quote_url"] = quote_url
         context["capacity_warnings"] = evaluate_order_capacity(order=order)
+        from apps.business.models import BusinessSettings
+        context["cancellation_pin_configured"] = BusinessSettings.load().has_cancellation_pin
         return context
 
 
@@ -288,12 +290,15 @@ def finalize(request, pk: int):
 @login_required
 @require_POST
 def cancel(request, pk: int):
-    reason = request.POST.get("cancellation_reason") or request.POST.get("reason", "").strip()
+    reason = (request.POST.get("cancellation_reason") or request.POST.get("reason", "")).strip()
+    pin = request.POST.get("cancellation_pin", "")
     try:
-        cancel_order(order_id=pk, actor=request.user, reason=reason, request=request)
+        cancel_order(order_id=pk, actor=request.user, reason=reason, pin=pin, request=request)
         messages.success(request, "Pedido cancelado com sucesso.")
     except Order.DoesNotExist:
         messages.error(request, "Pedido não encontrado.")
+    except PermissionDenied:
+        messages.error(request, "Você não tem permissão para cancelar este pedido.")
     except ValidationError as exc:
         messages.error(request, exc.messages[0])
     return redirect("production:detail", pk=pk)

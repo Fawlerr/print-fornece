@@ -160,8 +160,13 @@ class PrintForneceTestCase(TestCase):
         self.assertContains(response, "conteúdo do arquivo")
 
     def test_cancel_and_restore_require_admin_for_restore(self):
+        from apps.business.models import BusinessSettings
+        config = BusinessSettings.load()
+        config.set_cancellation_pin("2468")
+        config.save()
         self.login_as(self.employee)
-        self.client.post(reverse("production:cancel", args=[self.order.pk]))
+        # A5: cancelar exige motivo e a senha de gerente.
+        self.client.post(reverse("production:cancel", args=[self.order.pk]), {"cancellation_reason": "Cliente desistiu", "cancellation_pin": "2468"})
         self.order.refresh_from_db()
         self.assertEqual(self.order.stage, Order.Stage.CANCELLED)
         response = self.client.post(reverse("production:restore", args=[self.order.pk]))
@@ -500,7 +505,7 @@ class PrintForneceTestCase(TestCase):
         self.assertEqual(quote_halftone.total, Decimal("20.00"))
 
     def test_multi_item_order_creation_and_capacity_evaluation(self):
-        from apps.production.capacity import get_shift_capacity_status, evaluate_order_capacity
+        from apps.production.capacity import get_shift_capacity_status
         self.login_as(self.admin)
 
         cart_payload = {
@@ -590,7 +595,7 @@ class PrintForneceTestCase(TestCase):
 
     def test_download_primary_attachment_route(self):
         self.login_as(self.admin)
-        att = OrderAttachment.objects.create(
+        OrderAttachment.objects.create(
             order=self.order,
             original_name="arte_estampa.png",
             file=SimpleUploadedFile("arte_estampa.png", b"\x89PNG\r\n\x1a\nfakeimage", content_type="image/png"),
@@ -869,7 +874,7 @@ class PrintForneceTestCase(TestCase):
         self.assertEqual(c_type2, "image/tiff")
 
     def test_cliente_flow_and_volume_package(self):
-        from apps.payments.models import Cliente, ClienteArquivo
+        from apps.payments.models import Cliente
         self.login_as(self.admin)
 
         # 1. Create cliente
@@ -1057,7 +1062,7 @@ class PrintForneceTestCase(TestCase):
         self.assertEqual(order.remaining_amount, Decimal("100.00"))
 
     def test_whatsapp_messages_include_partial_and_pending_balance(self):
-        from apps.notifications.whatsapp import build_ready_whatsapp_message, build_quote_whatsapp_message
+        from apps.notifications.whatsapp import build_ready_whatsapp_message
         partial_order = Order.objects.create(
             number="PED-WAPP-01",
             client_name="Cliente Teste Zap",
@@ -1825,7 +1830,7 @@ class PrintForneceTestCase(TestCase):
 
     def test_team_ranking_report_view(self):
         self.client.force_login(self.admin)
-        order = Order.objects.create(
+        Order.objects.create(
             number="PF-RPT-TEAM-01",
             client_name="Cliente Ranking Equipe",
             total_amount=Decimal("500.00"),
