@@ -6,7 +6,7 @@ from decimal import Decimal
 
 from django.contrib.auth.hashers import check_password
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
@@ -827,6 +827,7 @@ class PrintForneceTestCase(TestCase):
         report.refresh_from_db()
         self.assertEqual(report.dev_notes, "Corrigido CSS flexbox no commit abc1234")
 
+    @override_settings(MAX_UPLOAD_BYTES=6 * 1024 * 1024 * 1024)
     def test_large_attachment_upload_accepted(self):
         from apps.orders.services import validate_upload
         # Test simulated 45MB file (which previously failed on 25MB limit)
@@ -842,6 +843,7 @@ class PrintForneceTestCase(TestCase):
         orig_name2, c_type2 = validate_upload(huge_file)
         self.assertEqual(orig_name2, "arquivo_vetor_1gb.ai")
 
+    @override_settings(MAX_UPLOAD_BYTES=6 * 1024 * 1024 * 1024)
     def test_attachment_exceeding_max_limit_rejected(self):
         from django.core.exceptions import ValidationError
         from apps.orders.services import validate_upload

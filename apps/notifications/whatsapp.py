@@ -120,14 +120,14 @@ def get_payment_summary_for_message(order: Order) -> str:
         return (
             f"TOTAL: R$ {valor_total}\n"
             f"Entrada paga: R$ {format_money_br(paid_amt)}\n"
-            f"VALOR PENDENTE A PAGAR: R$ {format_money_br(remaining_amt)}\n"
-            f"⚠️ ATENÇÃO: O pedido só é liberado com o pagamento confirmado."
+            f"SALDO A PAGAR NA RETIRADA: R$ {format_money_br(remaining_amt)}\n"
+            f"ATENÇÃO: O pedido só é liberado com o pagamento confirmado."
         )
     else:  # UNPAID
         return (
             f"TOTAL: R$ {valor_total}\n"
-            f"VALOR PENDENTE A PAGAR: R$ {format_money_br(remaining_amt or order.total_amount)}\n"
-            f"⚠️ ATENÇÃO: O pedido só é liberado com o pagamento confirmado."
+            f"VALOR A PAGAR NA RETIRADA: R$ {format_money_br(remaining_amt or order.total_amount)}\n"
+            f"ATENÇÃO: O pedido só é liberado com o pagamento confirmado."
         )
 
 
@@ -187,7 +187,7 @@ def build_ready_whatsapp_message(order: Order, public_quote_url: str = "") -> st
 
     alerta_liberacao = ""
     if order.remaining_amount > Decimal("0.00") or order.payment_status != Order.PaymentStatus.PAID:
-        alerta_liberacao = f"\n⚠️ IMPORTANTE: Consta valor pendente de R$ {format_money_br(order.remaining_amount)}. O pedido só é liberado para retirada com o pagamento confirmado.\n"
+        alerta_liberacao = f"\nIMPORTANTE: Consta valor pendente de R$ {format_money_br(order.remaining_amount)}. O pedido só é liberado para retirada com o pagamento confirmado.\n"
 
     message = (
         f"PRINT FORNECE\n"
