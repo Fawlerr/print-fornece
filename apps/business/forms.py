@@ -36,6 +36,12 @@ class BusinessHoursSettingsForm(forms.ModelForm):
         return cleaned
 
 
+class ReceiptPrintSettingsForm(forms.ModelForm):
+    class Meta:
+        model = BusinessSettings
+        fields = ["auto_print_enabled", "receipt_paper_width"]
+
+
 class ShirtDiscountSettingsForm(forms.ModelForm):
     shirt_discount_models = forms.MultipleChoiceField(
         label="Modelos participantes",

@@ -1,0 +1,108 @@
+{% load static %}<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Nota do pedido {{ order.number }} | Print Fornece</title>
+  <style>
+    /* Nota térmica: só preto no branco, sem menus nem botões na impressão. */
+    @page { size: {{ paper_width_mm }}mm auto; margin: 3mm 3mm 4mm; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: #fff; color: #000; }
+    body { font: 600 11px/1.35 "Helvetica Neue", Arial, sans-serif; }
+    .receipt { width: {{ paper_width_mm|add:"-6" }}mm; margin: 0 auto; padding: 2mm 0; }
+    .row { display: flex; justify-content: space-between; gap: 2mm; align-items: flex-start; }
+    .head { align-items: center; border-bottom: 1.2px solid #000; padding-bottom: 2mm; margin-bottom: 2mm; }
+    .logo { max-width: 34mm; max-height: 15mm; }
+    .meta { text-align: right; font-size: 10px; }
+    .label { font-size: 9.5px; font-weight: 800; letter-spacing: .02em; text-transform: uppercase; }
+    .client { font-size: {% if client_name|length > 40 %}12px{% elif client_name|length > 25 %}13.5px{% else %}15px{% endif %}; font-weight: 800; margin: .5mm 0 1.5mm; word-break: break-word; }
+    .sep { border: 0; border-top: 1px solid #000; margin: 2mm 0; }
+    .item { padding: 1.5mm 0; border-bottom: .6px solid #000; }
+    .item-name { font-weight: 800; font-size: 11.5px; }
+    .item-detail { font-weight: 500; font-size: 10.5px; }
+    .item-total { font-weight: 800; white-space: nowrap; }
+    .totals { border-top: 1.4px solid #000; border-bottom: 1px solid #000; padding: 2mm 0; margin-top: 2mm; font-size: 13px; font-weight: 800; }
+    .alert { border: 1.6px solid #000; padding: 2mm; margin-top: 2mm; text-align: center; }
+    .alert strong { display: block; font-size: 13px; }
+    .footer { text-align: center; margin-top: 3mm; font-size: 11px; font-weight: 800; }
+    .footer small { display: block; font-size: 9.5px; }
+    .screen-only { margin: 12px auto; text-align: center; font-family: Arial, sans-serif; }
+    .screen-only button { min-height: 44px; padding: 0 18px; font-size: 15px; font-weight: 700; cursor: pointer; }
+    @media print { .screen-only { display: none !important; } }
+  </style>
+</head>
+<body>
+  <main class="receipt" aria-label="Nota do pedido {{ order.number }}">
+    <div class="row head">
+      <img class="logo" src="{% static 'logo_receipt.png' %}" alt="{{ company.name }}">
+      <div class="meta">
+        <div class="label">Data</div>{{ paid_at|date:"d/m/Y" }}
+        <div class="label">Hora</div>{{ paid_at|date:"H:i:s" }}
+      </div>
+    </div>
+
+    <div class="label">Cliente</div>
+    <div class="client">{{ client_name }}</div>
+    <div>Vendedor: {{ seller_name }}</div>
+    <div>Venda (nº: {{ order.number }})</div>
+    {% if is_correction %}<div>(CORREÇÃO / GARANTIA)</div>{% endif %}
+
+    <hr class="sep">
+    <div class="row label"><span>Descrição / qtd × unitário</span><span>Total</span></div>
+    {% for item in items %}
+      <div class="item">
+        <div class="item-name">{{ item.material_name }}</div>
+        <div class="row">
+          <div class="item-detail">
+            {{ item.calculation_detail|default:item.pricing_rule }}
+            {% if item.art_width_cm and item.art_height_cm %}<br>Arte {{ item.art_width_cm|floatformat:2 }} × {{ item.art_height_cm|floatformat:2 }} cm · qtd. {{ item.art_quantity }}{% endif %}
+            {% if item.product_color or item.product_size %}<br>{{ item.product_color }}{% if item.product_size %} · Tam: {{ item.product_size }}{% endif %}{% endif %}
+            {% if item.has_shirt_discount %}<br>{% if item.table_unit_price %}Tabela R$ {{ item.table_unit_price|floatformat:2 }}{% endif %}{% if item.wholesale_unit_price %} · Atacado R$ {{ item.wholesale_unit_price|floatformat:2 }}{% endif %} · Desc. -R$ {{ item.discount_per_unit|floatformat:2 }}/camisa{% endif %}
+          </div>
+          <div class="item-total">R$ {{ item.line_total|floatformat:2 }}</div>
+        </div>
+      </div>
+    {% empty %}
+      <div class="item row"><div class="item-detail">{{ order.description|default:"Pedido sem descrição"|linebreaksbr }}</div><div class="item-total">R$ {{ total|floatformat:2 }}</div></div>
+    {% endfor %}
+    {% if shirt_discount_total > 0 %}<div>Desconto por camisa (já incluído): -R$ {{ shirt_discount_total|floatformat:2 }}</div>{% endif %}
+
+    {% if payment_state == "correcao" %}
+      <div class="row totals"><span>Total a pagar</span><span>R$ 0,00</span></div>
+      <div>PAGO · Correção / Garantia{% if correction_reason %}<br>Motivo: {{ correction_reason }}{% endif %}</div>
+    {% elif payment_state == "pago" %}
+      <div class="row totals"><span>Total a pagar</span><span>R$ {{ total|floatformat:2 }}</span></div>
+      <div class="row"><span>PAGO · {{ method_label }}</span><span>R$ {{ paid|floatformat:2 }}</span></div>
+    {% elif payment_state == "parcial" %}
+      <div class="alert">
+        <strong>ATENÇÃO — PAGAMENTO PARCIAL</strong>
+        <div class="row"><span>Valor total:</span><span>R$ {{ total|floatformat:2 }}</span></div>
+        <div class="row"><span>Valor pago ({{ method_label }}):</span><span>R$ {{ paid|floatformat:2 }}</span></div>
+        <div class="row"><span>Saldo pendente:</span><span>R$ {{ remaining|floatformat:2 }}</span></div>
+      </div>
+    {% else %}
+      <div class="alert">
+        <strong>ATENÇÃO — PAGAMENTO PENDENTE</strong>
+        <div class="row"><span>Valor total:</span><span>R$ {{ total|floatformat:2 }}</span></div>
+        <div class="row"><span>Saldo pendente:</span><span>R$ {{ total|floatformat:2 }}</span></div>
+      </div>
+    {% endif %}
+
+    <div class="footer">CONFIRA SEU MATERIAL ANTES DE CORTAR<small>(não trocamos material cortado)</small></div>
+    <div class="footer"><small>{{ company.name }} · {{ company.address }}</small></div>
+  </main>
+
+  <div class="screen-only">
+    <button type="button" onclick="window.print()">Imprimir nota</button>
+  </div>
+  {% if autoprint %}
+    <script>
+      window.addEventListener("load", function () {
+        setTimeout(function () { window.focus(); window.print(); }, 150);
+      });
+    </script>
+  {% endif %}
+</body>
+</html>

@@ -56,6 +56,15 @@ class BusinessSettings(models.Model):
     business_open_time = models.TimeField("abre às", default=datetime.time(8, 0))
     business_close_time = models.TimeField("fecha às", default=datetime.time(17, 0))
 
+    # A4 — impressão da nota
+    auto_print_enabled = models.BooleanField(
+        "impressão automática da nota ativa", default=True,
+        help_text="Liga/desliga para todo o sistema. Cada computador ainda precisa ser marcado como estação de impressão.",
+    )
+    receipt_paper_width = models.PositiveSmallIntegerField(
+        "largura do papel da nota", choices=[(80, "80 mm (térmica)"), (58, "58 mm (térmica)")], default=80,
+    )
+
     updated_at = models.DateTimeField("atualizado em", auto_now=True)
     updated_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL,

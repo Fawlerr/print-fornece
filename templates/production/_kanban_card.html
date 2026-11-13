@@ -87,11 +87,13 @@
   {% endif %}
 
   <div class="order-meta" style="display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 8px;">
+    {% if order.payment_status == "pago" or order.stage == "pagamento_confirmado" %}
+      <!-- A4: reimprime a nota (registra no histórico) em qualquer dispositivo -->
+      <button type="button" class="kanban-print-receipt-btn" data-reprint-order="{{ order.pk }}" title="Reimprimir a nota do pedido #{{ order.number }}" aria-label="Reimprimir nota do pedido {{ order.number }}">
+        <i class="fa-solid fa-print" aria-hidden="true"></i> Reimprimir nota
+      </button>
+    {% endif %}
     {% if order.payment_status == "pago" %}
-      <!-- Botão Imprimir Nota exclusivo para pedidos Pagos -->
-      <a class="kanban-print-receipt-btn" href="{% url 'orders:download_receipt' pk=order.pk %}" target="_blank" title="Imprimir Nota / Comprovante do Pedido #{{ order.number }}" onclick="event.stopPropagation();" style="display: inline-flex; align-items: center; gap: 4px; font-size: 0.72rem; font-weight: 700; color: #38bdf8; background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.35); padding: 3px 8px; border-radius: 5px; text-decoration: none; transition: all 0.15s ease;">
-        <i class="fa-solid fa-print" aria-hidden="true"></i> Imprimir Nota
-      </a>
     {% elif order.payment_status == "parcial" %}
       <form method="post" action="{% url 'orders:mark_as_paid' pk=order.pk %}?next={{ request.get_full_path|urlencode }}" style="display: inline;" onclick="event.stopPropagation();">
         {% csrf_token %}

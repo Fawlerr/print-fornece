@@ -1670,10 +1670,10 @@ class PrintForneceTestCase(TestCase):
         self.assertContains(res, f"stage-{Order.Stage.PRODUCTION}")
         self.assertContains(res, f"stage-{Order.Stage.NEW}")
 
-        # 2. Botão 'Imprimir Nota' exibido exclusivamente para o pedido pago
-        self.assertContains(res, reverse("orders:download_receipt", kwargs={"pk": paid_order.pk}))
-        self.assertContains(res, "Imprimir Nota")
-        self.assertNotContains(res, reverse("orders:download_receipt", kwargs={"pk": unpaid_order.pk}))
+        # 2. Botão 'Reimprimir nota' (A4) exibido exclusivamente para o pedido pago
+        self.assertContains(res, f'data-reprint-order="{paid_order.pk}"')
+        self.assertContains(res, "Reimprimir nota")
+        self.assertNotContains(res, f'data-reprint-order="{unpaid_order.pk}"')
 
     def test_whatsapp_quote_url_generation_on_order_create(self):
         self.client.force_login(self.admin)

@@ -205,6 +205,11 @@
     return data;
   }
 
+  // Avisa outros módulos (ex.: impressão da nota) que um card mudou de etapa.
+  function notifyStageChanged(orderId, stage) {
+    document.dispatchEvent(new CustomEvent("pf:stage-changed", { detail: { orderId, stage } }));
+  }
+
   function bindMoveButtons(container = document) {
     container.querySelectorAll("[data-order-move]").forEach((button) => {
       if (button.dataset.bound) return;
@@ -222,6 +227,7 @@
         try {
           const data = await moveOrder(button, orderId, stage);
           showStatus(data.message || "Pedido movido com sucesso.");
+          notifyStageChanged(orderId, data.stage || stage);
           
           if (data.redirect) {
             window.location.assign(data.redirect);
@@ -305,6 +311,7 @@
 
       try {
         const data = await moveOrder(card, orderId, targetStage);
+        notifyStageChanged(orderId, data.stage || targetStage);
         const cards = column.querySelector(".kanban-cards");
         if (cards) {
           cards.appendChild(card);

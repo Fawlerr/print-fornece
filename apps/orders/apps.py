@@ -6,3 +6,6 @@ class OrdersConfig(AppConfig):
     name = "apps.orders"
     verbose_name = "Pedidos"
 
+    def ready(self):
+        from . import signals  # noqa: F401  (registra os sinais do app)
+

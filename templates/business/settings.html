@@ -12,6 +12,7 @@
   <nav class="settings-toc" aria-label="Seções das configurações">
     <a href="#desconto_camisa">Desconto em camisas</a>
     <a href="#horario">Horário de funcionamento</a>
+    <a href="#impressao">Impressão da nota</a>
   </nav>
 
   {% with form=forms.desconto_camisa %}
@@ -62,4 +63,69 @@
     </section>
   {% endwith %}
 
+  {% with form=forms.impressao %}
+    <section class="card form-card settings-section" id="impressao" aria-labelledby="impressao_title">
+      <div class="section-heading">
+        <div>
+          <h2 id="impressao_title">Impressão da nota</h2>
+          <p>
+            Quando um pedido entra em <strong>Pagamento confirmado</strong> (pelo Kanban, por pagamento registrado, pela Stone ou pela
+            aprovação do cliente já pago), a nota é impressa sozinha no computador marcado como <strong>estação de impressão</strong>.
+            Cada nota sai uma única vez; reimpressões ficam no histórico do pedido.
+          </p>
+        </div>
+        <span class="status-pill {% if config.auto_print_enabled %}status-pill--on{% else %}status-pill--off{% endif %}">
+          {% if config.auto_print_enabled %}Ativa{% else %}Desligada{% endif %}
+        </span>
+      </div>
+      <form method="post" novalidate>
+        {% csrf_token %}
+        <input type="hidden" name="section" value="impressao">
+        {% include "includes/form_fields.html" with form=form %}
+        <div class="form-actions">
+          <button class="btn btn-primary" type="submit">Salvar impressão</button>
+        </div>
+      </form>
+
+      <div class="print-station-box" data-print-station-box>
+        <h3>Este computador</h3>
+        <p class="help">Esta opção fica salva só neste navegador. Deixe desligada em celulares e computadores sem impressora.</p>
+        <label class="print-station-toggle">
+          <input type="checkbox" data-print-station-toggle>
+          Este computador é uma estação de impressão
+        </label>
+        <label for="print-device-name">Nome deste computador (aparece no histórico)
+          <input id="print-device-name" type="text" maxlength="60" placeholder="Ex.: Balcão" data-print-device-name>
+        </label>
+        <p class="help" data-print-station-status aria-live="polite"></p>
+        <p class="help">Para imprimir sem a janela de confirmação, abra o sistema no Chrome em modo <code>--kiosk-printing</code> (veja o passo a passo no relatório de implantação).</p>
+      </div>
+    </section>
+  {% endwith %}
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  (() => {
+    const box = document.querySelector("[data-print-station-box]");
+    if (!box) return;
+    const toggle = box.querySelector("[data-print-station-toggle]");
+    const nameInput = box.querySelector("[data-print-device-name]");
+    const status = box.querySelector("[data-print-station-status]");
+    const render = () => {
+      const api = window.PFReceiptPrint;
+      if (!api) { status.textContent = "A impressão automática está desligada para o sistema."; toggle.disabled = true; return; }
+      toggle.checked = api.isStation();
+      nameInput.value = api.isStation() ? api.deviceName() : (nameInput.value || "");
+      status.textContent = api.isStation()
+        ? "Ligado: as notas de pagamentos confirmados serão impressas aqui."
+        : "Desligado: este computador não imprime notas sozinho.";
+    };
+    const save = () => window.PFReceiptPrint && window.PFReceiptPrint.setStation(toggle.checked, nameInput.value.trim());
+    toggle.addEventListener("change", () => { save(); render(); });
+    nameInput.addEventListener("change", () => { if (toggle.checked) save(); });
+    window.addEventListener("load", render);
+  })();
+</script>
 {% endblock %}

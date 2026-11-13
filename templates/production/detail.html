@@ -10,6 +10,9 @@
       <p>Criado em {{ order.created_at|date:"d/m/Y H:i" }}{% if order.created_by.is_dev and not user.is_dev %}{% else %} por {{ order.created_by.name }}{% endif %}</p>
     </div>
     <div class="button-row no-print" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+      <button class="btn btn-secondary" type="button" data-reprint-order="{{ order.pk }}" title="Imprimir/reimprimir a nota térmica deste pedido">
+        <i class="fa-solid fa-print" aria-hidden="true"></i> Reimprimir nota
+      </button>
       <a class="btn btn-secondary" href="{% url 'orders:download_receipt' pk=order.pk %}" target="_blank" rel="noopener" title="Gerar comprovante do pedido em PDF">
         <i class="fa-solid fa-file-pdf" aria-hidden="true"></i> Gerar comprovante
       </a>

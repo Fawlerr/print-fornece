@@ -94,6 +94,9 @@ class Order(models.Model):
     correction_reason = models.CharField("motivo da correção / defeito", max_length=255, blank=True, default="")
     discount_advance = models.DecimalField("abatimento / entrada já paga", max_digits=12, decimal_places=2, default=0)
     discount_reason = models.CharField("motivo do abatimento / desconto", max_length=255, blank=True, default="")
+    # A4 — impressão automática da nota ao entrar em "Pagamento confirmado"
+    receipt_print_requested_at = models.DateTimeField("impressão da nota solicitada em", null=True, blank=True)
+    receipt_auto_printed_at = models.DateTimeField("nota impressa automaticamente em", null=True, blank=True)
     notified_whatsapp = models.BooleanField("cliente avisado no WhatsApp", default=False)
     notified_whatsapp_at = models.DateTimeField("cliente avisado em", null=True, blank=True)
     notified_whatsapp_by = models.ForeignKey(
@@ -387,6 +390,30 @@ class OrderStageHistory(models.Model):
         db_table = "pf_order_stage_history"
         ordering = ["-created_at", "-pk"]
         indexes = [models.Index(fields=["order", "created_at"], name="pf_stage_order_date")]
+
+
+class OrderPrintLog(models.Model):
+    """A4: cada impressão da nota (automática ou reimpressão), com quem, quando e onde."""
+
+    class Source(models.TextChoices):
+        AUTOMATIC = "automatica", "Impressão automática"
+        REPRINT = "reimpressao", "Reimpressão"
+
+    order = models.ForeignKey(Order, on_delete=models.PROTECT, related_name="print_logs", verbose_name="pedido")
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="receipt_prints", verbose_name="impresso por")
+    source = models.CharField("origem", max_length=20, choices=Source.choices)
+    device = models.CharField("dispositivo", max_length=60, blank=True)
+    created_at = models.DateTimeField("impresso em", auto_now_add=True)
+
+    class Meta:
+        db_table = "pf_order_print_logs"
+        ordering = ["-created_at", "-pk"]
+        verbose_name = "Impressão de nota"
+        verbose_name_plural = "Impressões de nota"
+        indexes = [models.Index(fields=["order", "created_at"], name="pf_print_order_date")]
+
+    def __str__(self) -> str:
+        return f"{self.order.number} · {self.get_source_display()} · {self.created_at:%d/%m/%Y %H:%M}"
 
 
 class OrderPayment(models.Model):

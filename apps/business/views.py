@@ -9,7 +9,7 @@ from django.shortcuts import redirect, render
 from apps.accounts.permissions import require_administrator
 from apps.audit.services import record_audit
 
-from .forms import BusinessHoursSettingsForm, ShirtDiscountSettingsForm
+from .forms import BusinessHoursSettingsForm, ReceiptPrintSettingsForm, ShirtDiscountSettingsForm
 from .hours import get_business_hours
 from .models import BusinessSettings
 
@@ -20,6 +20,7 @@ SENSITIVE_FIELDS = {"cancellation_pin_hash"}
 SECTION_FORMS = {
     "desconto_camisa": ShirtDiscountSettingsForm,
     "horario": BusinessHoursSettingsForm,
+    "impressao": ReceiptPrintSettingsForm,
 }
 
 

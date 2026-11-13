@@ -190,6 +190,15 @@
   {% endblock %}
 
   <script src="{% static 'js/app.js' %}" defer></script>
+  {% if user.is_authenticated %}
+    <div hidden data-receipt-print-config
+         data-enabled="{% if receipt_print.enabled %}true{% else %}false{% endif %}"
+         data-queue-url="{% url 'orders:receipt_print_queue' %}"
+         data-claim-url="{% url 'orders:receipt_claim' pk=0 %}"
+         data-log-url="{% url 'orders:receipt_log' pk=0 %}"
+         data-nota-url="{% url 'orders:receipt_print' pk=0 %}"></div>
+    <script src="{% static 'js/receipt-print.js' %}" defer></script>
+  {% endif %}
   {% block extra_scripts %}{% endblock %}
 </body>
 </html>

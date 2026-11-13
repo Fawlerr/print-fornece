@@ -574,6 +574,77 @@ def calculate_order_quote(request):
     return JsonResponse({"ok": True, "quote": quote.payload()})
 
 
+@login_required
+def receipt_print_view(request, pk: int):
+    """A4: nota em HTML pronta para impressão térmica (window.print / Chrome kiosk)."""
+    from apps.business.models import BusinessSettings
+
+    from .receipt import build_receipt_context
+
+    order = get_object_or_404(Order.objects.select_related("responsible", "created_by", "payment_confirmed_by").prefetch_related("items"), pk=pk)
+    require_order_access(request.user, order)
+    context = build_receipt_context(order, paper_width_mm=BusinessSettings.load().receipt_paper_width)
+    context["autoprint"] = request.GET.get("autoprint") == "1"
+    return render(request, "orders/receipt_print.html", context)
+
+
+def _json_body(request) -> dict:
+    try:
+        data = json.loads(request.body or "{}")
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def _print_info(order: Order) -> dict:
+    from .printing import last_print
+
+    log = last_print(order)
+    return {
+        "id": order.pk,
+        "number": order.number,
+        "already_printed": log is not None,
+        "printed_at_display": timezone.localtime(log.created_at).strftime("%d/%m às %H:%M") if log else "",
+        "printed_by": (log.user.name or log.user.email) if log and log.user else "",
+    }
+
+
+@login_required
+@require_POST
+def receipt_claim(request, pk: int):
+    """A4: reserva atômica da impressão automática (evita nota impressa duas vezes)."""
+    from .printing import claim_auto_print
+
+    order = get_object_or_404(Order, pk=pk)
+    require_order_access(request.user, order)
+    device = str(_json_body(request).get("device") or "")
+    claimed = claim_auto_print(order=order, actor=request.user, device=device, request=request)
+    return JsonResponse({"claimed": claimed, **_print_info(order)})
+
+
+@login_required
+@require_POST
+def receipt_log(request, pk: int):
+    """A4: registra uma reimpressão (botão "Reimprimir nota")."""
+    from .models import OrderPrintLog
+    from .printing import record_print
+
+    order = get_object_or_404(Order, pk=pk)
+    require_order_access(request.user, order)
+    body = _json_body(request)
+    record_print(order=order, actor=request.user, source=OrderPrintLog.Source.REPRINT, device=str(body.get("device") or ""), request=request)
+    return JsonResponse({"ok": True, **_print_info(order)})
+
+
+@login_required
+def receipt_print_queue(request):
+    """A4: notas aguardando impressão automática (consultado pela estação de impressão)."""
+    from .printing import pending_auto_print_orders
+
+    orders = [{"id": o.pk, "number": o.number} for o in pending_auto_print_orders()[:20]]
+    return JsonResponse({"orders": orders})
+
+
 def calculate_cart_quote(request):
     """Recalcula o carrinho inteiro no servidor (inclui o desconto por camisa).
 

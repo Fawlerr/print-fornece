@@ -78,6 +78,7 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "apps.notifications.context_processors.navigation_notifications",
+                "apps.business.context_processors.receipt_print",
             ],
         },
     },

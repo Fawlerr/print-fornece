@@ -911,3 +911,14 @@ label.required {
 
 /* ===== A3 — Horário de funcionamento ===== */
 .public-business-hours { margin: 24px 0 0; text-align: center; font-size: 0.86rem; color: #94a3b8; }
+
+/* ===== A4 — Impressão da nota ===== */
+.receipt-print-frame { position: fixed; right: 0; bottom: 0; width: 1px; height: 1px; border: 0; opacity: 0; pointer-events: none; }
+.kanban-print-receipt-btn { display: inline-flex; align-items: center; gap: 4px; min-height: 32px; font-size: 0.72rem; font-weight: 700; color: #38bdf8; background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.35); padding: 3px 8px; border-radius: 5px; cursor: pointer; }
+.print-toast { position: fixed; left: 50%; bottom: calc(80px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 9999; max-width: calc(100vw - 32px); padding: 10px 16px; border-radius: 8px; background: #14532d; color: #f0fdf4; font-weight: 600; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35); }
+.print-toast.is-error { background: #7f1d1d; color: #fef2f2; }
+.print-station-box { margin-top: 18px; padding-top: 14px; border-top: 1px solid rgba(148, 163, 184, 0.25); display: grid; gap: 10px; }
+.print-station-box h3 { margin: 0; font-size: 1rem; }
+.print-station-box .help { margin: 0; font-size: 0.84rem; color: #94a3b8; }
+.print-station-toggle { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; font-weight: 700; }
+.print-station-toggle input { width: 22px; height: 22px; accent-color: #16a34a; }
