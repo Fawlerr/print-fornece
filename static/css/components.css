@@ -308,3 +308,9 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--brand); width:
 .topbar-title { min-width: 0; flex: 1 1 auto; }
 .topbar-title h1 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .topbar-actions { flex: 0 0 auto; }
+
+/* Kanban no celular: estado inicial já no HTML (sem deslocamento de layout ao carregar) */
+@media (max-width: 767px) {
+  .kanban-mobile-tabs { min-height: 60px; }
+  .kanban.is-tabbed:not(.has-current) .kanban-column:first-child { display: block; }
+}

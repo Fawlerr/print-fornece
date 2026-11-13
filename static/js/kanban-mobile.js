@@ -28,6 +28,7 @@
   let tabs = null;
   const select = (stage) => {
     columns().forEach((col) => col.classList.toggle("is-current", col.dataset.stage === stage));
+    board.classList.add("has-current");
     if (tabs) {
       tabs.querySelectorAll("button").forEach((b) => {
         const on = b.dataset.stage === stage;
@@ -53,18 +54,22 @@
       b.addEventListener("click", () => select(col.dataset.stage));
       tabs.appendChild(b);
     });
-    const first = columns().find((c) => c.dataset.stage === current) || columns().find((c) => countOf(c) > 0) || columns()[0];
+    // Sem escolha salva, fica na primeira etapa (a mesma que o CSS já mostra), sem "pulo" de layout.
+    const first = columns().find((c) => c.dataset.stage === current) || columns()[0];
     if (first) select(first.dataset.stage);
   };
 
   const applyMode = () => {
     if (MOBILE.matches) {
       if (!tabs) {
-        tabs = document.createElement("div");
-        tabs.className = "kanban-mobile-tabs";
-        tabs.setAttribute("role", "tablist");
-        tabs.setAttribute("aria-label", "Etapas do quadro");
-        board.parentElement.insertBefore(tabs, board);
+        tabs = document.querySelector("[data-kanban-tabs]");
+        if (!tabs) {
+          tabs = document.createElement("div");
+          tabs.className = "kanban-mobile-tabs";
+          tabs.setAttribute("role", "tablist");
+          tabs.setAttribute("aria-label", "Etapas do quadro");
+          board.parentElement.insertBefore(tabs, board);
+        }
         tabs.addEventListener("keydown", (e) => {
           if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
           const buttons = Array.from(tabs.querySelectorAll("button"));
@@ -76,9 +81,9 @@
       board.classList.add("is-tabbed");
       renderTabs();
     } else {
-      board.classList.remove("is-tabbed");
+      board.classList.remove("has-current");
       columns().forEach((col) => col.classList.remove("is-current"));
-      if (tabs) { tabs.remove(); tabs = null; }
+      if (tabs) { tabs.innerHTML = ""; }
     }
   };
 
