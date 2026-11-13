@@ -1,10 +1,10 @@
 {% load static %}
 <!doctype html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-theme="{% if user.is_authenticated and user.ui_theme == 'light' %}light{% else %}dark{% endif %}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#0B0D0C">
+  <meta name="theme-color" content="{% if user.is_authenticated and user.ui_theme == 'light' %}#F5F6F2{% else %}#0E1210{% endif %}">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
@@ -18,6 +18,11 @@
   <link rel="stylesheet" href="{% static 'css/overrides.css' %}">
   <link rel="stylesheet" href="{% static 'css/django.css' %}">
   <link rel="stylesheet" href="{% static 'css/print-fornece-updates.css' %}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,600..800&family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="{% static 'css/tokens.css' %}">
+  <link rel="stylesheet" href="{% static 'css/components.css' %}">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" referrerpolicy="no-referrer">
   {% block extra_head %}{% endblock %}
 </head>
@@ -47,13 +52,13 @@
           </div>
           <div class="topbar-actions">
             <!-- Botão de Changelog / Novidades -->
-            <button class="topbar-changelog-btn" type="button" data-open-changelog title="Histórico de atualizações e novidades" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 8px; background: rgba(59, 130, 246, 0.12); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); font-size: 0.82rem; font-weight: 600; cursor: pointer; transition: all 0.2s ease;">
+            <button class="topbar-changelog-btn" type="button" data-open-changelog title="Histórico de atualizações e novidades" aria-label="Novidades do sistema" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 8px; background: var(--st-pronto-bg); color: var(--st-pronto-fg); border: 1px solid color-mix(in srgb, var(--st-pronto-fg) 55%, transparent); font-size: 0.82rem; font-weight: 600; cursor: pointer; transition: all 0.2s ease;">
               <i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i>
               <span class="desktop-only">Changelog</span>
             </button>
 
             <!-- Botão de Reportar Bug -->
-            <button class="topbar-bug-btn" type="button" data-open-bug-report title="Reportar um bug ou problema" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 8px; background: rgba(239, 68, 68, 0.12); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); font-size: 0.82rem; font-weight: 600; cursor: pointer; transition: all 0.2s ease;">
+            <button class="topbar-bug-btn" type="button" data-open-bug-report title="Reportar um bug ou problema" aria-label="Reportar um problema" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 8px; background: var(--st-cancelado-bg); color: var(--st-cancelado-fg); border: 1px solid color-mix(in srgb, var(--st-cancelado-fg) 55%, transparent); font-size: 0.82rem; font-weight: 600; cursor: pointer; transition: all 0.2s ease;">
               <i class="fa-solid fa-bug" aria-hidden="true"></i>
               <span class="desktop-only">Reportar Bug</span>
             </button>
@@ -65,11 +70,20 @@
             </button>
 
             <!-- Botão de Notificações Push -->
-            <button class="pwa-push-btn" id="pwa-push-btn" type="button" title="Ativar notificações push no celular/navegador">
+            <button class="pwa-push-btn" id="pwa-push-btn" type="button" title="Ativar notificações push no celular/navegador" aria-label="Ativar notificações push">
               <i class="fa-solid fa-bell" aria-hidden="true"></i>
               <span>Ativar Push</span>
             </button>
 
+            {% if user.is_authenticated %}
+              <form method="post" action="{% url 'accounts:toggle_theme' %}" class="theme-toggle-form">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                <button class="theme-toggle" type="submit" aria-label="{% if user.ui_theme == 'light' %}Usar tema escuro{% else %}Usar tema claro{% endif %}" title="{% if user.ui_theme == 'light' %}Usar tema escuro{% else %}Usar tema claro{% endif %}">
+                  <i class="fa-solid {% if user.ui_theme == 'light' %}fa-moon{% else %}fa-sun{% endif %}" aria-hidden="true"></i>
+                </button>
+              </form>
+            {% endif %}
             <div class="notification-area">
               <a class="notification-bell" href="{% url 'notifications:list' %}" aria-label="Notificações">
                 <i class="fa-regular fa-bell" aria-hidden="true"></i>
@@ -111,7 +125,7 @@
         <nav class="mobile-bottom-nav" aria-label="Navegação inferior mobile">
           {% if user.is_administrator %}
             <a href="{% url 'dashboard:index' %}" class="mobile-nav-item{% if request.resolver_match.app_name == 'dashboard' %} active{% endif %}">
-              <i class="fa-solid fa-chart-pie"></i>
+              <i class="fa-solid fa-chart-pie" aria-hidden="true"></i>
               <span>Visão geral</span>
             </a>
           {% endif %}
@@ -125,7 +139,7 @@
           </a>
           {% if user.is_administrator %}
             <a href="{% url 'expenses:list' %}" class="mobile-nav-item{% if request.resolver_match.app_name == 'expenses' %} active{% endif %}">
-              <i class="fa-solid fa-wallet"></i>
+              <i class="fa-solid fa-wallet" aria-hidden="true"></i>
               <span>Despesas</span>
             </a>
           {% endif %}

@@ -60,7 +60,7 @@ class ClienteForm(forms.ModelForm):
             "observacoes": "Observações / Instruções",
         }
         widgets = {
-            "telefone": forms.TextInput(attrs={"data-whatsapp": ""}),
+            "telefone": forms.TextInput(attrs={"data-whatsapp": "", "type": "tel", "inputmode": "tel", "autocomplete": "tel"}),
             "observacoes": forms.Textarea(attrs={"rows": 3}),
         }
 

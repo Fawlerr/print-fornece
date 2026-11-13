@@ -55,6 +55,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     current_login_at = models.DateTimeField("início da sessão atual", null=True, blank=True)
     last_seen_page = models.CharField("última página acessada", max_length=255, blank=True, default="")
     last_seen_device = models.CharField("dispositivo", max_length=100, blank=True, default="")
+    # Rebranding: tema da interface escolhido por usuário (escuro é o padrão).
+    ui_theme = models.CharField("tema da interface", max_length=10, choices=[("dark", "Escuro"), ("light", "Claro")], default="dark")
     date_joined = models.DateTimeField("criado em", auto_now_add=True)
     updated_at = models.DateTimeField("atualizado em", auto_now=True)
 

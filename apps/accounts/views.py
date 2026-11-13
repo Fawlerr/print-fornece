@@ -4,6 +4,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login, logout, update_session_auth_hash
 from django.contrib.auth import views as auth_views
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.cache import cache
 from django.http import HttpRequest, HttpResponse, JsonResponse
@@ -335,3 +336,18 @@ class BeaconOfflineView(View):
         return HttpResponse(status=204)
 
 
+
+
+@login_required
+@require_POST
+def toggle_theme(request):
+    """Troca o tema (escuro/claro) do usuário logado e volta para a página de origem."""
+    user = request.user
+    user.ui_theme = "light" if user.ui_theme != "light" else "dark"
+    user.save(update_fields=["ui_theme", "updated_at"])
+    if request.headers.get("Accept") == "application/json":
+        return JsonResponse({"theme": user.ui_theme})
+    next_url = request.POST.get("next") or "/"
+    if not url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}, require_https=request.is_secure()):
+        next_url = "/"
+    return redirect(next_url)

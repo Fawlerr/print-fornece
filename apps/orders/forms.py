@@ -61,7 +61,7 @@ class OrderForm(forms.ModelForm):
         widgets = {
             "description": forms.Textarea(attrs={"maxlength": 5000}),
             "internal_notes": forms.Textarea(attrs={"maxlength": 5000}),
-            "client_whatsapp": forms.TextInput(attrs={"data-whatsapp": "", "inputmode": "numeric", "maxlength": 25}),
+            "client_whatsapp": forms.TextInput(attrs={"data-whatsapp": "", "type": "tel", "inputmode": "tel", "autocomplete": "tel", "maxlength": 25}),
             "total_amount": forms.TextInput(attrs={"data-money": "", "inputmode": "decimal"}),
             "paid_amount": forms.TextInput(attrs={"data-money": "", "inputmode": "decimal"}),
             "discount_advance": forms.TextInput(attrs={"data-money": "", "inputmode": "decimal"}),

@@ -1,0 +1,92 @@
+/* ==========================================================================
+   Print Fornece — Design tokens (rebranding aprovado em docs/rebranding/guia-visual.html)
+   Toda cor, fonte, espaço, raio e sombra do sistema vem daqui.
+   Tema escuro é o padrão; o tema claro é escolhido por usuário (data-theme="light").
+   ========================================================================== */
+:root,
+[data-theme="dark"] {
+  color-scheme: dark;
+  --font-display: "Archivo", "Arial Narrow", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+
+  --bg: #0E1210;
+  --surface: #161B18;
+  --surface-2: #1E2420;
+  --surface-3: #262D28;
+  --line: #2C342F;
+  --line-strong: #3B453F;
+  --text: #EEF2EE;
+  --muted: #A3AEA7;
+  --brand: #2FBF6A;
+  --brand-ink: #06140B;
+  --brand-text: #4ADE80;
+  --brand-soft: #12301D;
+  --danger: #C62828;
+  --danger-ink: #FFFFFF;
+  --focus: #FACC15;
+  --overlay: rgba(0, 0, 0, 0.6);
+
+  /* Etapas do pedido: uma tinta por etapa (texto sobre fundo, contraste AA) */
+  --st-novo-fg: #67E8F9; --st-novo-bg: #0B2A30;
+  --st-aguardando-fg: #FDE047; --st-aguardando-bg: #2E2706;
+  --st-confirmado-fg: #86EFAC; --st-confirmado-bg: #0D2B19;
+  --st-pre-fg: #F0ABFC; --st-pre-bg: #2D0F31;
+  --st-producao-fg: #FDBA74; --st-producao-bg: #33190A;
+  --st-pronto-fg: #93C5FD; --st-pronto-bg: #0F1F3A;
+  --st-entregue-fg: #CBD5E1; --st-entregue-bg: #1E2329;
+  --st-cancelado-fg: #FCA5A5; --st-cancelado-bg: #3A1212;
+
+  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px; --space-5: 24px; --space-6: 32px; --space-7: 48px;
+  --radius-sm: 4px; --radius-md: 6px; --radius-lg: 10px; --radius-pill: 999px;
+  --shadow-1: 0 1px 0 rgba(0, 0, 0, 0.35);
+  --shadow-2: 0 6px 16px rgba(0, 0, 0, 0.35);
+  --tap: 44px;
+  --fs-xs: 12px; --fs-sm: 14px; --fs-md: 16px; --fs-lg: 18px; --fs-xl: 22px; --fs-2xl: 28px; --fs-3xl: 36px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+
+  /* Ponte com as variáveis antigas (CSS legado passa a seguir os tokens) */
+  --panel: var(--surface);
+  --panel-2: var(--surface-2);
+  --green: var(--brand);
+  --green-dark: var(--brand-soft);
+  --red: var(--st-cancelado-fg);
+  --yellow: var(--st-aguardando-fg);
+  --blue: var(--st-pronto-fg);
+  --radius: var(--radius-lg);
+  --shadow: var(--shadow-2);
+  --border-color: var(--line);
+  --color-success: var(--brand-text);
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+  --bg: #F5F6F2;
+  --surface: #FFFFFF;
+  --surface-2: #EEF1EC;
+  --surface-3: #E3E8E2;
+  --line: #DCE1DB;
+  --line-strong: #C3CBC3;
+  --text: #141A16;
+  --muted: #56615A;
+  --brand: #1A7A43;
+  --brand-ink: #FFFFFF;
+  --brand-text: #1A7A43;
+  --brand-soft: #DFF2E6;
+  --danger: #B42318;
+  --focus: #B45309;
+  --overlay: rgba(20, 26, 22, 0.45);
+
+  --st-novo-fg: #0E6676; --st-novo-bg: #DDF5F9;
+  --st-aguardando-fg: #7A5A00; --st-aguardando-bg: #FFF4C2;
+  --st-confirmado-fg: #17663A; --st-confirmado-bg: #DCF5E5;
+  --st-pre-fg: #8E2A9B; --st-pre-bg: #F8E3FB;
+  --st-producao-fg: #9A3F06; --st-producao-bg: #FFE9D6;
+  --st-pronto-fg: #1D4FA8; --st-pronto-bg: #E0ECFF;
+  --st-entregue-fg: #46525F; --st-entregue-bg: #E9EDF1;
+  --st-cancelado-fg: #A3201E; --st-cancelado-bg: #FDE3E3;
+
+  --shadow-1: 0 1px 0 rgba(20, 26, 22, 0.08);
+  --shadow-2: 0 6px 16px rgba(20, 26, 22, 0.10);
+}

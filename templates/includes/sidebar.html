@@ -1,7 +1,8 @@
 {% load static %}
 <aside class="sidebar" id="sidebar" aria-label="Navegação principal">
   <div class="brand">
-    <img class="brand-logo" src="{% static 'logo.png' %}" alt="Print Fornece">
+    <img class="brand-logo brand-logo--dark" src="{% static 'logo.png' %}" alt="Print Fornece">
+    <img class="brand-logo brand-logo--light" src="{% static 'logo_receipt.png' %}" alt="Print Fornece">
     <button class="icon-button mobile-only" type="button" data-menu-close aria-label="Fechar menu">
       <i class="fa-solid fa-xmark" aria-hidden="true"></i>
     </button>
@@ -46,9 +47,9 @@
     {% endif %}
     {% if user.is_dev or user.is_superuser %}
       <a href="{% url 'payments:stone_dev_console' %}"{% if '/payments/stone/' in request.path %} class="active" aria-current="page"{% endif %} title="Console Dev & Observabilidade Stone V5">
-        <i class="fa-solid fa-code" aria-hidden="true" style="color: #38bdf8;"></i>
+        <i class="fa-solid fa-code" aria-hidden="true" style="color: var(--st-novo-fg);"></i>
         <span>Stone Dev</span>
-        <span style="margin-left: auto; font-size: 0.65rem; background: rgba(56, 189, 248, 0.2); color: #38bdf8; padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(56, 189, 248, 0.4); font-weight: 700;">DEV</span>
+        <span style="margin-left: auto; font-size: 0.65rem; background: var(--st-novo-bg); color: var(--st-novo-fg); padding: 2px 6px; border-radius: 4px; border: 1px solid color-mix(in srgb, var(--st-novo-fg) 55%, transparent); font-weight: 700;">DEV</span>
       </a>
     {% endif %}
 
@@ -89,7 +90,7 @@
     </div>
     {% if user.is_administrator or user.is_dev %}
     <div class="sidebar-user-session" id="sidebarSelfSessionTimer" title="Tempo da sua sessão ativa">
-      <i class="fa-solid fa-stopwatch" style="color: #24d366; font-size: 0.75rem;"></i>
+      <i class="fa-solid fa-stopwatch" style="color: var(--brand-text); font-size: 0.75rem;"></i>
       <span>Online: <strong id="selfLiveTimer" data-self-start="{{ user.current_login_at.isoformat|default:'' }}">00:00:00</strong></span>
     </div>
     {% endif %}
