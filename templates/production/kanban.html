@@ -21,37 +21,37 @@
   </div>
 
   {% if daily_capacity %}
-    <section class="card card-pad no-print" style="margin-bottom: 20px; background: var(--bg-surface-elevated, #182230); border: 1px solid var(--border-color, rgba(255,255,255,0.08));">
+    <section class="card card-pad no-print" style="margin-bottom: 20px; background: var(--bg-surface-elevated, var(--surface)); border: 1px solid var(--border-color, var(--line));">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
         <h3 style="margin: 0; font-size: 0.95rem; display: flex; align-items: center; gap: 8px;">
-          <i class="fa-solid fa-gauge-high" style="color: #38bdf8;"></i> Capacidade Diária de Produção (Limite: 25m por Turno)
+          <i class="fa-solid fa-gauge-high" style="color: var(--st-novo-fg);"></i> Capacidade Diária de Produção (Limite: 25m por Turno)
         </h3>
         <span class="text-muted" style="font-size: 0.8rem;">Limite diário por turno</span>
       </div>
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px;">
+      <div class="capacity-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px;">
         {% for cap in daily_capacity %}
-          <div style="background: rgba(255,255,255,0.03); padding: 10px 14px; border-radius: 8px; border: 1px solid {% if cap.is_exceeded %}#ef4444{% elif cap.is_warning %}#f59e0b{% else %}rgba(255,255,255,0.06){% endif %};">
+          <div style="background: var(--surface-2); padding: 10px 14px; border-radius: 8px; border: 1px solid {% if cap.is_exceeded %}var(--st-cancelado-fg){% elif cap.is_warning %}var(--st-producao-fg){% else %}var(--line){% endif %};">
             <div style="display: flex; justify-content: space-between; font-size: 0.82rem; margin-bottom: 4px;">
               <strong>{{ cap.material_name }} ({{ cap.shift_label }})</strong>
-              <span style="font-weight: 700; color: {% if cap.is_exceeded %}#ef4444{% elif cap.is_warning %}#f59e0b{% else %}#10b981{% endif %};">
+              <span style="font-weight: 700; color: {% if cap.is_exceeded %}var(--st-cancelado-fg){% elif cap.is_warning %}var(--st-producao-fg){% else %}var(--brand-text){% endif %};">
                 {{ cap.used_meters|floatformat:1 }}m / {{ cap.limit_meters|floatformat:0 }}m
               </span>
             </div>
             <!-- Barra Principal: Fila / Em Produção (libera ao ir para Pronto p/ Retirada) -->
-            <div style="height: 6px; background: rgba(255,255,255,0.1); border-radius: 999px; overflow: hidden;" title="Fila / Em Produção: {{ cap.used_meters|floatformat:1 }}m">
-              <div style="width: {{ cap.percentage }}%; height: 100%; background-color: {% if cap.is_exceeded %}#ef4444{% elif cap.is_warning %}#f59e0b{% else %}#10b981{% endif %}; transition: width 0.3s;"></div>
+            <div style="height: 6px; background: var(--surface-3); border-radius: 999px; overflow: hidden;" title="Fila / Em Produção: {{ cap.used_meters|floatformat:1 }}m">
+              <div style="width: {{ cap.percentage }}%; height: 100%; background-color: {% if cap.is_exceeded %}var(--danger){% elif cap.is_warning %}var(--st-producao-fg){% else %}var(--brand){% endif %}; transition: width 0.3s;"></div>
             </div>
-            <div style="display: flex; justify-content: space-between; margin-top: 4px; font-size: 0.72rem; color: var(--muted, #9ca3af);">
+            <div style="display: flex; justify-content: space-between; margin-top: 4px; font-size: 0.72rem; color: var(--muted, var(--muted));">
               <span>{{ cap.percentage }}% em fila/produção</span>
-              <span>{% if cap.is_exceeded %}<b style="color: #ef4444;">Limite Excedido!</b>{% else %}{{ cap.remaining_meters|floatformat:1 }}m disponível{% endif %}</span>
+              <span>{% if cap.is_exceeded %}<b style="color: var(--st-cancelado-fg);">Limite Excedido!</b>{% else %}{{ cap.remaining_meters|floatformat:1 }}m disponível{% endif %}</span>
             </div>
             <!-- Sub-barra: Concluído / Pronto p/ Retirada -->
             {% if cap.completed_meters > 0 %}
-              <div style="margin-top: 6px; padding-top: 6px; border-top: 1px dashed rgba(255,255,255,0.08); display: flex; justify-content: space-between; align-items: center; font-size: 0.70rem;">
-                <span style="color: #38bdf8; display: flex; align-items: center; gap: 4px;">
+              <div style="margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--line); display: flex; justify-content: space-between; align-items: center; font-size: 0.70rem;">
+                <span style="color: var(--st-novo-fg); display: flex; align-items: center; gap: 4px;">
                   <i class="fa-solid fa-circle-check"></i> Pronto p/ Retirada (Liberado):
                 </span>
-                <strong style="color: #38bdf8;">{{ cap.completed_meters|floatformat:1 }}m</strong>
+                <strong style="color: var(--st-novo-fg);">{{ cap.completed_meters|floatformat:1 }}m</strong>
               </div>
             {% endif %}
           </div>
@@ -60,7 +60,10 @@
     </section>
   {% endif %}
 
-  <form class="card filters no-print" method="get">
+  <button class="btn btn-secondary kanban-filters-toggle no-print" type="button" data-toggle-filters aria-expanded="{% if request.GET %}true{% else %}false{% endif %}" aria-controls="kanban-filters">
+    <i class="fa-solid fa-filter" aria-hidden="true"></i> Filtros{% if request.GET %} (ativos){% endif %}
+  </button>
+  <form class="card filters no-print{% if not request.GET %} is-collapsed{% endif %}" id="kanban-filters" method="get">
     <label for="{{ filter_form.search.id_for_label }}">Buscar{{ filter_form.search }}</label>
     <label for="{{ filter_form.stage.id_for_label }}">Etapa{{ filter_form.stage }}</label>
     <label for="{{ filter_form.material_type.id_for_label }}">Material{{ filter_form.material_type }}</label>
@@ -97,4 +100,5 @@
 {% block extra_scripts %}
   {% load static %}
   <script src="{% static 'js/kanban-live.js' %}" defer></script>
+  <script src="{% static 'js/kanban-mobile.js' %}" defer></script>
 {% endblock %}

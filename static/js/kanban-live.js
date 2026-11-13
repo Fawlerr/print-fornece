@@ -58,6 +58,7 @@
     }
   };
 
+  window.PFKanbanLive = { poll };
   setInterval(poll, POLL_MS);
   document.addEventListener("visibilitychange", () => { if (!document.hidden) poll(); });
 })();
