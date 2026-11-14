@@ -85,17 +85,26 @@ def _base_context() -> dict:
     total_logs = StoneLogIntegracao.objects.count()
     error_logs = StoneLogIntegracao.objects.filter(nivel="ERROR").count()
     last_log = StoneLogIntegracao.objects.first()
+    raw_env = getattr(settings, "STONE_ENVIRONMENT", "sandbox").strip().lower()
+    secret_key = getattr(settings, "STONE_SECRET_KEY", "") or ""
+    public_key = getattr(settings, "STONE_PUBLIC_KEY", "") or ""
+    account_id = getattr(settings, "STONE_ACCOUNT_ID", "") or ""
+    api_base_url = getattr(settings, "STONE_API_BASE_URL", "https://api.pagar.me/core/v5")
 
     return {
-        "stone_environment": getattr(settings, "STONE_ENVIRONMENT", "TEST").upper(),
-        "stone_is_sandbox": getattr(settings, "STONE_ENVIRONMENT", "test").lower() == "test",
-        "stone_public_key": getattr(settings, "STONE_PUBLIC_KEY", ""),
-        "stone_public_key_masked": mask_secret(getattr(settings, "STONE_PUBLIC_KEY", "")),
-        "stone_server_configured": bool(getattr(settings, "STONE_SECRET_KEY", "")),
-        "stone_secret_key_masked": mask_secret(getattr(settings, "STONE_SECRET_KEY", "")),
-        "stone_account_id_masked": mask_secret(getattr(settings, "STONE_ACCOUNT_ID", "")),
-        "stone_account_type": getattr(settings, "STONE_ACCOUNT_TYPE", ""),
-        "stone_api_base_url": getattr(settings, "STONE_API_BASE_URL", "https://api.pagar.me/core/v5"),
+        "stone_environment": raw_env.upper(),
+        "stone_environment_lower": raw_env,
+        "stone_is_sandbox": raw_env in {"sandbox", "test"},
+        "stone_is_production": raw_env in {"production", "prod", "live"},
+        "stone_public_key": public_key,
+        "stone_public_key_masked": mask_secret(public_key),
+        "stone_server_configured": bool(secret_key and secret_key.startswith("sk_")),
+        "stone_secret_key_masked": mask_secret(secret_key),
+        "stone_account_id": account_id,
+        "stone_account_id_masked": mask_secret(account_id),
+        "stone_account_type": getattr(settings, "STONE_ACCOUNT_TYPE", "gateway"),
+        "stone_api_base_url": api_base_url,
+        "stone_base_url": api_base_url,
         "stone_pix_expires_in": getattr(settings, "STONE_PIX_EXPIRES_IN", 86400),
         "stone_idempotency_ttl": getattr(settings, "STONE_IDEMPOTENCY_TTL_SECONDS", 300),
         "stone_timeout_seconds": getattr(settings, "STONE_TIMEOUT_SECONDS", 15),
@@ -308,7 +317,7 @@ def atualizar_pagamento(request: HttpRequest, pk: int) -> HttpResponse:
     return redirect("payments:stone_pagamento_detalhe", pk=payment.pk)
 
 
-@dev_or_admin_required
+@login_required
 @require_GET
 def pix_qr(request: HttpRequest, pk: int) -> HttpResponse:
     payment = get_object_or_404(Pagamento, pk=pk)
@@ -592,33 +601,50 @@ def api_executar_suite_testes(request: HttpRequest) -> JsonResponse:
         "tempo_ms": 1,
     })
 
-    # Teste 2: Ambiente identificado como Sandbox
-    is_sandbox = getattr(settings, "STONE_ENVIRONMENT", "test").lower() == "test"
+    # Teste 2: Ambiente configurado (Sandbox ou Production)
+    from .services.logger import mask_secret
+
+    raw_env = getattr(settings, "STONE_ENVIRONMENT", "sandbox").strip().lower()
+    valid_env = raw_env in {"sandbox", "production", "test"}
     testes_resultados.append({
         "id": "ambiente_sandbox",
-        "nome": "Ambiente identificado como Sandbox",
-        "status": "PASS" if is_sandbox else "FAIL",
-        "detalhes": f"STONE_ENVIRONMENT configurado como '{getattr(settings, 'STONE_ENVIRONMENT', 'test')}'. Trava de segurança ativa.",
+        "nome": "Ambiente Stone V5 configurado",
+        "status": "PASS" if valid_env else "FAIL",
+        "detalhes": (
+            f"STONE_ENVIRONMENT configurado como '{raw_env}' (Conta: {mask_secret(getattr(settings, 'STONE_ACCOUNT_ID', '')) or 'padrão'})."
+            if valid_env
+            else f"STONE_ENVIRONMENT inválido: '{raw_env}'. Defina 'sandbox' ou 'production'."
+        ),
         "tempo_ms": 1,
     })
 
     # Teste 3: Credencial Stone Secreta Configurada
-    has_secret = bool(getattr(settings, "STONE_SECRET_KEY", ""))
+    secret_key = getattr(settings, "STONE_SECRET_KEY", "") or ""
+    has_secret = bool(secret_key and secret_key.startswith("sk_"))
     testes_resultados.append({
         "id": "credencial_secreta",
-        "nome": "STONE_SECRET_KEY presente",
+        "nome": "STONE_SECRET_KEY presente e válida (sk_...)",
         "status": "PASS" if has_secret else "FAIL",
-        "detalhes": "Chave secreta configurada no settings." if has_secret else "STONE_SECRET_KEY ausente.",
+        "detalhes": (
+            f"Chave secreta V5 configurada no settings ({mask_secret(secret_key)})."
+            if has_secret
+            else "STONE_SECRET_KEY ausente ou fora do formato 'sk_...'."
+        ),
         "tempo_ms": 1,
     })
 
     # Teste 4: Chave pública presente
-    has_public = bool(getattr(settings, "STONE_PUBLIC_KEY", ""))
+    public_key = getattr(settings, "STONE_PUBLIC_KEY", "") or ""
+    has_public = bool(public_key and public_key.startswith("pk_"))
     testes_resultados.append({
         "id": "credencial_publica",
-        "nome": "STONE_PUBLIC_KEY configurada para tokenização",
+        "nome": "STONE_PUBLIC_KEY configurada para tokenização (pk_...)",
         "status": "PASS" if has_public else "WARNING",
-        "detalhes": "Chave pública configurada para o navegador." if has_public else "Chave pública ausente.",
+        "detalhes": (
+            f"Chave pública V5 configurada para o navegador ({mask_secret(public_key)})."
+            if has_public
+            else "Chave pública ausente ou fora do formato 'pk_...'."
+        ),
         "tempo_ms": 1,
     })
 

@@ -237,3 +237,28 @@ class StoneIntegrationTestCase(TestCase):
         data = response.json()
         self.assertIn("testes", data)
         self.assertGreater(data["total_testes"], 0)
+
+    @override_settings(
+        STONE_ENVIRONMENT="production",
+        STONE_ACCOUNT_ID="acc_EBZAgeuxaf084Xe1",
+        STONE_SECRET_KEY="sk_a9728e9512964df184ac0b09b8b436d1",
+        STONE_PUBLIC_KEY="pk_v6krKPwcoaS1pd8G",
+    )
+    def test_stone_key_masking_and_environment_suite(self):
+        from apps.payments.stone.services.logger import mask_secret
+
+        self.assertEqual(mask_secret("acc_EBZAgeuxaf084Xe1"), "acc_••••••••4Xe1")
+        self.assertEqual(mask_secret("sk_a9728e9512964df184ac0b09b8b436d1"), "sk_••••••••36d1")
+        self.assertEqual(mask_secret("pk_v6krKPwcoaS1pd8G"), "pk_••••••••pd8G")
+
+        self.client.force_login(self.dev_user)
+        with patch("apps.payments.stone.services.stone.StoneService.test_connectivity", return_value={"_stone_http_status": 200}), \
+             patch("apps.payments.stone.services.stone.StoneService._request", side_effect=StoneAPIError("Erro de validação simulado", http_status=400, response_json={"type": "invalid_parameter"})):
+            response = self.client.post(reverse("payments:stone_api_executar_suite_testes"))
+            self.assertEqual(response.status_code, 200)
+            data = response.json()
+            self.assertTrue(data["passou"])
+            statuses = {t["id"]: t["status"] for t in data["testes"]}
+            self.assertEqual(statuses["ambiente_sandbox"], "PASS")
+            self.assertEqual(statuses["credencial_secreta"], "PASS")
+            self.assertEqual(statuses["credencial_publica"], "PASS")

@@ -29,10 +29,10 @@
     <div style="background: var(--surface, var(--st-pronto-bg)); border: 1px solid var(--border, var(--line)); border-radius: 8px; padding: 14px 18px;">
       <small style="color: var(--muted, var(--muted)); text-transform: uppercase; font-size: 0.72rem; font-weight: 700;">Ambiente Ativo</small>
       <div style="display: flex; align-items: center; gap: 8px; margin-top: 6px;">
-        <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: {% if stone_environment == 'production' %}var(--danger){% else %}var(--st-aguardando-bg){% endif %};"></span>
+        <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: {% if stone_is_production %}var(--brand){% else %}var(--st-aguardando-fg){% endif %};"></span>
         <strong style="font-size: 1.15rem; color: var(--text); text-transform: uppercase;">{{ stone_environment|default:'sandbox' }}</strong>
       </div>
-      <small style="color: var(--muted); font-size: 0.74rem; display: block; margin-top: 4px;">{{ stone_base_url }}</small>
+      <small style="color: var(--muted); font-size: 0.74rem; display: block; margin-top: 4px;">{{ stone_api_base_url }}</small>
     </div>
 
     <div style="background: var(--surface, var(--st-pronto-bg)); border: 1px solid var(--border, var(--line)); border-radius: 8px; padding: 14px 18px;">

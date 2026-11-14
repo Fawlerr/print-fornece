@@ -26,9 +26,9 @@
         </span>
       </a>
 
-      <div class="badge-sandbox" role="status" title="Ambiente exclusivo de testes Stone/Pagar.me">
+      <div class="badge-sandbox" role="status" title="Ambiente de integração Stone/Pagar.me ({{ stone_environment|default:'sandbox' }})">
         <span class="pulse-dot" aria-hidden="true"></span>
-        <span>SANDBOX</span>
+        <span>{% if stone_is_production %}PRODUÇÃO / SANDBOX{% else %}SANDBOX{% endif %}</span>
       </div>
 
       <div style="display: flex; align-items: center; gap: 0.65rem;">

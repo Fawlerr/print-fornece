@@ -1104,7 +1104,9 @@
         if (cardBox) cardBox.style.display = 'none';
         if (copiaCola) copiaCola.value = data.pix_qr_code || '';
         if (qrImg) {
-          if (data.pix_qr_code_url) {
+          if (data.payment_id && data.pix_qr_code) {
+            qrImg.src = `/payments/stone/pagamentos/${data.payment_id}/pix-qr/`;
+          } else if (data.pix_qr_code_url) {
             qrImg.src = data.pix_qr_code_url;
           } else if (data.pix_qr_code) {
             qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(data.pix_qr_code)}`;

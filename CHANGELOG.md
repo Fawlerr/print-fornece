@@ -4,6 +4,50 @@ Todas as atualizações e correções notáveis do sistema Print Fornece são re
 
 ---
 
+## [13/11/2026] — Rebranding Visual, Tema Claro/Escuro, Kanban Mobile, Pacote Operacional (A1–A6) & Correções Stone V5
+
+### ✨ Novas Funcionalidades & Evoluções Visuais
+- **Rebranding Visual Completo e Sistema de Temas (`tokens.css` & `components.css`):**
+  - Nova arquitetura de Design Tokens com alternância entre **Tema Escuro** e **Tema Claro** persistida por usuário (`User.ui_theme`), tipografia local `Archivo` e remoção de estilos hardcoded.
+  - Experiência **Kanban Mobile** otimizada com navegação por abas de etapa, botão rápido *"Mover para…"* no card, filtros recolhíveis sem deslocamento de layout (CLS 0) e cabeçalhos fixos em tabelas.
+- **A1 — Desconto Progressivo Automático em Camisas (`/settings/` & Pedidos):**
+  - Desconto configurável por unidade aplicado automaticamente acima de 5 camisas (a partir da 6ª unidade) do mesmo modelo, cor e tamanho no pedido, com discriminação na nota térmica e mensagens.
+- **A2 — Seletor de Período Unificado e Exportações nos 11 Relatórios (`/reports/`):**
+  - Atalhos rápidos (*Hoje, Ontem, Últimos 7/30 dias, Este mês, Mês passado, Este ano*) e intervalo personalizado (`De / Até`), comparativo percentual com o período anterior e exportação em **CSV, Excel (`.xlsx`) e PDF** em todos os relatórios.
+- **A3 — Horário de Funcionamento Configurável (`/settings/`):**
+  - Expediente padrão de segunda a sexta (08h às 17h) aplicado ao cálculo de prazo em horas úteis (`add_business_minutes`), mensagens de WhatsApp e rodapé do orçamento público.
+- **A4 — Impressão Automática da Nota Térmica e Modo Estação de Impressão:**
+  - Disparo automático da impressão térmica (80mm/58mm) ao confirmar o pagamento do pedido, modo **Estação de Impressão** para o computador do balcão (`/orders/api/print-queue/`) e auditoria de reimpressões (`OrderPrintLog`).
+- **A5 — Senha/PIN de Gerente para Cancelamento de Pedidos:**
+  - Autorização obrigatória por PIN/senha criptografada de gerente para cancelar pedidos, justificativa obrigatória auditada e bloqueio temporário após 5 tentativas inválidas (`CancellationAttempt`).
+- **A6 — Selo "APROVADO" via WhatsApp e Kanban ao Vivo:**
+  - Exibição de selo verde `✓ APROVADO` no card do Kanban quando o cliente aprova o orçamento pelo link público, proteção contra alteração de escopo (`fingerprint` SHA-256) e polling leve a cada 15s (`/production/api/kanban-updates/`).
+- **Preços Diferenciados DTF Têxtil/UV, Calculadora de Troco e Novos Relatórios:**
+  - Preços especiais por cliente separados para **DTF Têxtil** e **DTF UV**, calculadora automática de troco para pagamentos em dinheiro e novos relatórios de **Clientes Novos** (`/reports/clientes-novos/`) e **Formas de Pagamento** (`/reports/formas-pagamento/`).
+
+### 🐛 Correções de Bugs & Ambiente Stone V5
+- **Normalização de Chaves e Ambientes Stone (`STONE_ENVIRONMENT`):**
+  - Correção da resolução de credenciais `STONE_SECRET_KEY` (`sk_...`), `STONE_PUBLIC_KEY` (`pk_...`) e `STONE_ACCOUNT_ID` (`acc_...`) com fallback seguro entre variáveis `STONE_PROD_*`, `STONE_*` e `STONE_SANDBOX_*`.
+  - Ajuste da suíte de diagnóstico (`/payments/stone/api/testes/executar/`) para validar corretamente os ambientes `sandbox`, `production` e `test` e o mascaramento de identificadores `acc_`.
+- **Cobrança Stone em Pedidos Rápidos sem CPF/CNPJ ou E-mail Prévio:**
+  - Correção de erro `TypeError` em `StoneService._customer_payload()` ao gerar cobranças PIX/Cartão para clientes cadastrados apenas com nome e WhatsApp no balcão.
+- **Política de Segurança (CSP) e QR Code PIX Local:**
+  - Liberação de `https://api.pagar.me` no `Content-Security-Policy` (`connect-src` e `img-src`) para tokenização de cartão no navegador e renderização prioritária do QR Code PIX pelo endpoint local (`/payments/stone/pagamentos/<id>/pix-qr/`).
+
+---
+
+## [13/10/2026] — Ciclo Completo de Pagamento Stone / Pagar.me V5 Integrado ao Pedido & Console Dev
+
+### ✨ Novas Funcionalidades
+- **Cobrança Stone V5 Direta no Pedido (`/production/orders/<id>/`):**
+  - Geração de cobranças **PIX** (com QR Code imediato e código Copia e Cola) e **Cartão de Crédito** vinculadas diretamente ao pedido (`StonePagamento.order`).
+- **Baixa Automática e Conciliação Idempotente via Webhook (`/payments/stone/webhook/`):**
+  - Recebimento de notificações `charge.paid` da Stone V5 com quitação automática do pedido, criação de parcela em `OrderPayment` integrada ao Fechamento de Caixa, avanço automático de etapa no Kanban e garantia de idempotência contra eventos duplicados.
+- **Console Dev & Drawer de Observabilidade (`/payments/stone/dev/`):**
+  - Painel exclusivo para desenvolvedores e superusuários com inspeção de payloads JSON brutos, cabeçalhos, latência em milissegundos, teste de conectividade (Ping) e simulador de eventos de aprovação/recusa.
+
+---
+
 ## [21/09/2026] — Correção do Bug #27, Alertas de Pagamento Pendente na Retirada & Sincronização de Parcelas de Caixa
 
 ### 🐛 Correções de Bugs & Melhorias Operacionais

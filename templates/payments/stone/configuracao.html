@@ -30,12 +30,27 @@
           <div>
             <dt>Ambiente (STONE_ENVIRONMENT)</dt>
             <dd>
-              <span class="badge-status badge-status--pass">🟢 {{ stone_environment }} (SANDBOX)</span>
+              {% if stone_is_production %}
+                <span class="badge-status badge-status--pass">🟢 {{ stone_environment }} (PRODUÇÃO)</span>
+              {% else %}
+                <span class="badge-status badge-status--pass">🟢 {{ stone_environment }} (SANDBOX)</span>
+              {% endif %}
             </dd>
           </div>
           <div>
             <dt>API Base URL</dt>
             <dd><code style="color: var(--st-pronto-fg);">{{ stone_api_base_url }}</code></dd>
+          </div>
+          <div>
+            <dt>ID da Conta Stone (STONE_ACCOUNT_ID)</dt>
+            <dd>
+              {% if stone_account_id_configured %}
+                <code style="color: var(--brand-text);">{{ stone_account_id_masked }}</code>
+                <span class="badge-status badge-status--pass" style="margin-left: 0.4rem;">CONFIGURADO</span>
+              {% else %}
+                <span class="badge-status badge-status--warn">OPCIONAL / AUSENTE</span>
+              {% endif %}
+            </dd>
           </div>
           <div>
             <dt>Chave Secreta de Servidor (STONE_SECRET_KEY)</dt>

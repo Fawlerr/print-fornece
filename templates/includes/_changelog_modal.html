@@ -35,12 +35,64 @@
 
     <!-- Conteúdo / Linha do Tempo -->
     <div style="padding: 16px 20px 20px 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px;">
-      
-      <!-- Entrada 20/09/2026 -->
+
+      <!-- Entrada 13/11/2026 -->
       <div style="background: var(--surface); border: 1px solid color-mix(in srgb, var(--brand) 55%, transparent); border-radius: 10px; padding: 16px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);">
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
           <div style="display: flex; align-items: center; gap: 8px;">
             <span style="background: var(--brand); color: var(--brand-ink); font-size: 0.75rem; font-weight: 800; padding: 3px 8px; border-radius: 6px; letter-spacing: 0.5px;">NOVO</span>
+            <strong style="color: var(--text); font-size: 0.95rem;">Rebranding Visual, Tema Claro/Escuro, Pacote Operacional (A1–A6) & Stone V5</strong>
+          </div>
+          <span style="font-size: 0.82rem; color: var(--muted); font-weight: 500;"><i class="fa-regular fa-calendar" style="margin-right: 4px;"></i>13/11/2026</span>
+        </div>
+        
+        <ul style="margin: 0; padding-left: 20px; color: var(--text); font-size: 0.88rem; line-height: 1.6; display: flex; flex-direction: column; gap: 8px;">
+          <li>
+            <strong style="color: var(--st-pronto-fg);">Novo Visual, Tema Claro/Escuro & Kanban Mobile:</strong> Alternância entre tema escuro e claro salva por usuário, Kanban otimizado para celular com abas por etapa e botão <em>"Mover para…"</em> no card.
+          </li>
+          <li>
+            <strong style="color: var(--brand-text);">Desconto Progressivo em Camisas (A1) & Preços DTF UV/Têxtil:</strong> Desconto automático configurável acima de 5 camisas iguais, preços especiais separados para DTF Têxtil e DTF UV por cliente e calculadora de troco em dinheiro.
+          </li>
+          <li>
+            <strong style="color: var(--st-producao-fg);">Período Personalizado & Exportações Excel/PDF/CSV (A2):</strong> Seletor unificado de período com comparativo anterior e exportação em CSV, Excel (<code>.xlsx</code>) e PDF nos 11 relatórios (incluindo <em>Clientes Novos</em> e <em>Formas de Pagamento</em>).
+          </li>
+          <li>
+            <strong style="color: var(--st-pre-fg);">Horário Comercial (A3) & Impressão Automática da Nota (A4):</strong> Cálculo de prazo respeitando o expediente configurável (Seg–Sex, 08h às 17h), disparo automático da nota térmica ao confirmar pagamento e modo <em>Estação de Impressão</em>.
+          </li>
+          <li>
+            <strong style="color: var(--st-cancelado-fg);">Senha de Gerente no Cancelamento (A5) & Selo APROVADO no Kanban (A6):</strong> PIN criptografado de gerente com motivo obrigatório para cancelar pedidos e selo <code>✓ APROVADO</code> em tempo real quando o cliente aprova o orçamento via WhatsApp.
+          </li>
+          <li>
+            <strong style="color: var(--st-novo-fg);">Integração Stone / Pagar.me V5 & Correção de Chaves:</strong> Cobrança PIX e Cartão integrada ao pedido com baixa automática no Caixa via Webhook, QR Code PIX local e validação completa de chaves (<code>sk_</code>, <code>pk_</code> e <code>acc_</code>) em Sandbox e Produção.
+          </li>
+        </ul>
+      </div>
+
+      <!-- Entrada 21/09/2026 -->
+      <div style="background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="background: var(--surface-3); color: var(--text); font-size: 0.75rem; font-weight: 600; padding: 3px 8px; border-radius: 6px;">CORREÇÃO</span>
+            <strong style="color: var(--text); font-size: 0.95rem;">Bug #27, Alertas de Cobrança na Retirada & Sincronização de Parcelas</strong>
+          </div>
+          <span style="font-size: 0.82rem; color: var(--muted); font-weight: 500;"><i class="fa-regular fa-calendar" style="margin-right: 4px;"></i>21/09/2026</span>
+        </div>
+        
+        <ul style="margin: 0; padding-left: 20px; color: var(--text); font-size: 0.88rem; line-height: 1.6; display: flex; flex-direction: column; gap: 8px;">
+          <li>
+            <strong style="color: var(--st-cancelado-fg);">Destaque de Pagamento Pendente na Retirada (Bug #27):</strong> Tarja de alerta de alto contraste nos cards da coluna <em>Pronto pra Retirada</em> para impedir entrega sem acerto financeiro.
+          </li>
+          <li>
+            <strong style="color: var(--brand-text);">Sincronização de Parcelas no Caixa:</strong> Atualização automática e edição individual da forma de pagamento das parcelas registradas em <code>OrderPayment</code>.
+          </li>
+        </ul>
+      </div>
+      
+      <!-- Entrada 20/09/2026 -->
+      <div style="background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="background: var(--surface-3); color: var(--text); font-size: 0.75rem; font-weight: 600; padding: 3px 8px; border-radius: 6px;">ATUALIZAÇÃO</span>
             <strong style="color: var(--text); font-size: 0.95rem;">Financeiro Avançado, Novos Relatórios, Fatura Agrupada & Planos de Volume</strong>
           </div>
           <span style="font-size: 0.82rem; color: var(--muted); font-weight: 500;"><i class="fa-regular fa-calendar" style="margin-right: 4px;"></i>20/09/2026</span>

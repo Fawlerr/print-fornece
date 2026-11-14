@@ -23,13 +23,20 @@ _CVV_PATTERN = re.compile(r"\b\d{3,4}\b")
 
 
 def mask_secret(value: str | None, *, keep_end: int = 4) -> str:
-    """Mask credentials like sk_test_... into sk_test_••••••••1234."""
+    """Mask credentials like sk_test_... or sk_... into sk_••••••••1234."""
     if not value or not isinstance(value, str):
         return ""
     clean = value.strip()
     if len(clean) <= keep_end + 4:
         return "••••" + clean[-keep_end:] if len(clean) >= keep_end else "••••"
-    prefix = clean[:8] if clean.startswith(("sk_test_", "sk_live_", "pk_test_", "pk_live_")) else clean[:3]
+    if clean.startswith(("sk_test_", "sk_live_", "pk_test_", "pk_live_")):
+        prefix = clean[:8]
+    elif clean.startswith(("acc_", "tok_", "card_")):
+        prefix = clean[: clean.index("_") + 1]
+    elif clean.startswith(("sk_", "pk_", "or_", "ch_")):
+        prefix = clean[:3]
+    else:
+        prefix = clean[:3]
     return f"{prefix}••••••••{clean[-keep_end:]}"
 
 

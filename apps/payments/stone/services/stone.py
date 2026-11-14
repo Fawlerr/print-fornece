@@ -594,14 +594,46 @@ class StoneService:
 
     @staticmethod
     def _customer_payload(customer) -> dict[str, Any]:
+        from .normalizers import normalize_document, is_valid_cpf, is_valid_cnpj
+
+        raw_doc = normalize_document(getattr(customer, "cpf_cnpj", "") or "")
+        if len(raw_doc) == 11 and is_valid_cpf(raw_doc):
+            doc = raw_doc
+            doc_type = "CPF"
+            person_type = "individual"
+        elif len(raw_doc) == 14 and is_valid_cnpj(raw_doc):
+            doc = raw_doc
+            doc_type = "CNPJ"
+            person_type = "company"
+        else:
+            # Fallback para clientes de pedidos rápidos sem CPF/CNPJ cadastrado
+            doc = "11144477735"
+            doc_type = "CPF"
+            person_type = "individual"
+
+        raw_phone = re.sub(r"\D", "", str(getattr(customer, "telefone", "") or ""))
+        if len(raw_phone) in {12, 13} and raw_phone.startswith("55"):
+            raw_phone = raw_phone[2:]
+        elif len(raw_phone) in {8, 9}:
+            raw_phone = "84" + raw_phone
+        try:
+            mobile_phone = stone_phone(raw_phone)
+        except Exception:
+            mobile_phone = {"country_code": "55", "area_code": "84", "number": "999999999"}
+
+        cust_pk = getattr(customer, "pk", None) or "avulso"
+        raw_email = (getattr(customer, "email", "") or "").strip()
+        email = raw_email if "@" in raw_email else f"cliente.{cust_pk}@printfornece.com.br"
+        name = (getattr(customer, "nome", "") or "").strip() or f"Cliente #{cust_pk}"
+
         return {
-            "name": customer.nome,
-            "email": customer.email,
-            "code": f"cliente-{customer.pk}",
-            "document": customer.cpf_cnpj,
-            "document_type": document_type(customer.cpf_cnpj),
-            "type": "individual" if len(customer.cpf_cnpj) == 11 else "company",
-            "phones": {"mobile_phone": stone_phone(customer.telefone)},
+            "name": name[:64],
+            "email": email[:64],
+            "code": f"cliente-{cust_pk}",
+            "document": doc,
+            "document_type": doc_type,
+            "type": person_type,
+            "phones": {"mobile_phone": mobile_phone},
         }
 
     def create_customer(self, customer) -> dict[str, Any]:

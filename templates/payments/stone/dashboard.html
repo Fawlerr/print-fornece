@@ -24,8 +24,12 @@
       <div>
         <span class="metric-card__label">Ambiente</span>
         <div style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.35rem;">
-          <span class="badge-status badge-status--pass">🟢 SANDBOX</span>
-          <small class="muted">STONE_ENVIRONMENT=test</small>
+          {% if stone_is_production %}
+            <span class="badge-status badge-status--pass">🟢 PRODUÇÃO (V5)</span>
+          {% else %}
+            <span class="badge-status badge-status--pass">🟢 SANDBOX</span>
+          {% endif %}
+          <small class="muted">STONE_ENVIRONMENT={{ stone_environment }}</small>
         </div>
       </div>
 
@@ -37,7 +41,7 @@
             <small class="muted">{{ stone_secret_key_masked }}</small>
           {% else %}
             <span class="badge-status badge-status--fail">✕ AUSENTE</span>
-            <small class="muted">sk_test_ não configurada</small>
+            <small class="muted">STONE_SECRET_KEY não configurada</small>
           {% endif %}
         </div>
       </div>

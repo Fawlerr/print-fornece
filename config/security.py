@@ -17,11 +17,11 @@ class ContentSecurityPolicyMiddleware:
             "base-uri 'self'; "
             "frame-ancestors 'self'; "
             "form-action 'self'; "
-            "img-src 'self' data:; "
+            "img-src 'self' data: https://api.pagar.me https://api.qrserver.com; "
             "font-src 'self' https://cdnjs.cloudflare.com data:; "
             "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; "
             "script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; "
-            "connect-src 'self'"
+            "connect-src 'self' https://api.pagar.me"
         )
         if not settings.DEBUG:
             response.headers.setdefault("Content-Security-Policy", policy)

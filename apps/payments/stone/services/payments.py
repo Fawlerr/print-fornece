@@ -609,6 +609,10 @@ def create_payment(
     except StoneAPIError as error:
         _record_stone_error(payment.pk, error)
         raise
+    except Exception as exc:
+        wrapped = StoneValidationError(str(exc) or "Erro ao validar dados para envio à Stone.")
+        _record_stone_error(payment.pk, wrapped)
+        raise wrapped from exc
 
 
 def create_order_stone_payment(

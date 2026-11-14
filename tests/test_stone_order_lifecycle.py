@@ -341,3 +341,19 @@ class StoneOrderLifecycleTestCase(TestCase):
         p2.refresh_from_db()
         self.assertEqual(p2.status, StonePagamento.Status.FAILED)
         self.assertIn("simulação", p2.last_error_message)
+
+    def test_quick_order_customer_without_cpf_or_email_payload(self):
+        """Garante que clientes de pedidos rápidos (sem CPF/CNPJ e sem e-mail) gerem payload válido na Stone V5."""
+        quick_customer = Cliente.objects.create(
+            nome="Cliente Balcão Rápido",
+            cpf_cnpj=None,
+            email=None,
+            telefone="988776655",
+        )
+        svc = StoneService()
+        payload = svc._customer_payload(quick_customer)
+        self.assertEqual(payload["document_type"], "CPF")
+        self.assertEqual(len(payload["document"]), 11)
+        self.assertTrue(payload["email"].endswith("@printfornece.com.br"))
+        self.assertEqual(payload["phones"]["mobile_phone"]["area_code"], "84")
+        self.assertEqual(payload["phones"]["mobile_phone"]["number"], "988776655")
