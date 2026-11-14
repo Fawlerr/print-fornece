@@ -101,6 +101,7 @@ def _base_context() -> dict:
         "stone_server_configured": bool(secret_key and secret_key.startswith("sk_")),
         "stone_secret_key_masked": mask_secret(secret_key),
         "stone_account_id": account_id,
+        "stone_account_id_configured": bool(account_id),
         "stone_account_id_masked": mask_secret(account_id),
         "stone_account_type": getattr(settings, "STONE_ACCOUNT_TYPE", "gateway"),
         "stone_api_base_url": api_base_url,
