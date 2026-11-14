@@ -12,6 +12,7 @@ urlpatterns = [
     path("pagamentos/<int:pk>/", views.pagamento_detalhe, name="stone_pagamento_detalhe"),
     path("pagamentos/<int:pk>/atualizar/", views.atualizar_pagamento, name="stone_atualizar_pagamento"),
     path("pagamentos/<int:pk>/pix-qr.png", views.pix_qr, name="stone_pix_qr"),
+    path("pagamentos/<int:pk>/pix-qr/", views.pix_qr, name="stone_pix_qr_slash"),
     path("webhook/", views.webhook_stone, name="stone_webhook_endpoint"),
 
     # APIs de Telemetria e Diagnóstico
