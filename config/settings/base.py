@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     "apps.inventory",
     "apps.backups",
     "apps.business",
+    "apps.whatsapp",
 ]
 
 MIDDLEWARE = [
@@ -79,6 +80,7 @@ TEMPLATES = [
                 "django.contrib.messages.context_processors.messages",
                 "apps.notifications.context_processors.navigation_notifications",
                 "apps.business.context_processors.receipt_print",
+                "apps.whatsapp.context_processors.chat",
             ],
         },
     },
@@ -185,6 +187,11 @@ LOGGING = {
             "level": "INFO",
             "propagate": False,
         },
+        "whatsapp": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
     },
 }
 
@@ -199,19 +206,19 @@ if _raw_stone_env in {"production", "prod", "live"}:
         os.getenv("STONE_PROD_ACCOUNT_ID")
         or os.getenv("STONE_ACCOUNT_ID")
         or os.getenv("STONE_SANDBOX_ACCOUNT_ID")
-        or "acc_EBZAgeuxaf084Xe1"
+        or ""
     ).strip()
     STONE_PUBLIC_KEY = (
         os.getenv("STONE_PROD_PUBLIC_KEY")
         or os.getenv("STONE_PUBLIC_KEY")
         or os.getenv("STONE_SANDBOX_PUBLIC_KEY")
-        or "pk_v6krKPwcoaS1pd8G"
+        or ""
     ).strip()
     STONE_SECRET_KEY = (
         os.getenv("STONE_PROD_SECRET_KEY")
         or os.getenv("STONE_SECRET_KEY")
         or os.getenv("STONE_SANDBOX_SECRET_KEY")
-        or "sk_a9728e9512964df184ac0b09b8b436d1"
+        or ""
     ).strip()
     STONE_WEBHOOK_SECRET = (
         os.getenv("STONE_PROD_WEBHOOK_SECRET")
@@ -229,17 +236,17 @@ else:
     STONE_ACCOUNT_ID = (
         os.getenv("STONE_SANDBOX_ACCOUNT_ID")
         or os.getenv("STONE_ACCOUNT_ID")
-        or "acc_EBZAgeuxaf084Xe1"
+        or ""
     ).strip()
     STONE_PUBLIC_KEY = (
         os.getenv("STONE_SANDBOX_PUBLIC_KEY")
         or os.getenv("STONE_PUBLIC_KEY")
-        or "pk_v6krKPwcoaS1pd8G"
+        or ""
     ).strip()
     STONE_SECRET_KEY = (
         os.getenv("STONE_SANDBOX_SECRET_KEY")
         or os.getenv("STONE_SECRET_KEY")
-        or "sk_a9728e9512964df184ac0b09b8b436d1"
+        or ""
     ).strip()
     STONE_WEBHOOK_SECRET = (
         os.getenv("STONE_SANDBOX_WEBHOOK_SECRET")
@@ -259,3 +266,42 @@ STONE_ACCOUNT_TYPE = os.getenv("STONE_ACCOUNT_TYPE", "gateway").strip().lower()
 STONE_PIX_DEBUG = env_bool("STONE_PIX_DEBUG", True)
 
 
+
+# ==============================================================================
+# Link de pagamento (Pagar.me V5 /paymentlinks) — host próprio por ambiente
+# ==============================================================================
+STONE_PAYMENT_LINK_API_URL = (
+    os.getenv("STONE_PAYMENT_LINK_API_URL")
+    or ("https://api.pagar.me/core/v5" if STONE_ENVIRONMENT == "production" else "https://sdx-api.pagar.me/core/v5")
+).rstrip("/")
+
+# ==============================================================================
+# Chat de WhatsApp — provedor padrão: Umbler Talk (API oficial com token)
+# ==============================================================================
+WHATSAPP_PROVEDOR = os.getenv("WHATSAPP_PROVEDOR", "umbler").strip().lower()
+UMBLER_API_URL = os.getenv("UMBLER_API_URL", "https://app-utalk.umbler.com/api").strip().rstrip("/")
+# Token gerado em https://account.umbler.com/profile (fica só no servidor).
+UMBLER_API_TOKEN = os.getenv("UMBLER_API_TOKEN", "").strip()
+# Id da organização (GET /v1/members/me/).
+UMBLER_ORGANIZATION_ID = os.getenv("UMBLER_ORGANIZATION_ID", "").strip()
+UMBLER_TIMEOUT_SECONDS = int(os.getenv("UMBLER_TIMEOUT_SECONDS", "20"))
+# Segredo que vai na URL do webhook cadastrada no painel da Umbler. Vazio = webhook recusa tudo.
+UMBLER_WEBHOOK_SECRET = os.getenv("UMBLER_WEBHOOK_SECRET", "").strip()
+# Endereço público do Print (usado para montar a URL do webhook na tela de números).
+WHATSAPP_WEBHOOK_BASE_URL = (os.getenv("WHATSAPP_WEBHOOK_BASE_URL") or os.getenv("EVOLUTION_WEBHOOK_BASE_URL", "")).strip().rstrip("/")
+
+# ==============================================================================
+# Chat de WhatsApp — Evolution API (alternativa)
+# ==============================================================================
+EVOLUTION_API_URL = os.getenv("EVOLUTION_API_URL", "").strip().rstrip("/")
+EVOLUTION_API_KEY = os.getenv("EVOLUTION_API_KEY", "").strip()
+EVOLUTION_API_VERSION = os.getenv("EVOLUTION_API_VERSION", "2").strip()
+EVOLUTION_TIMEOUT_SECONDS = int(os.getenv("EVOLUTION_TIMEOUT_SECONDS", "15"))
+# Segredo que a Evolution devolve na URL/cabeçalho do webhook. Vazio = webhook recusa tudo.
+EVOLUTION_WEBHOOK_SECRET = os.getenv("EVOLUTION_WEBHOOK_SECRET", "").strip()
+# Endereço público do Print Fornece que a Evolution consegue acessar (ex.: https://print.exemplo.com.br).
+EVOLUTION_WEBHOOK_BASE_URL = os.getenv("EVOLUTION_WEBHOOK_BASE_URL", "").strip().rstrip("/")
+# Mídias do chat ficam fora de MEDIA_ROOT (não são servidas em /media/) e só saem por view com login.
+WHATSAPP_MEDIA_ROOT = Path(os.getenv("WHATSAPP_MEDIA_ROOT", str(BASE_DIR / "private_media")))
+WHATSAPP_MAX_UPLOAD_MB = int(os.getenv("WHATSAPP_MAX_UPLOAD_MB", "16"))
+WHATSAPP_REVOGAR_ATE_HORAS = int(os.getenv("WHATSAPP_REVOGAR_ATE_HORAS", "48"))
