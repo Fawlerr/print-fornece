@@ -73,6 +73,35 @@ class BusinessSettings(models.Model):
         related_name="cancellation_pin_updates", verbose_name="senha de cancelamento alterada por",
     )
 
+    # Link de pagamento no cartão (Pagar.me). O valor base é sempre o saldo em aberto do pedido.
+    link_max_parcelas = models.PositiveSmallIntegerField("parcelas no máximo", default=6)
+    link_parcelas_sem_juros = models.PositiveSmallIntegerField(
+        "parcelas sem juros", default=3, help_text="Até esta quantidade o cliente paga só o saldo.",
+    )
+    link_parcela_minima = models.DecimalField("valor mínimo de cada parcela (R$)", max_digits=10, decimal_places=2, default=Decimal("50.00"))
+    link_juros_mensal = models.DecimalField(
+        "juros ao mês acima das parcelas sem juros (%)", max_digits=5, decimal_places=2, default=Decimal("2.99"),
+        help_text="Tabela Price, pago pelo cliente. Use 0 para não cobrar juros.",
+    )
+    link_repassar_taxa = models.BooleanField(
+        "repassar a taxa do cartão ao cliente", default=False,
+        help_text="Desligado: o link cobra exatamente o saldo do pedido (regra aprovada).",
+    )
+    link_taxa_percentual = models.DecimalField("taxa repassada (%)", max_digits=5, decimal_places=2, default=Decimal("0.00"))
+    link_validade_horas = models.PositiveSmallIntegerField("validade do link (horas)", default=72)
+    link_mensagem_padrao = models.TextField(
+        "mensagem padrão do link",
+        default=(
+            "PRINT FORNECE\n"
+            "Olá, {cliente}. Segue o link para pagamento no cartão de crédito do pedido #{pedido}.\n\n"
+            "Valor: R$ {valor}\n"
+            "Parcelamento: {parcelas}\n"
+            "Link válido até {validade}.\n\n"
+            "{link}"
+        ),
+        help_text="Variáveis: {cliente}, {pedido}, {valor}, {parcelas}, {validade}, {link}. Sem emojis.",
+    )
+
     updated_at = models.DateTimeField("atualizado em", auto_now=True)
     updated_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL,

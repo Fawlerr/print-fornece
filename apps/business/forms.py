@@ -68,6 +68,43 @@ class CancellationPinForm(forms.Form):
         return self.instance
 
 
+class PaymentLinkSettingsForm(forms.ModelForm):
+    class Meta:
+        model = BusinessSettings
+        fields = [
+            "link_max_parcelas", "link_parcelas_sem_juros", "link_parcela_minima", "link_juros_mensal",
+            "link_repassar_taxa", "link_taxa_percentual", "link_validade_horas", "link_mensagem_padrao",
+        ]
+        widgets = {"link_mensagem_padrao": forms.Textarea(attrs={"rows": 8})}
+
+    def clean(self):
+        cleaned = super().clean()
+        maximo = cleaned.get("link_max_parcelas")
+        sem_juros = cleaned.get("link_parcelas_sem_juros")
+        if maximo is not None and not 1 <= maximo <= 12:
+            self.add_error("link_max_parcelas", "Use de 1 a 12 parcelas.")
+        if maximo and sem_juros is not None and not 1 <= sem_juros <= maximo:
+            self.add_error("link_parcelas_sem_juros", "Deve ficar entre 1 e o máximo de parcelas.")
+        for campo, teto in (("link_juros_mensal", Decimal("15")), ("link_taxa_percentual", Decimal("20"))):
+            valor = cleaned.get(campo)
+            if valor is not None and not Decimal("0") <= valor <= teto:
+                self.add_error(campo, f"Use um valor entre 0 e {teto}%.")
+        if (cleaned.get("link_parcela_minima") or Decimal("0")) < Decimal("1"):
+            self.add_error("link_parcela_minima", "A parcela mínima deve ser de pelo menos R$ 1,00.")
+        horas = cleaned.get("link_validade_horas")
+        if horas is not None and not 1 <= horas <= 720:
+            self.add_error("link_validade_horas", "Use de 1 a 720 horas (30 dias).")
+        mensagem = cleaned.get("link_mensagem_padrao") or ""
+        if "{link}" not in mensagem:
+            self.add_error("link_mensagem_padrao", "A mensagem precisa conter {link}.")
+        else:
+            try:
+                mensagem.format(cliente="", pedido="", valor="", parcelas="", validade="", link="")
+            except (KeyError, IndexError, ValueError):
+                self.add_error("link_mensagem_padrao", "Use apenas as variáveis {cliente}, {pedido}, {valor}, {parcelas}, {validade} e {link}.")
+        return cleaned
+
+
 class ReceiptPrintSettingsForm(forms.ModelForm):
     class Meta:
         model = BusinessSettings

@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Link de pagamento | Print Fornece{% endblock %}
+{% block page_heading %}Link de pagamento no cartão{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/chat.css' %}">{% endblock %}
+
+{% block content %}
+<div class="pl-page">
+  <p class="pl-back">
+    {% if conversa %}
+      <a class="btn btn-secondary btn-small" href="{% url 'whatsapp:chat' %}?c={{ conversa.pk }}"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Voltar para a conversa</a>
+    {% else %}
+      <a class="btn btn-secondary btn-small" href="{% url 'production:detail' pk=order.pk %}"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Voltar para o pedido</a>
+    {% endif %}
+  </p>
+
+  <section class="card pl-card" aria-labelledby="pl-resumo">
+    <h2 id="pl-resumo">Pedido #{{ order.number }} &middot; {{ order.client_name }}</h2>
+
+    {% if erro %}
+      <div class="alert alert-warning" role="alert">{{ erro }}</div>
+    {% else %}
+      <dl class="pl-valores">
+        <div><dt>Total do pedido</dt><dd>R$ {{ calculo.total_pedido|floatformat:2 }}</dd></div>
+        <div><dt>Já pago (sinal e pagamentos anteriores)</dt><dd>- R$ {{ calculo.pago|floatformat:2 }}</dd></div>
+        <div><dt>Saldo em aberto</dt><dd>R$ {{ calculo.saldo|floatformat:2 }}</dd></div>
+        {% if calculo.acrescimo %}<div><dt>Taxa do cartão repassada</dt><dd>+ R$ {{ calculo.acrescimo|floatformat:2 }}</dd></div>{% endif %}
+        <div class="pl-valor-final"><dt>Valor do link</dt><dd>R$ {{ calculo.valor|floatformat:2 }}</dd></div>
+      </dl>
+      <p class="help">O total já considera preço de atacado, descontos e abatimentos do pedido. O valor é calculado pelo sistema e não pode ser alterado aqui.</p>
+
+      <h3 class="pl-subtitulo">Parcelamento oferecido ao cliente</h3>
+      <div class="table-wrap">
+        <table class="data-table pl-parcelas">
+          <thead><tr><th scope="col">Parcelas</th><th scope="col">Valor da parcela</th><th scope="col">Total pago pelo cliente</th><th scope="col">Juros</th></tr></thead>
+          <tbody>
+            {% for p in calculo.parcelas %}
+              <tr>
+                <td>{{ p.numero }}x</td>
+                <td>R$ {{ p.valor_parcela|floatformat:2 }}</td>
+                <td>R$ {{ p.total|floatformat:2 }}</td>
+                <td>{% if p.com_juros %}Com juros (pagos pelo cliente){% else %}Sem juros{% endif %}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      {% if ativo %}
+        <div class="alert alert-info pl-ativo" role="status">
+          Já existe um link ativo de <strong>R$ {{ ativo.valor|floatformat:2 }}</strong>, válido até {{ ativo.expira_em|date:"d/m/Y H:i" }}.
+          {% if ativo.valor_centavos == calculo.valor_centavos %}Ele será mantido.{% else %}O valor mudou: ao confirmar, ele será cancelado e um novo será gerado.{% endif %}
+          <a href="{% url 'payments:link_detalhe' pk=ativo.pk %}{% if conversa %}?conversa={{ conversa.pk }}{% endif %}">Ver link ativo</a>
+        </div>
+      {% endif %}
+
+      <form method="post" class="pl-acoes">
+        {% csrf_token %}
+        <input type="hidden" name="valor_centavos" value="{{ calculo.valor_centavos }}">
+        {% if conversa %}<input type="hidden" name="conversa" value="{{ conversa.pk }}">{% endif %}
+        <button type="submit" class="btn btn-primary" data-submit-once>
+          <i class="fa-solid fa-credit-card" aria-hidden="true"></i> Confirmar e gerar link de R$ {{ calculo.valor|floatformat:2 }}
+        </button>
+      </form>
+    {% endif %}
+  </section>
+
+  <section class="card pl-card" aria-labelledby="pl-historico">
+    <h2 id="pl-historico">Links deste pedido</h2>
+    {% if historico %}
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th scope="col">Gerado em</th><th scope="col">Valor</th><th scope="col">Status</th><th scope="col">Por</th><th scope="col">Pago em</th><th scope="col"><span class="visually-hidden">Ações</span></th></tr></thead>
+          <tbody>
+            {% for l in historico %}
+              <tr>
+                <td>{{ l.criado_em|date:"d/m/Y H:i" }}</td>
+                <td>R$ {{ l.valor|floatformat:2 }}{% if l.valor_pago and l.valor_pago != l.valor %}<br><small class="help">cobrado R$ {{ l.valor_pago|floatformat:2 }}</small>{% endif %}</td>
+                <td><span class="pl-status pl-status--{{ l.status }}">{% if l.expirado %}Expirado{% else %}{{ l.get_status_display }}{% endif %}</span>{% if l.motivo_cancelamento %}<br><small class="help">{{ l.motivo_cancelamento }}</small>{% endif %}</td>
+                <td>{{ l.criado_por.name|default:l.criado_por.email|default:"-" }}</td>
+                <td>{{ l.pago_em|date:"d/m/Y H:i"|default:"-" }}</td>
+                <td><a class="btn btn-secondary btn-small" href="{% url 'payments:link_detalhe' pk=l.pk %}{% if conversa %}?conversa={{ conversa.pk }}{% endif %}">Abrir</a></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="empty-state">Nenhum link gerado para este pedido.</p>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  document.querySelectorAll("[data-submit-once]").forEach((btn) => {
+    btn.form.addEventListener("submit", () => { btn.disabled = true; btn.textContent = "Gerando link..."; });
+  });
+</script>
+{% endblock %}

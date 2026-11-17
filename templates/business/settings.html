@@ -13,6 +13,7 @@
     <a href="#desconto_camisa">Desconto em camisas</a>
     <a href="#horario">Horário de funcionamento</a>
     <a href="#impressao">Impressão da nota</a>
+    <a href="#link_pagamento">Link de pagamento</a>
     <a href="#cancelamento">Senha de cancelamento</a>
   </nav>
 
@@ -108,6 +109,28 @@
         <p class="help" data-print-station-status aria-live="polite"></p>
         <p class="help">Para imprimir sem a janela de confirmação, abra o sistema no Chrome em modo <code>--kiosk-printing</code> (veja o passo a passo no relatório de implantação).</p>
       </div>
+    </section>
+  {% endwith %}
+
+  {% with form=forms.link_pagamento %}
+    <section class="card form-card settings-section" id="link_pagamento" aria-labelledby="link_pagamento_title">
+      <div class="section-heading">
+        <div>
+          <h2 id="link_pagamento_title">Link de pagamento no cartão</h2>
+          <p>
+            O link sempre cobra o <strong>saldo em aberto</strong> do pedido, calculado pelo sistema. Até o limite de parcelas sem juros o cliente paga só o saldo;
+            acima disso, os juros (tabela Price) são pagos pelo cliente. Parcelas abaixo do valor mínimo não são oferecidas.
+          </p>
+        </div>
+      </div>
+      <form method="post" novalidate>
+        {% csrf_token %}
+        <input type="hidden" name="section" value="link_pagamento">
+        {% include "includes/form_fields.html" with form=form %}
+        <div class="form-actions">
+          <button class="btn btn-primary" type="submit">Salvar link de pagamento</button>
+        </div>
+      </form>
     </section>
   {% endwith %}
 

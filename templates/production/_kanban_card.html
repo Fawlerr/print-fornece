@@ -123,6 +123,17 @@
         <i class="fa-brands fa-whatsapp" aria-hidden="true"></i> Avisado
       </span>
     {% endif %}
+
+    {% if chat_disponivel and order.client_whatsapp %}
+      <a class="kanban-card-action" href="{% url 'whatsapp:abrir_pedido' order_id=order.pk %}" title="Abrir conversa com {{ order.client_name }}" aria-label="Abrir conversa do pedido {{ order.number }}" onclick="event.stopPropagation();">
+        <i class="fa-brands fa-whatsapp" aria-hidden="true"></i> Conversa
+      </a>
+    {% endif %}
+    {% if order.remaining_amount > 0 and order.stage != "cancelado" and not user.is_prepress_production_only %}
+      <a class="kanban-card-action" href="{% url 'payments:link_confirmar' order_id=order.pk %}" title="Gerar link de pagamento no cartão (saldo R$ {{ order.remaining_amount|floatformat:2 }})" aria-label="Gerar link de pagamento do pedido {{ order.number }}" onclick="event.stopPropagation();">
+        <i class="fa-solid fa-credit-card" aria-hidden="true"></i> Link cartão
+      </a>
+    {% endif %}
     
     <span class="order-details-item" title="Turno: {{ order.get_shift_display }}{% if order.due_at %} · Prazo: {{ order.due_at|date:'d/m H:i' }}{% endif %}" style="font-size: 0.76rem;">
       <i class="fa-regular fa-clock" aria-hidden="true"></i> {{ order.get_shift_display }}{% if order.due_at %} <small style="color: var(--text);">· {{ order.due_at|date:"d/m H:i" }}</small>{% endif %}

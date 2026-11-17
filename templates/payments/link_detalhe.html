@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Link de pagamento | Print Fornece{% endblock %}
+{% block page_heading %}Link de pagamento &middot; pedido #{{ order.number }}{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/chat.css' %}">{% endblock %}
+
+{% block content %}
+<div class="pl-page">
+  <p class="pl-back">
+    <a class="btn btn-secondary btn-small" href="{% url 'payments:link_confirmar' order_id=order.pk %}{% if conversa %}?conversa={{ conversa.pk }}{% endif %}"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Links do pedido</a>
+    {% if conversa %}<a class="btn btn-secondary btn-small" href="{% url 'whatsapp:chat' %}?c={{ conversa.pk }}"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i> Conversa</a>{% endif %}
+  </p>
+
+  <section class="card pl-card" aria-labelledby="pl-link">
+    <div class="pl-cabecalho">
+      <h2 id="pl-link">R$ {{ link.valor|floatformat:2 }}</h2>
+      <span class="pl-status pl-status--{{ link.status }}">{% if link.expirado %}Expirado{% else %}{{ link.get_status_display }}{% endif %}</span>
+    </div>
+    <dl class="pl-valores pl-valores--compacto">
+      <div><dt>Saldo do pedido na geração</dt><dd>R$ {{ link.saldo|floatformat:2 }}</dd></div>
+      <div><dt>Gerado</dt><dd>{{ link.criado_em|date:"d/m/Y H:i" }} por {{ link.criado_por.name|default:link.criado_por.email|default:"-" }}</dd></div>
+      <div><dt>Válido até</dt><dd>{{ link.expira_em|date:"d/m/Y H:i" }}</dd></div>
+      {% if link.enviado_em %}<div><dt>Enviado pelo chat</dt><dd>{{ link.enviado_em|date:"d/m/Y H:i" }}</dd></div>{% endif %}
+      {% if link.pago_em %}<div><dt>Pago em</dt><dd>{{ link.pago_em|date:"d/m/Y H:i" }} &middot; R$ {{ link.valor_pago|floatformat:2 }} em {{ link.parcelas_pagas }}x</dd></div>{% endif %}
+      {% if link.cancelado_em %}<div><dt>Encerrado em</dt><dd>{{ link.cancelado_em|date:"d/m/Y H:i" }} &middot; {{ link.motivo_cancelamento }}</dd></div>{% endif %}
+      {% if link.erro %}<div><dt>Erro</dt><dd>{{ link.erro }}</dd></div>{% endif %}
+    </dl>
+
+    {% if link.url and link.status == "ativo" and not link.expirado %}
+      <div class="pl-url">
+        <label for="pl-url-input">Link</label>
+        <div class="pl-url-linha">
+          <input id="pl-url-input" type="text" readonly value="{{ link.url }}">
+          <button type="button" class="btn btn-secondary" data-copiar="#pl-url-input"><i class="fa-solid fa-copy" aria-hidden="true"></i> Copiar link</button>
+        </div>
+      </div>
+
+      <form method="post" action="{% url 'payments:link_enviar' pk=link.pk %}" class="pl-envio">
+        {% csrf_token %}
+        {% if conversa %}<input type="hidden" name="conversa" value="{{ conversa.pk }}">{% endif %}
+        <label for="pl-mensagem">Mensagem para o cliente (pode editar, sem emojis)</label>
+        <textarea id="pl-mensagem" name="mensagem" rows="9" maxlength="4000">{{ mensagem }}</textarea>
+        <div class="pl-acoes">
+          <button type="submit" class="btn btn-primary" data-submit-once><i class="fa-brands fa-whatsapp" aria-hidden="true"></i> Enviar pelo chat{% if conversa %} ({{ conversa.instancia.apelido }}){% endif %}</button>
+          <button type="button" class="btn btn-secondary" data-copiar="#pl-mensagem"><i class="fa-solid fa-copy" aria-hidden="true"></i> Copiar mensagem</button>
+        </div>
+      </form>
+    {% endif %}
+
+    {% if pode_cancelar %}
+      <form method="post" action="{% url 'payments:link_cancelar' pk=link.pk %}" class="pl-cancelar" data-confirmar="Cancelar este link? O cliente não conseguirá mais pagar por ele.">
+        {% csrf_token %}
+        <label for="pl-motivo">Motivo do cancelamento</label>
+        <input id="pl-motivo" type="text" name="motivo" maxlength="160" placeholder="Ex.: cliente vai pagar no PIX">
+        <button type="submit" class="btn btn-danger"><i class="fa-solid fa-ban" aria-hidden="true"></i> Cancelar link</button>
+      </form>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  document.querySelectorAll("[data-copiar]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const alvo = document.querySelector(btn.dataset.copiar);
+      if (!alvo) return;
+      const original = btn.innerHTML;
+      try {
+        await navigator.clipboard.writeText(alvo.value);
+      } catch (e) {
+        alvo.select();
+        document.execCommand("copy");
+      }
+      btn.textContent = "Copiado";
+      setTimeout(() => { btn.innerHTML = original; }, 1800);
+    });
+  });
+  document.querySelectorAll("[data-submit-once]").forEach((btn) => {
+    btn.form.addEventListener("submit", () => { btn.disabled = true; });
+  });
+  document.querySelectorAll("form[data-confirmar]").forEach((form) => {
+    form.addEventListener("submit", (ev) => { if (!window.confirm(form.dataset.confirmar)) ev.preventDefault(); });
+  });
+</script>
+{% endblock %}

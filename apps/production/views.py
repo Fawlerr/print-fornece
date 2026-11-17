@@ -191,6 +191,12 @@ class OrderDetailView(LoginRequiredMixin, DetailView):
         context["capacity_warnings"] = evaluate_order_capacity(order=order)
         from apps.business.models import BusinessSettings
         context["cancellation_pin_configured"] = BusinessSettings.load().has_cancellation_pin
+        from apps.payments import links as payment_links
+        from apps.payments.models import LinkPagamento
+
+        context["links_pagamento"] = LinkPagamento.objects.filter(order=order).select_related("criado_por")[:10]
+        context["link_ativo"] = payment_links.link_ativo(order)
+        context["pode_gerar_link"] = payment_links.pode_gerar(self.request.user)
         return context
 
 
