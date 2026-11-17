@@ -9,7 +9,7 @@ from io import BytesIO
 
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.db.models import Q, Sum
 from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
@@ -21,15 +21,14 @@ from django.views.decorators.http import require_GET, require_POST
 
 from apps.payments.models import (
     Cliente,
-    StoneEventoPagamento,
     StoneLogIntegracao,
     StoneMetodoPagamento as MetodoPagamento,
     StonePagamento as Pagamento,
 )
-from .forms import StoneClienteForm as ClienteForm, StoneCobrancaForm as CobrancaForm
+from .forms import StoneCobrancaForm as CobrancaForm
 from .services.normalizers import only_digits
-from .services.payments import create_payment, record_event, refresh_payment, sync_customer
-from .services.stone import StoneAPIError, StoneConfigurationError, StoneService
+from .services.payments import create_payment, refresh_payment
+from .services.stone import StoneAPIError, StoneService
 
 logger = logging.getLogger("pagamentos")
 
@@ -431,13 +430,13 @@ def api_exportar_logs(request: HttpRequest) -> HttpResponse:
 
     if formato == "txt":
         linhas = []
-        for l in logs:
+        for log in logs:
             linhas.append(
-                f"[{l.timestamp.strftime('%Y-%m-%d %H:%M:%S')}] [{l.nivel}] {l.tipo_evento}\n"
-                f"Mensagem: {l.mensagem}\n"
-                f"Trace ID: {l.trace_id} | Status: {l.http_status or 'N/A'} | Duração: {l.duracao_ms or 0}ms\n"
-                f"Order ID: {l.order_id or 'N/A'} | Charge ID: {l.charge_id or 'N/A'}\n"
-                f"Endpoint: {l.metodo_http} {l.endpoint}\n"
+                f"[{log.timestamp.strftime('%Y-%m-%d %H:%M:%S')}] [{log.nivel}] {log.tipo_evento}\n"
+                f"Mensagem: {log.mensagem}\n"
+                f"Trace ID: {log.trace_id} | Status: {log.http_status or 'N/A'} | Duração: {log.duracao_ms or 0}ms\n"
+                f"Order ID: {log.order_id or 'N/A'} | Charge ID: {log.charge_id or 'N/A'}\n"
+                f"Endpoint: {log.metodo_http} {log.endpoint}\n"
                 f"{'-'*60}\n"
             )
         response = HttpResponse("\n".join(linhas), content_type="text/plain; charset=utf-8")
@@ -445,28 +444,28 @@ def api_exportar_logs(request: HttpRequest) -> HttpResponse:
         return response
 
     dados = []
-    for l in logs:
+    for log in logs:
         dados.append({
-            "trace_id": l.trace_id,
-            "timestamp": l.timestamp.isoformat(),
-            "nivel": l.nivel,
-            "tipo_evento": l.tipo_evento,
-            "mensagem": l.mensagem,
-            "endpoint": l.endpoint,
-            "metodo_http": l.metodo_http,
-            "http_status": l.http_status,
-            "duracao_ms": l.duracao_ms,
-            "order_id": l.order_id,
-            "charge_id": l.charge_id,
-            "transaction_id": l.transaction_id,
-            "error_code": l.error_code,
-            "error_type": l.error_type,
-            "error_message": l.error_message,
-            "error_parameter": l.error_parameter,
-            "request_headers": l.request_headers,
-            "request_body": l.request_body,
-            "response_headers": l.response_headers,
-            "response_body": l.response_body,
+            "trace_id": log.trace_id,
+            "timestamp": log.timestamp.isoformat(),
+            "nivel": log.nivel,
+            "tipo_evento": log.tipo_evento,
+            "mensagem": log.mensagem,
+            "endpoint": log.endpoint,
+            "metodo_http": log.metodo_http,
+            "http_status": log.http_status,
+            "duracao_ms": log.duracao_ms,
+            "order_id": log.order_id,
+            "charge_id": log.charge_id,
+            "transaction_id": log.transaction_id,
+            "error_code": log.error_code,
+            "error_type": log.error_type,
+            "error_message": log.error_message,
+            "error_parameter": log.error_parameter,
+            "request_headers": log.request_headers,
+            "request_body": log.request_body,
+            "response_headers": log.response_headers,
+            "response_body": log.response_body,
         })
     response = HttpResponse(json.dumps(dados, indent=2, ensure_ascii=False), content_type="application/json")
     response["Content-Disposition"] = 'attachment; filename="stone_logs.json"'
@@ -478,7 +477,7 @@ def api_exportar_logs(request: HttpRequest) -> HttpResponse:
 @require_POST
 def api_testar_pedido(request: HttpRequest) -> JsonResponse:
     from .services.logger import generate_trace_id, IntegrationLogger
-    from .services.stone import StoneService, StoneAPIError
+    from .services.stone import StoneAPIError
 
     trace_id = generate_trace_id()
     try:
@@ -587,7 +586,7 @@ def api_executar_suite_testes(request: HttpRequest) -> JsonResponse:
     """Executa a suíte de testes de sanidade da integração contra o Pagar.me V5."""
     import time
     from .services.logger import generate_trace_id
-    from .services.stone import StoneService, StoneAPIError
+    from .services.stone import StoneAPIError
 
     suite_trace = generate_trace_id()
     service = StoneService()
@@ -780,7 +779,7 @@ def webhook_stone(request: HttpRequest) -> JsonResponse:
         return JsonResponse(result, status=200)
     except Exception as exc:
         logger.exception("Falha ao processar webhook Stone: %s", exc)
-        return JsonResponse({"error": "Erro interno ao processar webhook.", "detail": str(exc)}, status=500)
+        return JsonResponse({"error": "Erro interno ao processar webhook."}, status=500)
 
 
 @dev_only_required
@@ -798,7 +797,6 @@ def dev_console(request: HttpRequest) -> HttpResponse:
 @dev_only_required
 def dev_ping(request: HttpRequest) -> JsonResponse:
     """Ping de teste de conectividade Stone V5 com cálculo de latência."""
-    from .services.stone import StoneService
     from time import perf_counter
 
     service = StoneService()
