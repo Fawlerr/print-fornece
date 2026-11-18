@@ -37,7 +37,7 @@ Telefones sempre em E.164 (`+5584999991234`). Um 200 no envio só quer dizer "na
 
 ## Como ligar
 
-1. `.env`: `WHATSAPP_PROVEDOR=umbler`, `UMBLER_API_TOKEN`, `UMBLER_ORGANIZATION_ID`, `UMBLER_WEBHOOK_SECRET`, `WHATSAPP_WEBHOOK_BASE_URL`.
+1. `.env`: `WHATSAPP_PROVEDOR=umbler` e `WHATSAPP_WEBHOOK_BASE_URL`. As chaves (`UMBLER_API_TOKEN`, `UMBLER_ORGANIZATION_ID`, `UMBLER_WEBHOOK_SECRET`) podem ir no `.env` **ou** ser salvas pela página **Chaves de integração** (`/dev/chaves/`, só perfil Desenvolvedor), que guarda tudo criptografado no banco, vale na hora e tem prioridade sobre o `.env`. As chaves da Stone também podem ser trocadas lá (separadas por ambiente, com a mesma trava `sk_test_`/produção).
 2. `python manage.py migrate`.
 3. Chat > **Números conectados** > **Importar canais da Umbler**; escolha a vendedora de cada número (e marque o número da empresa como compartilhado / usado nas mensagens automáticas).
 4. Copie a URL do webhook e cadastre no painel da Umbler (evento Message, canais desejados).

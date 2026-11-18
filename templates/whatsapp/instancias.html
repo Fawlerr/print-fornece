@@ -33,7 +33,7 @@
         <p class="help">Esta URL contém o segredo do webhook: não compartilhe fora da administração.</p>
       </div>
     {% else %}
-      <p class="help">Defina <code>UMBLER_WEBHOOK_SECRET</code> no <code>.env</code> para gerar a URL do webhook. Sem ele, mensagens recebidas não chegam ao sistema.</p>
+      <p class="help">Defina o segredo do webhook da Umbler (em <code>.env</code> ou, para desenvolvedores, em Chaves de integração) para gerar a URL do webhook. Sem ele, mensagens recebidas não chegam ao sistema.</p>
     {% endif %}
   </section>
 

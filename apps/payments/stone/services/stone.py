@@ -305,7 +305,9 @@ class StoneService:
 
     def __init__(self, *, api_base_url: str | None = None, secret_key: str | None = None, timeout: int | None = None):
         self.api_base_url = (api_base_url or settings.STONE_API_BASE_URL).rstrip("/")
-        self.secret_key = settings.STONE_SECRET_KEY if secret_key is None else secret_key
+        from apps.integracoes.cofre import valor as chave_integracao
+
+        self.secret_key = chave_integracao("STONE_SECRET_KEY") if secret_key is None else secret_key
         self.timeout = settings.STONE_TIMEOUT_SECONDS if timeout is None else timeout
 
     @property

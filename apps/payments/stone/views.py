@@ -19,6 +19,7 @@ from django.utils.dateparse import parse_date
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_POST
 
+from apps.integracoes.cofre import valor as chave_integracao
 from apps.payments.models import (
     Cliente,
     StoneLogIntegracao,
@@ -85,9 +86,9 @@ def _base_context() -> dict:
     error_logs = StoneLogIntegracao.objects.filter(nivel="ERROR").count()
     last_log = StoneLogIntegracao.objects.first()
     raw_env = getattr(settings, "STONE_ENVIRONMENT", "sandbox").strip().lower()
-    secret_key = getattr(settings, "STONE_SECRET_KEY", "") or ""
-    public_key = getattr(settings, "STONE_PUBLIC_KEY", "") or ""
-    account_id = getattr(settings, "STONE_ACCOUNT_ID", "") or ""
+    secret_key = chave_integracao("STONE_SECRET_KEY")
+    public_key = chave_integracao("STONE_PUBLIC_KEY")
+    account_id = chave_integracao("STONE_ACCOUNT_ID")
     api_base_url = getattr(settings, "STONE_API_BASE_URL", "https://api.pagar.me/core/v5")
 
     return {
@@ -611,7 +612,7 @@ def api_executar_suite_testes(request: HttpRequest) -> JsonResponse:
         "nome": "Ambiente Stone V5 configurado",
         "status": "PASS" if valid_env else "FAIL",
         "detalhes": (
-            f"STONE_ENVIRONMENT configurado como '{raw_env}' (Conta: {mask_secret(getattr(settings, 'STONE_ACCOUNT_ID', '')) or 'padrão'})."
+            f"STONE_ENVIRONMENT configurado como '{raw_env}' (Conta: {mask_secret(chave_integracao('STONE_ACCOUNT_ID')) or 'padrão'})."
             if valid_env
             else f"STONE_ENVIRONMENT inválido: '{raw_env}'. Defina 'sandbox' ou 'production'."
         ),
@@ -619,7 +620,7 @@ def api_executar_suite_testes(request: HttpRequest) -> JsonResponse:
     })
 
     # Teste 3: Credencial Stone Secreta Configurada
-    secret_key = getattr(settings, "STONE_SECRET_KEY", "") or ""
+    secret_key = chave_integracao("STONE_SECRET_KEY")
     has_secret = bool(secret_key and secret_key.startswith("sk_"))
     testes_resultados.append({
         "id": "credencial_secreta",
@@ -634,7 +635,7 @@ def api_executar_suite_testes(request: HttpRequest) -> JsonResponse:
     })
 
     # Teste 4: Chave pública presente
-    public_key = getattr(settings, "STONE_PUBLIC_KEY", "") or ""
+    public_key = chave_integracao("STONE_PUBLIC_KEY")
     has_public = bool(public_key and public_key.startswith("pk_"))
     testes_resultados.append({
         "id": "credencial_publica",
@@ -760,7 +761,7 @@ def webhook_stone(request: HttpRequest) -> JsonResponse:
     import hashlib
 
     # Verificação opcional de assinatura HMAC se STONE_WEBHOOK_SECRET estiver configurado
-    webhook_secret = getattr(settings, "STONE_WEBHOOK_SECRET", "") or ""
+    webhook_secret = chave_integracao("STONE_WEBHOOK_SECRET")
     if webhook_secret:
         sig = request.headers.get("X-Hub-Signature") or request.headers.get("X-Pagarme-Signature")
         if sig:

@@ -28,6 +28,7 @@ urlpatterns = [
     path("inventory/", include("apps.inventory.urls")),
     path("backups/", include("apps.backups.urls")),
     path("chat/", include("apps.whatsapp.urls")),
+    path("dev/chaves/", include("apps.integracoes.urls")),
     re_path(r"^media/(?P<path>.*)$", serve, {"document_root": settings.MEDIA_ROOT}),
 ]
 

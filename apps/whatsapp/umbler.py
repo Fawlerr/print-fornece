@@ -25,6 +25,8 @@ from typing import Any
 
 from django.conf import settings
 
+from apps.integracoes.cofre import valor as chave_integracao
+
 from .telefone import telefone_canonico
 
 logger = logging.getLogger("whatsapp")
@@ -116,8 +118,8 @@ def _multipart(campos: dict[str, str], arquivo: tuple[str, str, bytes] | None) -
 class UmblerClient:
     def __init__(self, *, base_url: str | None = None, token: str | None = None, organizacao: str | None = None, timeout: int | None = None):
         self.base_url = (base_url if base_url is not None else getattr(settings, "UMBLER_API_URL", "") or BASE_PADRAO).rstrip("/")
-        self.token = token if token is not None else getattr(settings, "UMBLER_API_TOKEN", "")
-        self.organizacao = organizacao if organizacao is not None else getattr(settings, "UMBLER_ORGANIZATION_ID", "")
+        self.token = token if token is not None else chave_integracao("UMBLER_API_TOKEN")
+        self.organizacao = organizacao if organizacao is not None else chave_integracao("UMBLER_ORGANIZATION_ID")
         self.timeout = timeout or int(getattr(settings, "UMBLER_TIMEOUT_SECONDS", 20))
 
     @property

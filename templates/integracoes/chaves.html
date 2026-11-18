@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block title %}Chaves de integração | Print Fornece{% endblock %}
+{% block page_heading %}Chaves de integração{% endblock %}
+
+{% block content %}
+  <style>
+    .ck-intro { color: var(--muted); max-width: 72ch; }
+    .ck-amb { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; margin: 4px 0 16px; }
+    .ck-lista { display: grid; gap: 16px; }
+    .ck-campo { display: grid; gap: 6px; padding: 14px 0; border-top: 1px solid var(--line); }
+    .ck-campo:first-child { border-top: 0; padding-top: 0; }
+    .ck-topo { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+    .ck-topo label { font-weight: 600; color: var(--text); }
+    .ck-topo code { font-size: .78rem; color: var(--muted); }
+    .ck-origem { font-size: .72rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; border: 1px solid transparent; }
+    .ck-origem--painel { background: var(--st-confirmado-bg); color: var(--st-confirmado-fg); }
+    .ck-origem--env { background: var(--surface-2); color: var(--text); border-color: var(--line); }
+    .ck-origem--vazia, .ck-origem--ilegivel { background: var(--st-cancelado-bg); color: var(--st-cancelado-fg); }
+    .ck-atual { font-size: .85rem; color: var(--muted); }
+    .ck-atual strong { font-family: ui-monospace, monospace; color: var(--text); }
+    .ck-campo input[type=password] { width: 100%; max-width: 560px; font-family: ui-monospace, monospace; }
+    .ck-opcoes { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: .88rem; }
+    .ck-opcoes label { display: inline-flex; align-items: center; gap: 6px; font-weight: 400; }
+    .ck-acoes { position: sticky; bottom: 0; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between;
+                padding: 12px 16px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-md); }
+    .ck-acoes p { margin: 0; color: var(--muted); font-size: .85rem; }
+  </style>
+
+  <p class="ck-intro">
+    Só desenvolvedores veem esta página. As chaves ficam <strong>criptografadas no banco</strong> e passam a valer na hora, sem reiniciar.
+    Uma chave salva aqui tem prioridade sobre o <code>.env</code>. Por segurança, nenhuma chave volta para a tela: aparecem só os 4 últimos caracteres.
+    Toda alteração fica registrada na auditoria.
+  </p>
+
+  <form method="post" autocomplete="off" novalidate>
+    {% csrf_token %}
+    <div class="ck-lista">
+      {% for grupo in grupos %}
+        <section class="card form-card" aria-labelledby="ck-{{ grupo.chave }}">
+          <div class="section-heading">
+            <div>
+              <h2 id="ck-{{ grupo.chave }}"><i class="{{ grupo.icone }}" aria-hidden="true"></i> {{ grupo.titulo }}</h2>
+              {% if grupo.chave == "stone" %}
+                <div class="ck-amb">
+                  <span>Ambiente (definido no <code>.env</code> em <code>STONE_ENVIRONMENT</code>):</span>
+                  <span class="status-pill {% if stone_em_producao %}status-pill--on{% else %}status-pill--off{% endif %}">{% if stone_em_producao %}Produção{% else %}Teste ({{ ambiente_stone }}){% endif %}</span>
+                </div>
+                <p>
+                  {% if stone_em_producao %}Em produção só são aceitas chaves de produção (<code>sk_</code>/<code>pk_</code> sem <code>_test_</code>).
+                  {% else %}Em teste só são aceitas chaves <code>sk_test_</code> e <code>pk_test_</code>.{% endif %}
+                  As chaves ficam guardadas separadas por ambiente.
+                </p>
+              {% else %}
+                <p>Depois de trocar o token ou a organização, use <strong>Importar canais da Umbler</strong> em Chat &gt; Números conectados para conferir.</p>
+              {% endif %}
+            </div>
+          </div>
+
+          {% for item in grupo.campos %}
+            {% with campo=item.campo s=item.situacao %}
+              <div class="ck-campo">
+                <div class="ck-topo">
+                  <label for="ck-{{ campo.nome }}">{{ campo.rotulo }}</label>
+                  <code>{{ campo.nome }}</code>
+                  {% if s.origem == "painel" %}<span class="ck-origem ck-origem--painel">Salva aqui</span>
+                  {% elif s.origem == "env" %}<span class="ck-origem ck-origem--env">Vindo do .env</span>
+                  {% elif s.origem == "ilegivel" %}<span class="ck-origem ck-origem--ilegivel">Ilegível (chave mestra mudou)</span>
+                  {% else %}<span class="ck-origem ck-origem--vazia">Não configurada</span>{% endif %}
+                </div>
+                {% if s.final %}
+                  <div class="ck-atual">
+                    Atual termina em <strong>…{{ s.final }}</strong>
+                    {% if s.atualizado_em %} · salva em {{ s.atualizado_em|date:"d/m/Y H:i" }}{% if s.atualizado_por %} por {{ s.atualizado_por.name|default:s.atualizado_por.email }}{% endif %}{% endif %}
+                  </div>
+                {% endif %}
+                <input type="password" id="ck-{{ campo.nome }}" name="valor__{{ campo.nome }}" autocomplete="new-password" spellcheck="false"
+                       placeholder="{% if s.final %}Deixe em branco para manter a atual{% else %}Cole a chave aqui{% endif %}"
+                       {% if campo.ajuda %}aria-describedby="ck-ajuda-{{ campo.nome }}"{% endif %}{% if item.erro %} aria-invalid="true"{% endif %}>
+                {% if campo.ajuda %}<span class="help" id="ck-ajuda-{{ campo.nome }}">{{ campo.ajuda }}</span>{% endif %}
+                {% if item.erro %}<span class="field-errors" role="alert">{{ item.erro }}</span>{% endif %}
+                <div class="ck-opcoes">
+                  <label><input type="checkbox" data-mostrar="ck-{{ campo.nome }}"> Mostrar o que estou digitando</label>
+                  {% if campo.gerar %}<label><input type="checkbox" name="gerar__{{ campo.nome }}" value="1"> Gerar um segredo novo</label>{% endif %}
+                  {% if s.tem_registro %}<label><input type="checkbox" name="remover__{{ campo.nome }}" value="1"> Apagar daqui e voltar a usar o .env</label>{% endif %}
+                </div>
+              </div>
+            {% endwith %}
+          {% endfor %}
+        </section>
+      {% endfor %}
+    </div>
+
+    <div class="ck-acoes">
+      <p>Campos em branco não mudam.{% if not chave_mestra_propria %} Criptografia derivada da <code>SECRET_KEY</code>: se ela mudar, salve as chaves de novo.{% endif %}</p>
+      <button class="btn btn-primary" type="submit"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Salvar chaves</button>
+    </div>
+  </form>
+
+  <script>
+    document.querySelectorAll("[data-mostrar]").forEach(function (caixa) {
+      caixa.addEventListener("change", function () {
+        var campo = document.getElementById(caixa.dataset.mostrar);
+        if (campo) campo.type = caixa.checked ? "text" : "password";
+      });
+    });
+  </script>
+{% endblock %}

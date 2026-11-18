@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     "apps.backups",
     "apps.business",
     "apps.whatsapp",
+    "apps.integracoes",
 ]
 
 MIDDLEWARE = [
@@ -192,6 +193,11 @@ LOGGING = {
             "level": "INFO",
             "propagate": False,
         },
+        "integracoes": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
     },
 }
 
@@ -287,6 +293,10 @@ UMBLER_ORGANIZATION_ID = os.getenv("UMBLER_ORGANIZATION_ID", "").strip()
 UMBLER_TIMEOUT_SECONDS = int(os.getenv("UMBLER_TIMEOUT_SECONDS", "20"))
 # Segredo que vai na URL do webhook cadastrada no painel da Umbler. Vazio = webhook recusa tudo.
 UMBLER_WEBHOOK_SECRET = os.getenv("UMBLER_WEBHOOK_SECRET", "").strip()
+
+# Chaves salvas pela página de desenvolvedor (Dev > Chaves de integração) ficam criptografadas com esta chave Fernet.
+# Vazio = derivada da SECRET_KEY. Gere com: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+INTEGRACOES_CHAVE_MESTRA = os.getenv("INTEGRACOES_CHAVE_MESTRA", "").strip()
 # Endereço público do Print (usado para montar a URL do webhook na tela de números).
 WHATSAPP_WEBHOOK_BASE_URL = (os.getenv("WHATSAPP_WEBHOOK_BASE_URL") or os.getenv("EVOLUTION_WEBHOOK_BASE_URL", "")).strip().rstrip("/")
 

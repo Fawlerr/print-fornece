@@ -15,6 +15,8 @@ from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_POST
 
+from apps.integracoes.cofre import valor as chave_integracao
+
 from . import services
 from .evolution import EvolutionClient, EvolutionErro, nome_instancia_valido
 from .provedores import ProvedorErro, ProvedorUmbler
@@ -591,7 +593,7 @@ def instancias(request: HttpRequest) -> HttpResponse:
 
 def _url_webhook_umbler(request: HttpRequest) -> str:
     """URL para colar em Configurações > Webhooks no painel da Umbler (só administradores veem)."""
-    segredo = getattr(settings, "UMBLER_WEBHOOK_SECRET", "") or ""
+    segredo = chave_integracao("UMBLER_WEBHOOK_SECRET")
     if not segredo:
         return ""
     base = (getattr(settings, "WHATSAPP_WEBHOOK_BASE_URL", "") or request.build_absolute_uri("/")).rstrip("/")
@@ -781,7 +783,7 @@ def webhook_umbler(request: HttpRequest, token: str) -> JsonResponse:
 
     A Umbler não assina o webhook: a origem é validada pelo segredo na URL (cadastrada no painel da Umbler).
     """
-    segredo = getattr(settings, "UMBLER_WEBHOOK_SECRET", "") or ""
+    segredo = chave_integracao("UMBLER_WEBHOOK_SECRET")
     if not segredo or not hmac.compare_digest((token or "").encode(), segredo.encode()):
         logger.warning("Webhook da Umbler recusado: segredo inválido (IP %s)", request.META.get("REMOTE_ADDR", "?"))
         return JsonResponse({"ok": False}, status=403)

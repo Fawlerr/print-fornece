@@ -50,6 +50,9 @@
       <a href="{% url 'backups:list' %}"{% if request.resolver_match.namespace == 'backups' %} class="active" aria-current="page"{% endif %}>
         <i class="fa-solid fa-database" aria-hidden="true"></i><span>Backups</span>
       </a>
+      <a href="{% url 'integracoes:chaves' %}"{% if request.resolver_match.namespace == 'integracoes' %} class="active" aria-current="page"{% endif %}>
+        <i class="fa-solid fa-key" aria-hidden="true"></i><span>Chaves de integração</span>
+      </a>
     {% endif %}
     {% if user.is_dev or user.is_superuser %}
       <a href="{% url 'payments:stone_dev_console' %}"{% if '/payments/stone/' in request.path %} class="active" aria-current="page"{% endif %} title="Console Dev & Observabilidade Stone V5">
