@@ -17,7 +17,7 @@ from urllib.request import Request, urlopen
 
 from django.conf import settings
 
-from .normalizers import amount_to_cents, document_type, stone_phone
+from .normalizers import amount_to_cents, stone_phone
 
 logger = logging.getLogger("pagamentos")
 
@@ -305,7 +305,9 @@ class StoneService:
 
     def __init__(self, *, api_base_url: str | None = None, secret_key: str | None = None, timeout: int | None = None):
         self.api_base_url = (api_base_url or settings.STONE_API_BASE_URL).rstrip("/")
-        self.secret_key = settings.STONE_SECRET_KEY if secret_key is None else secret_key
+        from apps.integracoes.cofre import valor as chave_integracao
+
+        self.secret_key = chave_integracao("STONE_SECRET_KEY") if secret_key is None else secret_key
         self.timeout = settings.STONE_TIMEOUT_SECONDS if timeout is None else timeout
 
     @property
@@ -319,6 +321,13 @@ class StoneService:
             raise StoneConfigurationError("A chave secreta da Stone (STONE_SECRET_KEY / sk_...) ainda não foi configurada.")
         if not (self.secret_key.startswith("sk_test_") or self.secret_key.startswith("sk_")):
             raise StoneConfigurationError("A chave secreta configurada não possui o formato de chave secreta V5 ('sk_...').")
+        # Trava de segurança: o prefixo da chave precisa bater com o ambiente. Uma chave de produção
+        # em sandbox (ou o contrário) é recusada antes de qualquer chamada, para nunca mover dinheiro real em teste.
+        is_test_key = self.secret_key.startswith("sk_test_")
+        if settings.STONE_ENVIRONMENT in {"sandbox", "test"} and not is_test_key:
+            raise StoneConfigurationError("Ambiente de teste exige chave 'sk_test_'. A chave configurada parece ser de produção.")
+        if settings.STONE_ENVIRONMENT == "production" and is_test_key:
+            raise StoneConfigurationError("Ambiente de produção não aceita chave 'sk_test_'.")
 
 
 
@@ -406,12 +415,13 @@ class StoneService:
         idempotency_key: str | None = None,
         trace_id: str | None = None,
         event_type: str = "pagar_me_request",
+        base_url: str | None = None,
     ) -> dict[str, Any]:
         from time import perf_counter
         from .logger import IntegrationLogger, generate_trace_id
 
         actual_trace = trace_id or generate_trace_id()
-        url = f"{self.api_base_url}/{path.lstrip('/')}"
+        url = f"{(base_url or self.api_base_url).rstrip('/')}/{path.lstrip('/')}"
         headers = self._headers(idempotency_key=idempotency_key)
         body = None if payload is None else json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
         request = Request(url, data=body, headers=headers, method=method)
@@ -714,6 +724,45 @@ class StoneService:
             "metadata": {"local_reference": reference[:100]},
         }
         return self._request("POST", "/orders", payload=payload, idempotency_key=idempotency_key)
+
+    # ------------------------------------------------------------------
+    # Link de pagamento (POST/GET /paymentlinks, PATCH /paymentlinks/{id}/cancel)
+    # Em teste o Pagar.me usa outro host (sdx-api), por isso a URL própria.
+    # ------------------------------------------------------------------
+    @property
+    def payment_link_base_url(self) -> str:
+        return getattr(settings, "STONE_PAYMENT_LINK_API_URL", "") or self.api_base_url
+
+    def create_payment_link(self, payload: dict[str, Any], *, idempotency_key: str) -> dict[str, Any]:
+        methods = (payload.get("payment_settings") or {}).get("accepted_payment_methods")
+        if methods != ["credit_card"]:
+            raise StoneValidationError("O link de pagamento do sistema aceita somente cartão de crédito.")
+        return self._request(
+            "POST", "/paymentlinks", payload=payload, idempotency_key=idempotency_key,
+            event_type="payment_link_criacao", base_url=self.payment_link_base_url,
+        )
+
+    def get_payment_link(self, link_id: str) -> dict[str, Any]:
+        if not link_id:
+            raise StoneValidationError("Link sem identificador do Pagar.me.")
+        return self._request("GET", f"/paymentlinks/{link_id}", event_type="payment_link_consulta", base_url=self.payment_link_base_url)
+
+    def cancel_payment_link(self, link_id: str) -> dict[str, Any]:
+        if not link_id:
+            raise StoneValidationError("Link sem identificador do Pagar.me.")
+        return self._request("PATCH", f"/paymentlinks/{link_id}/cancel", event_type="payment_link_cancelamento", base_url=self.payment_link_base_url)
+
+    def get_order(self, stone_order_id: str) -> dict[str, Any]:
+        if not stone_order_id:
+            raise StoneValidationError("Pedido Pagar.me sem identificador.")
+        return self._request("GET", f"/orders/{stone_order_id}", event_type="pedido_consulta")
+
+    def list_orders_by_code(self, code: str) -> list[dict[str, Any]]:
+        from urllib.parse import urlencode
+
+        data = self._request("GET", f"/orders?{urlencode({'code': code, 'size': 10})}", event_type="pedido_busca_codigo")
+        items = data.get("data")
+        return [item for item in items if isinstance(item, dict)] if isinstance(items, list) else []
 
     def get_payment(self, stone_payment_id: str) -> dict[str, Any]:
         if not stone_payment_id:

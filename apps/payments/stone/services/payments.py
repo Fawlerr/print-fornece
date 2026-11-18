@@ -426,9 +426,11 @@ def reconcile_order_payment(
             recorded_by=actor,
         )
 
-        # Recalculate total paid
+        # Soma ao que já estava pago, como o registro manual de pagamento faz. Recalcular só pelos
+        # OrderPayment apagava o sinal digitado no cadastro do pedido (que não gera OrderPayment).
+        # A idempotência vem do `existing_op` acima: cada cobrança Stone entra uma única vez.
         all_splits = list(order.payments.all())
-        total_paid = sum((sp.amount for sp in all_splits), Decimal("0.00"))
+        total_paid = (order.paid_amount or Decimal("0.00")) + amount
         if total_paid > order.total_amount and order.total_amount > Decimal("0.00"):
             order.paid_amount = order.total_amount
         else:
@@ -442,6 +444,7 @@ def reconcile_order_payment(
             order.payment_method = list(distinct_methods)[0]
 
         # Transition status
+        stage_change = None
         if order.paid_amount >= order.total_amount and order.total_amount > Decimal("0.00"):
             order.payment_status = Order.PaymentStatus.PAID
             order.payment_confirmed_at = payment.paid_at or timezone.now()
@@ -453,16 +456,21 @@ def reconcile_order_payment(
                 prev_stage = order.stage
                 order.stage = Order.Stage.PAYMENT_CONFIRMED
                 order.stage_updated_at = timezone.now()
-                OrderStageHistory.objects.create(
-                    order=order,
-                    previous_stage=prev_stage,
-                    new_stage=Order.Stage.PAYMENT_CONFIRMED,
-                    user=actor,
-                )
+                stage_change = prev_stage
         else:
             order.payment_status = Order.PaymentStatus.PARTIAL
 
         order.save()
+        if stage_change is not None:
+            # Depois do save: o sinal do histórico marca a impressão da nota direto no banco, e um
+            # order.save() posterior com o objeto em memória apagaria essa marcação.
+            OrderStageHistory.objects.create(
+                order=order,
+                previous_stage=stage_change,
+                new_stage=Order.Stage.PAYMENT_CONFIRMED,
+                user=actor,
+            )
+            order.refresh_from_db(fields=["receipt_print_requested_at"])
 
         # Audit & History
         desc = f"Pagamento de R$ {amount:.2f} confirmado via Stone ({method_name}). Saldo pago: R$ {order.paid_amount:.2f} de R$ {order.total_amount:.2f}."
@@ -729,6 +737,23 @@ def process_stone_webhook(payload: dict[str, Any], headers: dict[str, str] | Non
     last_tx = data.get("last_transaction") if isinstance(data.get("last_transaction"), dict) else {}
     transaction_id = str(last_tx.get("id") or "")
 
+    # 3a. Pagamento feito por link de pagamento (order_code "PFL-..."): fluxo próprio, sempre consultando a API.
+    from apps.payments import links as payment_links
+
+    link = payment_links.localizar_por_codigo(order_code)
+    if link is not None:
+        result = payment_links.processar_webhook(link, data)
+        IntegrationLogger.record(
+            trace_id=trace_id,
+            nivel="SUCCESS",
+            tipo_evento="webhook_processado_sucesso",
+            mensagem=f"Webhook {event_id} ({event_type}) do link {link.order_code} processado: {result.get('link_status', result.get('status'))}.",
+            endpoint="/payments/stone/webhook/",
+            metodo_http="POST",
+            webhook_event_id=event_id,
+        )
+        return {"event_id": event_id, "event": event_type, **result}
+
     payment = None
     if charge_id:
         payment = Pagamento.objects.filter(stone_payment_id=charge_id).first()
@@ -752,9 +777,17 @@ def process_stone_webhook(payload: dict[str, Any], headers: dict[str, str] | Non
         )
         return {"status": "payment_not_found", "event_id": event_id, "event": event_type}
 
-    # 4. Apply status update
+    # 4. Apply status update. O corpo do webhook não é assinado de forma documentada pela V5, então ele é
+    # tratado só como aviso: o estado aplicado vem de uma consulta autenticada à API (cobrança ou pedido).
     try:
-        updated_payment = apply_stone_response(payment.pk, data, event_type=f"webhook_{event_type}")
+        service = StoneService()
+        if payment.stone_payment_id:
+            authoritative = service.get_payment(payment.stone_payment_id)
+        elif payment.stone_order_id:
+            authoritative = service.get_order(payment.stone_order_id)
+        else:
+            raise StoneAPIError("Pagamento local sem identificador Stone para confirmar o webhook.")
+        updated_payment = apply_stone_response(payment.pk, authoritative, event_type=f"webhook_{event_type}")
 
         # If confirmed paid, reconcile order immediately
         if updated_payment.status == Pagamento.Status.PAID:

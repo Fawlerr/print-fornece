@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Chat WhatsApp | Print Fornece{% endblock %}
+{% block page_heading %}Chat WhatsApp{% endblock %}
+{% block body_class %}chat-page{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/chat.css' %}">{% endblock %}
+
+{% block content %}
+{{ dados_iniciais|json_script:"chat-dados" }}
+<div class="wa" id="wa" data-tela="lista"
+     data-url-conversas="{% url 'whatsapp:api_conversas' %}"
+     data-url-nova="{% url 'whatsapp:api_nova_conversa' %}"
+     data-url-base="/chat/api/">
+
+  <!-- Coluna 1: perfis e lista de conversas -->
+  <section class="wa-lista" aria-label="Conversas">
+    <div class="wa-perfis" role="tablist" aria-label="Números de WhatsApp" id="wa-perfis"></div>
+    <div class="wa-busca">
+      <label class="visually-hidden" for="wa-busca-input">Buscar conversa</label>
+      <div class="wa-busca-campo">
+        <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+        <input id="wa-busca-input" type="search" placeholder="Buscar por nome ou telefone" autocomplete="off">
+      </div>
+      <button type="button" class="wa-icone" id="wa-filtros-toggle" aria-expanded="false" aria-controls="wa-filtros" title="Filtros">
+        <i class="fa-solid fa-filter" aria-hidden="true"></i><span class="visually-hidden">Filtros</span>
+      </button>
+      <button type="button" class="wa-icone" id="wa-nova-btn" title="Nova conversa">
+        <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i><span class="visually-hidden">Nova conversa</span>
+      </button>
+    </div>
+    <div class="wa-filtros" id="wa-filtros" hidden>
+      <div class="wa-chips" role="group" aria-label="Filtro">
+        <button type="button" class="wa-chip is-ativo" data-filtro="">Todas</button>
+        <button type="button" class="wa-chip" data-filtro="nao_lidas">Não lidas <span data-contador="nao_lidas"></span></button>
+        <button type="button" class="wa-chip" data-filtro="arquivadas">Arquivadas <span data-contador="arquivadas"></span></button>
+      </div>
+      <label class="wa-select" for="wa-etiqueta-filtro">Etiqueta
+        <select id="wa-etiqueta-filtro"><option value="">Todas as etiquetas</option></select>
+      </label>
+    </div>
+    <ul class="wa-conversas" id="wa-conversas" aria-live="polite"></ul>
+    {% if pode_gerenciar %}
+      <a class="wa-gerenciar" href="{% url 'whatsapp:instancias' %}"><i class="fa-solid fa-gear" aria-hidden="true"></i> Números conectados</a>
+    {% endif %}
+  </section>
+
+  <!-- Coluna 2: conversa aberta -->
+  <section class="wa-conversa" aria-label="Conversa aberta" id="wa-conversa">
+    <div class="wa-vazio" id="wa-vazio">
+      <i class="fa-brands fa-whatsapp" aria-hidden="true"></i>
+      <p>Escolha uma conversa para começar.</p>
+    </div>
+
+    <header class="wa-topo" id="wa-topo" hidden>
+      <button type="button" class="wa-icone wa-voltar" data-voltar aria-label="Voltar para a lista"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i></button>
+      <div class="wa-avatar" id="wa-topo-avatar" aria-hidden="true"></div>
+      <button type="button" class="wa-topo-info" data-abrir-painel>
+        <strong id="wa-topo-nome"></strong>
+        <small id="wa-topo-telefone"></small>
+      </button>
+      <button type="button" class="wa-icone" id="wa-arquivar" title="Arquivar conversa"><i class="fa-solid fa-box-archive" aria-hidden="true"></i><span class="visually-hidden">Arquivar</span></button>
+      <button type="button" class="wa-icone" data-abrir-painel title="Pedidos do cliente" aria-controls="wa-painel"><i class="fa-solid fa-receipt" aria-hidden="true"></i><span class="visually-hidden">Pedidos do cliente</span></button>
+    </header>
+
+    <div class="wa-mensagens" id="wa-mensagens" hidden tabindex="0" aria-label="Mensagens">
+      <button type="button" class="btn btn-secondary btn-small wa-anteriores" id="wa-anteriores" hidden>Carregar mensagens anteriores</button>
+      <ol id="wa-lista-mensagens"></ol>
+    </div>
+
+    <form class="wa-composer" id="wa-composer" hidden autocomplete="off">
+      <div class="wa-anexo-previa" id="wa-anexo-previa" hidden>
+        <div class="wa-anexo-info"><i class="fa-solid fa-paperclip" aria-hidden="true"></i> <span id="wa-anexo-nome"></span></div>
+        <img id="wa-anexo-img" alt="" hidden>
+        <label class="wa-check"><input type="checkbox" id="wa-como-documento"> Enviar como documento (sem compressão)</label>
+        <button type="button" class="wa-icone" id="wa-anexo-remover" aria-label="Remover anexo"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+      </div>
+      <div class="wa-composer-linha">
+        <button type="button" class="wa-icone" data-emoji-toggle aria-controls="wa-emoji-painel" aria-expanded="false" aria-label="Inserir emoji" title="Emojis"
+                data-emoji-target="wa-texto"
+                data-picker-src="{% static 'vendor/emoji-picker-element/picker.js' %}"
+                data-i18n-src="{% static 'vendor/emoji-picker-element/i18n/pt_BR.js' %}"
+                data-data-src="{% static 'vendor/emoji-picker-element/data/pt/data.json' %}">
+          <i class="fa-regular fa-face-smile" aria-hidden="true"></i>
+        </button>
+        <label class="wa-icone" for="wa-arquivo" title="Anexar arquivo">
+          <i class="fa-solid fa-paperclip" aria-hidden="true"></i><span class="visually-hidden">Anexar arquivo</span>
+        </label>
+        <input type="file" id="wa-arquivo" class="visually-hidden" accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.zip,.txt,.csv,.ai,.eps,.psd,.svg,.tif,.tiff">
+        <label class="visually-hidden" for="wa-texto">Mensagem</label>
+        <textarea id="wa-texto" rows="1" maxlength="4096" placeholder="Mensagem" enterkeyhint="send"></textarea>
+        <button type="submit" class="wa-enviar" id="wa-enviar" aria-label="Enviar"><i class="fa-solid fa-paper-plane" aria-hidden="true"></i></button>
+      </div>
+      <div class="emoji-panel" id="wa-emoji-painel" role="dialog" aria-label="Emojis" hidden>
+        <div class="emoji-panel-head">
+          <strong>Emojis</strong>
+          <button type="button" class="wa-icone" data-emoji-close aria-label="Fechar emojis"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+        </div>
+      </div>
+    </form>
+  </section>
+
+  <!-- Coluna 3: cliente e pedidos -->
+  <aside class="wa-painel" id="wa-painel" aria-label="Cliente e pedidos" hidden>
+    <header class="wa-painel-topo">
+      <button type="button" class="wa-icone" data-fechar-painel aria-label="Fechar painel"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+      <strong>Cliente e pedidos</strong>
+    </header>
+    <div class="wa-painel-corpo" id="wa-painel-corpo"></div>
+  </aside>
+</div>
+
+<dialog class="pf-dialog wa-dialogo" id="wa-dialogo-apagar">
+  <form method="dialog">
+    <h2>Apagar mensagem?</h2>
+    <p id="wa-apagar-motivo" class="help"></p>
+    <div class="wa-dialogo-acoes">
+      <button class="btn btn-danger" value="todos" id="wa-apagar-todos">Apagar para todos</button>
+      <button class="btn btn-secondary" value="mim" id="wa-apagar-mim">Apagar para mim</button>
+      <button class="btn btn-secondary" value="">Cancelar</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog class="pf-dialog wa-dialogo" id="wa-dialogo-nova">
+  <form method="dialog" id="wa-nova-form">
+    <h2>Nova conversa</h2>
+    <label for="wa-nova-telefone">Celular com DDD
+      <input id="wa-nova-telefone" type="tel" inputmode="tel" placeholder="(84) 99999-1234" required>
+    </label>
+    <label for="wa-nova-nome">Nome (opcional)
+      <input id="wa-nova-nome" type="text" maxlength="150">
+    </label>
+    <label for="wa-nova-instancia" id="wa-nova-instancia-label">Enviar pelo número
+      <select id="wa-nova-instancia"></select>
+    </label>
+    <p class="form-error" id="wa-nova-erro" hidden></p>
+    <div class="wa-dialogo-acoes">
+      <button class="btn btn-primary" value="ok" id="wa-nova-ok">Abrir conversa</button>
+      <button class="btn btn-secondary" value="" formnovalidate>Cancelar</button>
+    </div>
+  </form>
+</dialog>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{% static 'js/chat-emoji.js' %}" defer></script>
+<script src="{% static 'js/chat.js' %}" defer></script>
+{% endblock %}

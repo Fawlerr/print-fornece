@@ -1,4 +1,7 @@
 import uuid
+from decimal import Decimal
+
+from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
@@ -327,3 +330,84 @@ class StoneEventoPagamento(models.Model):
 
 
 
+
+
+class LinkPagamento(models.Model):
+    """Link de pagamento no cartão (Pagar.me /paymentlinks) com valor calculado pelo sistema."""
+
+    class Status(models.TextChoices):
+        ATIVO = "ativo", "Ativo"
+        PAGO = "pago", "Pago"
+        PAGO_PARCIAL = "pago_parcial", "Pago parcialmente"
+        EXPIRADO = "expirado", "Expirado"
+        CANCELADO = "cancelado", "Cancelado"
+        FALHOU = "falhou", "Falhou ao gerar"
+
+    order = models.ForeignKey(Order, on_delete=models.PROTECT, related_name="links_pagamento", verbose_name="pedido")
+    status = models.CharField(max_length=14, choices=Status.choices, default=Status.ATIVO, db_index=True)
+    # Igual ao id do pedido enquanto o link está ativo e NULL depois: a unicidade garante um só link ativo
+    # por pedido também no MariaDB (que não suporta índice único condicional).
+    trava_ativo = models.PositiveBigIntegerField(null=True, blank=True, unique=True, editable=False)
+    pagarme_link_id = models.CharField("ID do link no Pagar.me", max_length=100, blank=True, default="", db_index=True)
+    url = models.URLField("URL do link", max_length=500, blank=True, default="")
+    order_code = models.CharField("código enviado ao Pagar.me", max_length=52, unique=True)
+    idempotency_key = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    valor_centavos = models.PositiveIntegerField("valor do link (centavos)")
+    saldo_centavos = models.PositiveIntegerField("saldo do pedido na geração (centavos)")
+    acrescimo_centavos = models.PositiveIntegerField("taxa repassada (centavos)", default=0)
+    total_pedido = models.DecimalField("total do pedido na geração", max_digits=12, decimal_places=2)
+    pago_antes = models.DecimalField("já pago na geração", max_digits=12, decimal_places=2)
+    parcelas = models.JSONField("opções de parcelamento", default=list, blank=True)
+    expira_em = models.DateTimeField("expira em")
+    criado_por = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL, related_name="links_pagamento_criados")
+    criado_em = models.DateTimeField(auto_now_add=True)
+    enviado_em = models.DateTimeField("enviado pelo chat em", null=True, blank=True)
+    cancelado_por = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
+    cancelado_em = models.DateTimeField(null=True, blank=True)
+    motivo_cancelamento = models.CharField(max_length=160, blank=True, default="")
+    pago_em = models.DateTimeField(null=True, blank=True)
+    valor_pago_centavos = models.PositiveIntegerField("valor cobrado do cliente (centavos)", null=True, blank=True)
+    parcelas_pagas = models.PositiveSmallIntegerField(null=True, blank=True)
+    pagarme_order_id = models.CharField(max_length=100, blank=True, default="", db_index=True)
+    pagarme_charge_id = models.CharField(max_length=100, blank=True, default="", db_index=True)
+    pagamento = models.ForeignKey(
+        StonePagamento, null=True, blank=True, on_delete=models.SET_NULL, related_name="links_pagamento",
+        verbose_name="pagamento registrado",
+    )
+    erro = models.CharField(max_length=255, blank=True, default="")
+
+    class Meta:
+        db_table = "pf_links_pagamento"
+        ordering = ["-criado_em", "-pk"]
+        verbose_name = "Link de pagamento"
+        verbose_name_plural = "Links de pagamento"
+
+    def __str__(self) -> str:
+        return f"Link {self.order_code} ({self.get_status_display()})"
+
+    def save(self, *args, **kwargs):
+        self.trava_ativo = self.order_id if self.status == self.Status.ATIVO else None
+        update_fields = kwargs.get("update_fields")
+        if update_fields is not None and "status" in update_fields and "trava_ativo" not in update_fields:
+            kwargs["update_fields"] = [*update_fields, "trava_ativo"]
+        super().save(*args, **kwargs)
+
+    @property
+    def valor(self) -> Decimal:
+        return (Decimal(self.valor_centavos) / 100).quantize(Decimal("0.01"))
+
+    @property
+    def saldo(self) -> Decimal:
+        return (Decimal(self.saldo_centavos) / 100).quantize(Decimal("0.01"))
+
+    @property
+    def valor_pago(self) -> Decimal | None:
+        if self.valor_pago_centavos is None:
+            return None
+        return (Decimal(self.valor_pago_centavos) / 100).quantize(Decimal("0.01"))
+
+    @property
+    def expirado(self) -> bool:
+        from django.utils import timezone as tz
+
+        return self.status == self.Status.ATIVO and self.expira_em <= tz.now()

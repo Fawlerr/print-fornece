@@ -5,6 +5,7 @@ __pycache__/
 *.sqlite3
 staticfiles/
 media/
+private_media/
 reports/migration-*.json
 teste_stone/
 .DS_Store

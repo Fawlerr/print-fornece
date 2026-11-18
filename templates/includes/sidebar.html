@@ -20,6 +20,12 @@
     <a href="{% url 'production:kanban' %}"{% if request.resolver_match.namespace == 'production' %} class="active" aria-current="page"{% endif %}>
       <i class="fa-solid fa-table-columns" aria-hidden="true"></i><span>Produção</span>
     </a>
+    {% if chat_disponivel %}
+      <a href="{% url 'whatsapp:chat' %}"{% if request.resolver_match.namespace == 'whatsapp' %} class="active" aria-current="page"{% endif %}>
+        <i class="fa-brands fa-whatsapp" aria-hidden="true"></i><span>Chat WhatsApp</span>
+        {% if chat_nao_lidas %}<span class="sidebar-chat-badge" aria-label="{{ chat_nao_lidas }} mensagens não lidas">{{ chat_nao_lidas }}</span>{% endif %}
+      </a>
+    {% endif %}
     <a href="{% url 'payments:customer_list' %}"{% if request.resolver_match.namespace == 'payments' %} class="active" aria-current="page"{% endif %}>
       <i class="fa-solid fa-address-book" aria-hidden="true"></i><span>Clientes</span>
     </a>
@@ -43,6 +49,9 @@
     {% if user.is_dev %}
       <a href="{% url 'backups:list' %}"{% if request.resolver_match.namespace == 'backups' %} class="active" aria-current="page"{% endif %}>
         <i class="fa-solid fa-database" aria-hidden="true"></i><span>Backups</span>
+      </a>
+      <a href="{% url 'integracoes:chaves' %}"{% if request.resolver_match.namespace == 'integracoes' %} class="active" aria-current="page"{% endif %}>
+        <i class="fa-solid fa-key" aria-hidden="true"></i><span>Chaves de integração</span>
       </a>
     {% endif %}
     {% if user.is_dev or user.is_superuser %}

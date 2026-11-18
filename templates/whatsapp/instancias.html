@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Números de WhatsApp | Print Fornece{% endblock %}
+{% block page_heading %}Números de WhatsApp{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/chat.css' %}">{% endblock %}
+
+{% block content %}
+<div class="pl-page" style="max-width: 1200px;">
+  <p class="pl-back"><a class="btn btn-secondary btn-small" href="{% url 'whatsapp:chat' %}"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Voltar para o chat</a></p>
+
+  <section class="card pl-card" aria-labelledby="wi-umbler-titulo">
+    <h2 id="wi-umbler-titulo">Umbler Talk</h2>
+    {% if umbler_configurado %}
+      <p class="help">API configurada. Os números (canais) são conectados no painel da Umbler Talk; aqui você só traz os canais e define a vendedora de cada um.</p>
+      <form method="post" class="pl-acoes">
+        {% csrf_token %}
+        <input type="hidden" name="acao" value="importar_umbler">
+        <button class="btn btn-primary" type="submit"><i class="fa-solid fa-cloud-arrow-down" aria-hidden="true"></i> Importar canais da Umbler</button>
+      </form>
+    {% else %}
+      <div class="alert alert-warning" role="alert">
+        A API da Umbler não está configurada. Preencha <code>UMBLER_API_TOKEN</code> (gerado em account.umbler.com/profile) e <code>UMBLER_ORGANIZATION_ID</code> no <code>.env</code> do servidor.
+      </div>
+    {% endif %}
+    {% if umbler_webhook_url %}
+      <div class="pl-url">
+        <label for="wi-webhook-url">URL do webhook (cole em Configurações &gt; Webhooks no painel da Umbler, evento <strong>Message</strong>)</label>
+        <div class="pl-url-linha">
+          <input id="wi-webhook-url" type="text" readonly value="{{ umbler_webhook_url }}">
+          <button type="button" class="btn btn-secondary" data-copiar="#wi-webhook-url"><i class="fa-solid fa-copy" aria-hidden="true"></i> Copiar</button>
+        </div>
+        <p class="help">Esta URL contém o segredo do webhook: não compartilhe fora da administração.</p>
+      </div>
+    {% else %}
+      <p class="help">Defina o segredo do webhook da Umbler (em <code>.env</code> ou, para desenvolvedores, em Chaves de integração) para gerar a URL do webhook. Sem ele, mensagens recebidas não chegam ao sistema.</p>
+    {% endif %}
+  </section>
+
+  <section aria-labelledby="wi-lista-titulo">
+    <h2 id="wi-lista-titulo">Números cadastrados</h2>
+    {% if instancias %}
+      <div class="wi-grid">
+        {% for inst in instancias %}
+          <article class="card wi-card" data-instancia="{{ inst.pk }}" data-url="{% url 'whatsapp:instancia_acao' pk=inst.pk acao='ACAO' %}">
+            <h3><span class="wi-cor" style="background: {{ inst.cor }};" aria-hidden="true"></span>{{ inst.apelido }}</h3>
+            <p class="help">
+              {{ inst.get_provedor_display }}
+              {% if inst.provedor == "umbler" %}&middot; canal {{ inst.telefone_canal|default:"sem telefone" }}{% else %}&middot; instância <code>{{ inst.nome }}</code>{% endif %}
+              {% if inst.compartilhada %} &middot; compartilhada com o atendimento{% endif %}{% if inst.padrao_automaticas %} &middot; padrão das mensagens automáticas{% endif %}{% if not inst.ativa %} &middot; <strong>desativada</strong>{% endif %}
+            </p>
+            <label class="wi-vendedora">Vendedora
+              <select data-vendedora>
+                <option value="">Nenhuma (número da empresa)</option>
+                {% for u in usuarios %}<option value="{{ u.pk }}"{% if inst.vendedora_id == u.pk %} selected{% endif %}>{{ u.name|default:u.email }}</option>{% endfor %}
+              </select>
+            </label>
+            <p class="wi-estado wi-estado--{{ inst.estado|default:'close' }}" data-estado aria-live="polite">
+              {% if inst.estado == "open" %}Conectado{% if inst.numero_conectado %} ({{ inst.numero_conectado }}){% endif %}{% elif inst.estado == "connecting" %}Aguardando conexão{% elif inst.estado == "close" %}Desconectado{% else %}Ainda não verificado{% endif %}
+              {% if inst.estado_verificado_em %}<small class="help"> &middot; verificado {{ inst.estado_verificado_em|date:"d/m H:i" }}</small>{% endif %}
+            </p>
+            <div class="wi-qr" data-qr hidden><img alt="QR Code para conectar o WhatsApp"></div>
+            <p class="help" data-pareamento hidden></p>
+            <div class="wi-acoes">
+              {% if inst.provedor == "umbler" %}
+                <button type="button" class="btn btn-secondary btn-small" data-acao="estado"{% if not umbler_configurado %} disabled{% endif %}>Verificar conexão</button>
+              {% else %}
+                <button type="button" class="btn btn-primary btn-small" data-acao="conectar"{% if not configurado %} disabled{% endif %}><i class="fa-solid fa-qrcode" aria-hidden="true"></i> Conectar</button>
+                <button type="button" class="btn btn-secondary btn-small" data-acao="estado"{% if not configurado %} disabled{% endif %}>Verificar</button>
+                <button type="button" class="btn btn-secondary btn-small" data-acao="reiniciar"{% if not configurado %} disabled{% endif %}>Reconectar</button>
+                <button type="button" class="btn btn-secondary btn-small" data-acao="webhook"{% if not configurado or not webhook_configurado %} disabled{% endif %}>Configurar webhook</button>
+                <button type="button" class="btn btn-danger btn-small" data-acao="desconectar" data-confirmar="Desconectar este número? Será preciso ler o QR Code de novo."{% if not configurado %} disabled{% endif %}>Desconectar</button>
+              {% endif %}
+              <button type="button" class="btn btn-secondary btn-small" data-acao="ativar">{% if inst.ativa %}Desativar no sistema{% else %}Ativar no sistema{% endif %}</button>
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="empty-state">Nenhum número cadastrado ainda.{% if umbler_configurado %} Use "Importar canais da Umbler".{% endif %}</p>
+    {% endif %}
+  </section>
+
+  <section class="card" aria-labelledby="wi-novo-titulo">
+    <form method="post" class="wi-form">
+      {% csrf_token %}
+      <h2 id="wi-novo-titulo" style="grid-column: 1 / -1; margin: 0;">Cadastrar número manualmente</h2>
+      <label>Provedor
+        <select name="provedor">
+          {% for valor, rotulo in provedores %}<option value="{{ valor }}"{% if valor == provedor_padrao %} selected{% endif %}>{{ rotulo }}</option>{% endfor %}
+        </select>
+      </label>
+      <label>Identificador interno
+        <input name="nome" required pattern="[a-z0-9_-]{2,60}" placeholder="pf_ana" autocomplete="off">
+      </label>
+      <label>Nome exibido
+        <input name="apelido" required maxlength="80" placeholder="Ana - Vendas">
+      </label>
+      <label>Telefone do canal (Umbler)
+        <input name="telefone_canal" type="tel" inputmode="tel" placeholder="(84) 99999-0000">
+      </label>
+      <label>ID do canal (Umbler, opcional)
+        <input name="canal_id" maxlength="40" autocomplete="off">
+      </label>
+      <label>Vendedora dona do número
+        <select name="vendedora">
+          <option value="">Nenhuma (número da empresa)</option>
+          {% for u in usuarios %}<option value="{{ u.pk }}">{{ u.name|default:u.email }}</option>{% endfor %}
+        </select>
+      </label>
+      <label>Cor da etiqueta
+        <input type="color" name="cor" value="#3BA776">
+      </label>
+      <label class="wa-check"><input type="checkbox" name="compartilhada" value="1"> Compartilhar com todo o atendimento</label>
+      <label class="wa-check"><input type="checkbox" name="padrao_automaticas" value="1"> Usar nas mensagens automáticas</label>
+      <button class="btn btn-primary" type="submit">Cadastrar</button>
+    </form>
+  </section>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(function () {
+  "use strict";
+  function cookie(nome) {
+    const m = document.cookie.match(new RegExp("(?:^|; )" + nome + "=([^;]*)"));
+    return m ? decodeURIComponent(m[1]) : "";
+  }
+  document.querySelectorAll("[data-copiar]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const alvo = document.querySelector(btn.dataset.copiar);
+      try { await navigator.clipboard.writeText(alvo.value); btn.textContent = "Copiado"; } catch (e) { alvo.select(); }
+    });
+  });
+  const ROTULOS = { open: "Conectado", connecting: "Aguardando conexão", close: "Desconectado" };
+  document.querySelectorAll("[data-instancia]").forEach((card) => {
+    const estado = card.querySelector("[data-estado]");
+    const qr = card.querySelector("[data-qr]");
+    const pareamento = card.querySelector("[data-pareamento]");
+    let vigia = null;
+
+    async function acao(nome, corpo) {
+      const resp = await fetch(card.dataset.url.replace("ACAO", nome), {
+        method: "POST", credentials: "same-origin", body: corpo,
+        headers: { "X-CSRFToken": cookie("csrftoken"), "X-Requested-With": "fetch" },
+      });
+      const dados = await resp.json().catch(() => ({}));
+      if (!resp.ok || dados.ok === false) throw new Error(dados.erro || "Falha ao falar com o provedor.");
+      return dados;
+    }
+
+    function mostrarEstado(valor, numero) {
+      estado.className = `wi-estado wi-estado--${valor || "close"}`;
+      estado.textContent = (ROTULOS[valor] || valor || "Desconhecido") + (numero ? ` (${numero})` : "");
+      if (valor === "open") { qr.hidden = true; pareamento.hidden = true; if (vigia) clearInterval(vigia); vigia = null; }
+    }
+
+    const seletor = card.querySelector("[data-vendedora]");
+    seletor.addEventListener("change", async () => {
+      const fd = new FormData();
+      fd.append("vendedora", seletor.value);
+      try { await acao("vendedora", fd); estado.textContent = "Vendedora atualizada."; } catch (e) { estado.textContent = e.message; }
+    });
+
+    card.querySelectorAll("[data-acao]").forEach((botao) => {
+      botao.addEventListener("click", async () => {
+        if (botao.dataset.confirmar && !window.confirm(botao.dataset.confirmar)) return;
+        botao.disabled = true;
+        try {
+          const nome = botao.dataset.acao;
+          const dados = await acao(nome);
+          if (nome === "ativar") { window.location.reload(); return; }
+          if (dados.estado) mostrarEstado(dados.estado, dados.numero);
+          if (nome === "conectar" && dados.qrcode) {
+            const src = dados.qrcode.startsWith("data:") ? dados.qrcode : `data:image/png;base64,${dados.qrcode}`;
+            qr.querySelector("img").src = src;
+            qr.hidden = false;
+            if (dados.codigo_pareamento) { pareamento.textContent = `Ou use o código de pareamento: ${dados.codigo_pareamento}`; pareamento.hidden = false; }
+            if (vigia) clearInterval(vigia);
+            let voltas = 0;
+            vigia = setInterval(async () => {
+              voltas += 1;
+              try { const d = await acao("estado"); mostrarEstado(d.estado, d.numero); } catch (e) { /* tenta de novo */ }
+              if (voltas > 30 && vigia) { clearInterval(vigia); vigia = null; }
+            }, 4000);
+          } else if (nome === "webhook") {
+            estado.textContent = dados.ok ? "Webhook configurado." : "O provedor não aceitou a configuração do webhook.";
+          }
+        } catch (e) {
+          estado.className = "wi-estado wi-estado--erro";
+          estado.textContent = e.message;
+        } finally {
+          botao.disabled = false;
+        }
+      });
+    });
+  });
+})();
+</script>
+{% endblock %}

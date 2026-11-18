@@ -14,20 +14,19 @@ from __future__ import annotations
 import json
 import uuid
 from decimal import Decimal
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
-from django.test import TestCase, override_settings
+from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
 from apps.accounts.models import User
-from apps.orders.models import Order, OrderPayment
-from apps.payments.models import Cliente, StonePagamento, StoneLogIntegracao
+from apps.orders.models import Order
+from apps.payments.models import Cliente, StonePagamento
 from apps.payments.stone.services.stone import StoneAPIError, StoneService
 from apps.payments.stone.services.payments import (
     create_order_stone_payment,
     process_stone_webhook,
-    reconcile_order_payment,
 )
 
 
@@ -90,6 +89,23 @@ class FakeStoneOrderService:
                     },
                 }
             ],
+        }
+
+    # O webhook passou a consultar a cobrança na API antes de dar baixa: este é o "lado Stone" dessa consulta.
+    remote_status = "paid"
+
+    def get_payment(self, charge_id):
+        return {
+            "id": charge_id,
+            "status": self.remote_status,
+            "payment_method": "pix",
+            "paid_at": "2026-10-13T19:30:00Z" if self.remote_status == "paid" else None,
+            "order": {"id": charge_id.replace("ch_pix_", "or_stone_")},
+            "last_transaction": {
+                "id": charge_id.replace("ch_", "tran_"),
+                "transaction_type": "pix",
+                "status": "paid" if self.remote_status == "paid" else "waiting_payment",
+            },
         }
 
     def test_connectivity(self):

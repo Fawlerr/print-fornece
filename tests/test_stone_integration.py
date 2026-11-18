@@ -1,20 +1,16 @@
 """Testes de integração automatizados do módulo Stone / Pagar.me V5 (Sandbox & Serviços)."""
 from __future__ import annotations
 
-import json
 import uuid
 from decimal import Decimal
 from unittest.mock import patch
 
 from django.test import TestCase, override_settings
 from django.urls import reverse
-from django.utils import timezone
 
 from apps.accounts.models import User
 from apps.payments.models import (
     Cliente,
-    StoneEventoPagamento,
-    StoneLogIntegracao,
     StoneMetodoPagamento,
     StonePagamento,
 )
@@ -26,14 +22,9 @@ from apps.payments.stone.services.normalizers import (
     normalize_phone,
     parse_brl,
 )
-from apps.payments.stone.services.payments import create_payment, refresh_payment, sync_customer
+from apps.payments.stone.services.payments import create_payment, refresh_payment
 from apps.payments.stone.services.stone import (
     StoneAPIError,
-    StoneConfigurationError,
-    StoneIdempotencyExpiredError,
-    StoneInProgressError,
-    StoneService,
-    StoneValidationError,
 )
 
 
@@ -240,16 +231,16 @@ class StoneIntegrationTestCase(TestCase):
 
     @override_settings(
         STONE_ENVIRONMENT="production",
-        STONE_ACCOUNT_ID="acc_EBZAgeuxaf084Xe1",
-        STONE_SECRET_KEY="sk_a9728e9512964df184ac0b09b8b436d1",
-        STONE_PUBLIC_KEY="pk_v6krKPwcoaS1pd8G",
+        STONE_ACCOUNT_ID="acc_0000000000AA4Xe1",
+        STONE_SECRET_KEY="sk_00000000000000000000000000ab36d1",
+        STONE_PUBLIC_KEY="pk_0000000000AApd8G",
     )
     def test_stone_key_masking_and_environment_suite(self):
         from apps.payments.stone.services.logger import mask_secret
 
-        self.assertEqual(mask_secret("acc_EBZAgeuxaf084Xe1"), "acc_••••••••4Xe1")
-        self.assertEqual(mask_secret("sk_a9728e9512964df184ac0b09b8b436d1"), "sk_••••••••36d1")
-        self.assertEqual(mask_secret("pk_v6krKPwcoaS1pd8G"), "pk_••••••••pd8G")
+        self.assertEqual(mask_secret("acc_0000000000AA4Xe1"), "acc_••••••••4Xe1")
+        self.assertEqual(mask_secret("sk_00000000000000000000000000ab36d1"), "sk_••••••••36d1")
+        self.assertEqual(mask_secret("pk_0000000000AApd8G"), "pk_••••••••pd8G")
 
         self.client.force_login(self.dev_user)
         with patch("apps.payments.stone.services.stone.StoneService.test_connectivity", return_value={"_stone_http_status": 200}), \

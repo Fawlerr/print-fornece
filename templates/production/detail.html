@@ -16,6 +16,11 @@
       <a class="btn btn-secondary" href="{% url 'orders:download_receipt' pk=order.pk %}" target="_blank" rel="noopener" title="Gerar comprovante do pedido em PDF">
         <i class="fa-solid fa-file-pdf" aria-hidden="true"></i> Gerar comprovante
       </a>
+      {% if chat_disponivel and order.client_whatsapp %}
+        <a class="btn btn-secondary" href="{% url 'whatsapp:abrir_pedido' order_id=order.pk %}" title="Abrir a conversa de WhatsApp com o cliente">
+          <i class="fa-brands fa-whatsapp" aria-hidden="true"></i> Abrir conversa
+        </a>
+      {% endif %}
       <a class="btn btn-secondary" href="{% url 'production:kanban' %}">
         <i class="fa-solid fa-table-columns" aria-hidden="true"></i> Produção
       </a>
@@ -190,6 +195,34 @@
               <strong style="color: var(--danger-ink); background: var(--danger); padding: 2px 8px; border-radius: 4px; font-size: 0.88rem; white-space: nowrap;">
                 Cobrar: R$ {{ order.remaining_amount|floatformat:2 }}
               </strong>
+            </div>
+          {% endif %}
+
+          {% if pode_gerar_link and order.remaining_amount > 0 or links_pagamento %}
+            <div class="order-link-box">
+              <div class="order-link-box__topo">
+                <strong><i class="fa-solid fa-credit-card" aria-hidden="true"></i> Link de pagamento (cartão)</strong>
+                {% if pode_gerar_link and order.remaining_amount > 0 %}
+                  <a class="btn btn-primary btn-small" href="{% url 'payments:link_confirmar' order_id=order.pk %}">Gerar link de pagamento (cartão)</a>
+                {% endif %}
+              </div>
+              {% if link_ativo %}
+                <p class="order-link-box__ativo">Ativo: <strong>R$ {{ link_ativo.valor|floatformat:2 }}</strong>, válido até {{ link_ativo.expira_em|date:"d/m H:i" }}{% if link_ativo.enviado_em %} &middot; enviado pelo chat{% endif %}. <a href="{% url 'payments:link_detalhe' pk=link_ativo.pk %}">Copiar / enviar / cancelar</a></p>
+              {% endif %}
+              {% if links_pagamento %}
+                <details class="order-link-box__historico">
+                  <summary>Histórico de links ({{ links_pagamento|length }})</summary>
+                  <ul>
+                    {% for l in links_pagamento %}
+                      <li>
+                        <a href="{% url 'payments:link_detalhe' pk=l.pk %}">{{ l.criado_em|date:"d/m H:i" }}</a>
+                        &middot; R$ {{ l.valor|floatformat:2 }} &middot; {% if l.expirado %}Expirado{% else %}{{ l.get_status_display }}{% endif %}
+                        &middot; {{ l.criado_por.name|default:l.criado_por.email|default:"-" }}{% if l.pago_em %} &middot; pago {{ l.pago_em|date:"d/m H:i" }}{% endif %}
+                      </li>
+                    {% endfor %}
+                  </ul>
+                </details>
+              {% endif %}
             </div>
           {% endif %}
 
@@ -426,7 +459,7 @@
           </form>
         </div>
 
-        <p class="text-muted" style="font-size: 0.85rem; line-height: 1.4; margin-bottom: 12px;">Dispare as mensagens prontas (sem emojis) para cada etapa do funil:</p>
+        <p class="text-muted" style="font-size: 0.85rem; line-height: 1.4; margin-bottom: 12px;">Dispare as mensagens prontas (sem emojis) para cada etapa do funil.{% if chat_disponivel %} O botão <i class="fa-solid fa-paper-plane" aria-hidden="true"></i> envia pelo WhatsApp do sistema e registra no chat; o botão verde abre o WhatsApp do aparelho.{% endif %}</p>
 
         <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px;">
           <!-- 1. Orçamento Completo + Preview -->
@@ -434,6 +467,14 @@
             <a href="{{ whatsapp_links.quote_url }}" target="_blank" class="btn btn-primary" style="flex: 1; min-width: 180px; background-color: var(--brand); border-color: var(--brand); color: var(--brand-ink); height: 38px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-size: 0.88rem;">
               <i class="fa-brands fa-whatsapp"></i> 1. Enviar Orçamento Completo
             </a>
+            {% if chat_disponivel %}
+              <form method="post" action="{% url 'whatsapp:enviar_aviso' order_id=order.pk tipo='orcamento' %}" style="margin: 0;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-secondary btn-small" title="Enviar pelo WhatsApp do sistema (fica no histórico do chat)" style="height: 38px;">
+                  <i class="fa-solid fa-paper-plane" aria-hidden="true"></i><span class="visually-hidden">Enviar pelo sistema</span>
+                </button>
+              </form>
+            {% endif %}
             <a href="{% url 'orders:art_preview' pk=order.pk %}" target="_blank" class="btn btn-secondary btn-small" title="Abrir imagem de preview para conferir/anexar" style="height: 38px; display: inline-flex; align-items: center; gap: 4px;">
               <i class="fa-solid fa-image"></i> Preview
             </a>
@@ -447,6 +488,14 @@
             <a href="{{ whatsapp_links.ready_url }}" target="_blank" class="btn btn-secondary" style="flex: 1; height: 38px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-size: 0.88rem; border-color: var(--st-novo-fg); color: var(--st-novo-fg);">
               <i class="fa-brands fa-whatsapp"></i> 2. Avisar: Pronto para Retirada
             </a>
+            {% if chat_disponivel %}
+              <form method="post" action="{% url 'whatsapp:enviar_aviso' order_id=order.pk tipo='pronto' %}" style="margin: 0;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-secondary btn-small" title="Enviar pelo WhatsApp do sistema (fica no histórico do chat)" style="height: 38px;">
+                  <i class="fa-solid fa-paper-plane" aria-hidden="true"></i><span class="visually-hidden">Enviar pelo sistema</span>
+                </button>
+              </form>
+            {% endif %}
             <button type="button" class="btn btn-secondary btn-small" onclick="copyToClipboard('{{ whatsapp_links.ready_message|escapejs }}', this)" title="Copiar texto de retirada" style="height: 38px;">
               <i class="fa-solid fa-copy"></i>
             </button>
@@ -457,6 +506,14 @@
             <a href="{{ whatsapp_links.delivered_url }}" target="_blank" class="btn btn-secondary" style="flex: 1; height: 38px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-size: 0.88rem; border-color: var(--brand); color: var(--brand-text);">
               <i class="fa-brands fa-whatsapp"></i> 3. Avisar: Material Entregue
             </a>
+            {% if chat_disponivel %}
+              <form method="post" action="{% url 'whatsapp:enviar_aviso' order_id=order.pk tipo='entregue' %}" style="margin: 0;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-secondary btn-small" title="Enviar pelo WhatsApp do sistema (fica no histórico do chat)" style="height: 38px;">
+                  <i class="fa-solid fa-paper-plane" aria-hidden="true"></i><span class="visually-hidden">Enviar pelo sistema</span>
+                </button>
+              </form>
+            {% endif %}
             <button type="button" class="btn btn-secondary btn-small" onclick="copyToClipboard('{{ whatsapp_links.delivered_message|escapejs }}', this)" title="Copiar texto de entrega" style="height: 38px;">
               <i class="fa-solid fa-copy"></i>
             </button>

@@ -1,0 +1,1 @@
+emoji-picker-element 1.29.1 + emoji-picker-element-data 1.8.0 (pt/cldr), copiados do npm. Licenças: LICENSE e data/LICENSE.

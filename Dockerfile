@@ -20,7 +20,7 @@ COPY . /app
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
-RUN mkdir -p /app/staticfiles /app/media/order_attachments /app/backups
+RUN mkdir -p /app/staticfiles /app/media/order_attachments /app/backups /app/private_media
 
 EXPOSE 8000
 

@@ -10,7 +10,13 @@ from apps.accounts.permissions import require_administrator
 from apps.audit.services import record_audit
 from apps.production.services import MAX_CANCEL_ATTEMPTS
 
-from .forms import BusinessHoursSettingsForm, CancellationPinForm, ReceiptPrintSettingsForm, ShirtDiscountSettingsForm
+from .forms import (
+    BusinessHoursSettingsForm,
+    CancellationPinForm,
+    PaymentLinkSettingsForm,
+    ReceiptPrintSettingsForm,
+    ShirtDiscountSettingsForm,
+)
 from .hours import get_business_hours
 from .models import BusinessSettings
 
@@ -22,6 +28,7 @@ SECTION_FORMS = {
     "desconto_camisa": ShirtDiscountSettingsForm,
     "horario": BusinessHoursSettingsForm,
     "impressao": ReceiptPrintSettingsForm,
+    "link_pagamento": PaymentLinkSettingsForm,
     "cancelamento": CancellationPinForm,
 }
 
